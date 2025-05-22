@@ -1,0 +1,35 @@
+package handlers
+
+import (
+	"fmt"
+	"pvz-cli/internal/apperrors"
+	"pvz-cli/internal/constants"
+	"pvz-cli/internal/usecases/services"
+)
+
+type ListReturnsParams struct {
+	Page  *int `json:"page,omitempty"`
+	Limit *int `json:"limit,omitempty"`
+}
+
+func HandleListReturnsCommand(params ListReturnsParams, svc services.ReturnService) {
+	page := constants.DefaultPage
+	limit := constants.DefaultLimit
+	if params.Page != nil {
+		page = *params.Page
+	}
+	if params.Limit != nil {
+		limit = *params.Limit
+	}
+
+	entries, err := svc.ListReturns(page, limit)
+	if err != nil {
+		apperrors.Handle(err)
+		return
+	}
+
+	for _, r := range entries {
+		fmt.Printf("RETURN: %s %s %s\n", r.OrderID, r.UserID, r.ReturnedAt.Format(constants.TimeLayout))
+	}
+	fmt.Printf("PAGE: %d LIMIT: %d\n", page, limit)
+}
