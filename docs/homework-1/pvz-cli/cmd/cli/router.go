@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"pvz-cli/internal/apperrors"
 	"pvz-cli/internal/usecases/cli/handlers"
 	"pvz-cli/internal/usecases/services"
 	"strings"
@@ -25,25 +26,70 @@ func (c *Router) Run() {
 
 func (c *Router) runBatch(cmd string, args []string) {
 	parser := NewArgsParser(args)
+
 	switch cmd {
 	case "help":
 		handlers.HandleHelpCommand()
+
 	case "accept-order":
-		handlers.HandleAcceptOrderCommand(parser.AcceptOrderParams(), c.OrderService)
+		params, err := parser.AcceptOrderParams()
+		if err != nil {
+			apperrors.Handle(err)
+			return
+		}
+		handlers.HandleAcceptOrderCommand(params, c.OrderService)
+
 	case "return-order":
-		handlers.HandleReturnOrderCommand(parser.ReturnOrderParams(), c.ReturnService)
+		params, err := parser.ReturnOrderParams()
+		if err != nil {
+			apperrors.Handle(err)
+			return
+		}
+		handlers.HandleReturnOrderCommand(params, c.ReturnService)
+
 	case "process-orders":
-		handlers.HandleProcessOrders(parser.ProcessOrdersParams(), c.OrderService, c.ReturnService)
+		params, err := parser.ProcessOrdersParams()
+		if err != nil {
+			apperrors.Handle(err)
+			return
+		}
+		handlers.HandleProcessOrders(params, c.OrderService, c.ReturnService)
+
 	case "list-orders":
-		handlers.HandleListOrdersCommand(parser.ListOrdersParams(), c.OrderService)
+		params, err := parser.ListOrdersParams()
+		if err != nil {
+			apperrors.Handle(err)
+			return
+		}
+		handlers.HandleListOrdersCommand(params, c.OrderService)
+
 	case "list-returns":
-		handlers.HandleListReturnsCommand(parser.ListReturnsParams(), c.ReturnService)
+		params, err := parser.ListReturnsParams()
+		if err != nil {
+			apperrors.Handle(err)
+			return
+		}
+		handlers.HandleListReturnsCommand(params, c.ReturnService)
+
 	case "order-history":
 		handlers.HandleOrderHistoryCommand(c.HistoryService)
+
 	case "import-orders":
-		handlers.HandleImportOrdersCommand(parser.ImportOrdersParams(), c.OrderService)
+		params, err := parser.ImportOrdersParams()
+		if err != nil {
+			apperrors.Handle(err)
+			return
+		}
+		handlers.HandleImportOrdersCommand(params, c.OrderService)
+
 	case "scroll-orders":
-		handlers.HandleScrollOrdersCommand(parser.ScrollOrdersParams(), c.OrderService)
+		params, err := parser.ScrollOrdersParams()
+		if err != nil {
+			apperrors.Handle(err)
+			return
+		}
+		handlers.HandleScrollOrdersCommand(params, c.OrderService)
+
 	default:
 		fmt.Printf("ERROR: unknown command %q\n", cmd)
 	}
