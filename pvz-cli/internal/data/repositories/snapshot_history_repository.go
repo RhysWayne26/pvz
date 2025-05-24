@@ -2,7 +2,6 @@ package repositories
 
 import (
 	"errors"
-	"github.com/google/uuid"
 	"pvz-cli/internal/data/storage"
 	"pvz-cli/internal/models"
 )
@@ -25,7 +24,7 @@ func (r *snapshotHistoryRepository) Save(e models.HistoryEntry) error {
 	return r.storage.Save(snap)
 }
 
-func (r *snapshotHistoryRepository) LoadByOrder(orderID uuid.UUID) ([]models.HistoryEntry, error) {
+func (r *snapshotHistoryRepository) LoadByOrder(orderID string) ([]models.HistoryEntry, error) {
 	snap, err := r.storage.Load()
 	if err != nil {
 		return nil, err

@@ -3,7 +3,6 @@ package validators
 import (
 	"time"
 
-	"github.com/google/uuid"
 	"pvz-cli/internal/apperrors"
 	"pvz-cli/internal/models"
 	"pvz-cli/internal/usecases/requests"
@@ -19,7 +18,7 @@ func (v *DefaultOrderValidator) ValidateAccept(o models.Order, req requests.Acce
 	if req.ExpiresAt.Before(time.Now()) {
 		return apperrors.Newf(apperrors.ValidationFailed, "expires date is in the past")
 	}
-	if o.OrderID != uuid.Nil {
+	if o.OrderID != "" {
 		return apperrors.Newf(apperrors.OrderAlreadyExists, "order already exists")
 	}
 	return nil

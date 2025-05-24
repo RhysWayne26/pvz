@@ -3,7 +3,6 @@ package services
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/google/uuid"
 	"os"
 	"pvz-cli/internal/apperrors"
 	"pvz-cli/internal/constants"
@@ -11,6 +10,7 @@ import (
 	"pvz-cli/internal/models"
 	"pvz-cli/internal/usecases/requests"
 	"pvz-cli/internal/validators"
+	"strings"
 	"time"
 )
 
@@ -96,13 +96,13 @@ func (s *defaultOrderService) IssueOrder(req requests.IssueOrderRequest) error {
 	return nil
 }
 
-func (s *defaultOrderService) ListOrders(filter requests.ListOrdersFilter) ([]models.Order, *uuid.UUID, int, error) {
+func (s *defaultOrderService) ListOrders(filter requests.ListOrdersFilter) ([]models.Order, string, int, error) {
 	all, err := s.orderRepo.List(requests.ListOrdersFilter{
 		UserID: filter.UserID,
 		InPvz:  filter.InPvz,
 	})
 	if err != nil {
-		return nil, nil, 0, apperrors.Newf(apperrors.InternalError, "failed to list orders: %v", err)
+		return nil, "", 0, apperrors.Newf(apperrors.InternalError, "failed to list orders: %v", err)
 	}
 
 	if filter.Last != nil {
@@ -110,28 +110,28 @@ func (s *defaultOrderService) ListOrders(filter requests.ListOrdersFilter) ([]mo
 		if len(all) > n {
 			all = all[len(all)-n:]
 		}
-		return all, nil, len(all), nil
+		return all, "", len(all), nil
 	}
 
 	filtered, err := s.orderRepo.List(filter)
 	if err != nil {
-		return nil, nil, 0, apperrors.Newf(apperrors.InternalError, "failed to list paginated: %v", err)
+		return nil, "", 0, apperrors.Newf(apperrors.InternalError, "failed to list paginated: %v", err)
 	}
 
-	var nextLast *uuid.UUID
+	var nextLast string
 	if len(filtered) > 0 {
 		last := filtered[len(filtered)-1].OrderID
-		nextLast = &last
+		nextLast = last
 	}
 
 	countFilter := filter
 	countFilter.Page = nil
 	countFilter.Limit = nil
-	countFilter.LastID = nil
+	countFilter.LastID = ""
 
 	counted, err := s.orderRepo.List(countFilter)
 	if err != nil {
-		return nil, nil, 0, apperrors.Newf(apperrors.InternalError, "failed to count orders: %v", err)
+		return nil, "", 0, apperrors.Newf(apperrors.InternalError, "failed to count orders: %v", err)
 	}
 
 	return filtered, nextLast, len(counted), nil
@@ -155,10 +155,10 @@ func (s *defaultOrderService) ImportOrders(filePath string) (int, error) {
 
 	var imported int
 	for _, item := range raw {
-		orderID, err1 := uuid.Parse(item["order_id"])
-		userID, err2 := uuid.Parse(item["user_id"])
-		expiresAt, err3 := time.Parse(constants.TimeLayout, item["expires_at"])
-		if err1 != nil || err2 != nil || err3 != nil {
+		orderID := strings.TrimSpace(item["order_id"])
+		userID := strings.TrimSpace(item["user_id"])
+		expiresAt, err := time.Parse(constants.TimeLayout, item["expires_at"])
+		if err != nil {
 			fmt.Printf("SKIPPED: %s — parsing failed\n", item["order_id"])
 			continue
 		}

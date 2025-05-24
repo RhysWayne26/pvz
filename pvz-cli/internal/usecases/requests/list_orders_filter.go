@@ -1,11 +1,9 @@
 package requests
 
-import "github.com/google/uuid"
-
 type ListOrdersFilter struct {
-	UserID uuid.UUID
+	UserID string
 	InPvz  *bool
-	LastID *uuid.UUID
+	LastID string
 	Page   *int
 	Limit  *int
 	Last   *int

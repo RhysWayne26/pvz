@@ -4,9 +4,9 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"pvz-cli/internal/utils"
 	"strings"
 
-	"github.com/google/uuid"
 	"pvz-cli/internal/apperrors"
 	"pvz-cli/internal/constants"
 	"pvz-cli/internal/usecases/requests"
@@ -14,14 +14,15 @@ import (
 )
 
 type ScrollOrdersParams struct {
-	UserID string `json:"userID"`
+	UserID string `json:"user_id"`
 	Limit  *int   `json:"limit,omitempty"`
 }
 
 func HandleScrollOrdersCommand(params ScrollOrdersParams, svc services.OrderService) {
-	userID, err := uuid.Parse(params.UserID)
-	if err != nil {
-		apperrors.Handle(apperrors.Newf(apperrors.ValidationFailed, "invalid user_id"))
+	userID := strings.TrimSpace(params.UserID)
+
+	if err := utils.ValidatePositiveInt("limit", params.Limit); err != nil {
+		apperrors.Handle(err)
 		return
 	}
 
@@ -31,7 +32,7 @@ func HandleScrollOrdersCommand(params ScrollOrdersParams, svc services.OrderServ
 	}
 
 	reader := bufio.NewScanner(os.Stdin)
-	var lastID *uuid.UUID
+	var lastID string
 	noMoreData := false
 
 	for {
@@ -66,8 +67,8 @@ func HandleScrollOrdersCommand(params ScrollOrdersParams, svc services.OrderServ
 			fmt.Printf("ORDER: %s %s %s %s\n", o.OrderID, o.UserID, o.Status, o.ExpiresAt.Format(constants.TimeLayout))
 		}
 
-		if nextID != nil {
-			fmt.Printf("NEXT: %s\n", *nextID)
+		if nextID != "" {
+			fmt.Printf("NEXT: %s\n", nextID)
 			lastID = nextID
 		} else {
 			fmt.Println("NEXT: -")

@@ -2,22 +2,18 @@ package handlers
 
 import (
 	"fmt"
-	"github.com/google/uuid"
 	"pvz-cli/internal/apperrors"
 	"pvz-cli/internal/usecases/requests"
 	"pvz-cli/internal/usecases/services"
+	"strings"
 )
 
 type ReturnOrderParams struct {
-	OrderID string `json:"orderID"`
+	OrderID string `json:"order_id"`
 }
 
 func HandleReturnOrderCommand(params ReturnOrderParams, svc services.ReturnService) {
-	orderID, err := uuid.Parse(params.OrderID)
-	if err != nil {
-		apperrors.Handle(apperrors.Newf(apperrors.ValidationFailed, "invalid order_id"))
-		return
-	}
+	orderID := strings.TrimSpace(params.OrderID)
 
 	req := requests.ReturnOrderRequest{
 		OrderID: orderID,

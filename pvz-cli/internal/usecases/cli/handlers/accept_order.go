@@ -2,34 +2,25 @@ package handlers
 
 import (
 	"fmt"
-	"github.com/google/uuid"
 	"pvz-cli/internal/apperrors"
 	"pvz-cli/internal/constants"
 	"pvz-cli/internal/usecases/requests"
 	"pvz-cli/internal/usecases/services"
+	"strings"
 	"time"
 )
 
 type AcceptOrderParams struct {
-	OrderID   string `json:"orderID"`
-	UserID    string `json:"userID"`
-	ExpiresAt string `json:"expiresAt"`
+	OrderID   string `json:"order_id"`
+	UserID    string `json:"user_id"`
+	ExpiresAt string `json:"expires_at"`
 }
 
 func HandleAcceptOrderCommand(params AcceptOrderParams, svc services.OrderService) {
-	orderID, err := uuid.Parse(params.OrderID)
-	if err != nil {
-		apperrors.Handle(apperrors.Newf(apperrors.ValidationFailed, "invalid order_id"))
-		return
-	}
+	orderID := strings.TrimSpace(params.OrderID)
+	userID := strings.TrimSpace(params.UserID)
 
-	userID, err := uuid.Parse(params.UserID)
-	if err != nil {
-		apperrors.Handle(apperrors.Newf(apperrors.ValidationFailed, "invalid user_id"))
-		return
-	}
-
-	expiresAt, err := time.Parse(constants.TimeLayout, params.ExpiresAt)
+	expiresAt, err := time.Parse(constants.TimeLayout, strings.TrimSpace(params.ExpiresAt))
 	if err != nil {
 		apperrors.Handle(apperrors.Newf(apperrors.ValidationFailed, "invalid expires_at format"))
 		return

@@ -2,42 +2,29 @@ package handlers
 
 import (
 	"fmt"
-	"github.com/google/uuid"
 	"pvz-cli/internal/apperrors"
 	"pvz-cli/internal/constants"
 	"pvz-cli/internal/usecases/requests"
 	"pvz-cli/internal/usecases/services"
+	"pvz-cli/internal/utils"
 	"strings"
 )
 
 type ProcessOrdersParams struct {
-	UserID   string `json:"userID"`
+	UserID   string `json:"user_id"`
 	Action   string `json:"action"`
-	OrderIDs string `json:"orderIDs"`
+	OrderIDs string `json:"order_ids"`
 }
 
 func HandleProcessOrders(params ProcessOrdersParams,
 	orderSvc services.OrderService, returnSvc services.ReturnService,
 ) {
-	uid, err := uuid.Parse(params.UserID)
-	if err != nil {
-		apperrors.Handle(apperrors.Newf(apperrors.ValidationFailed, "invalid user_id"))
+	uid := strings.TrimSpace(params.UserID)
+	rawOrders := strings.Split(params.OrderIDs, ",")
+	ids := utils.UniqueStrings(rawOrders)
+	if len(ids) == 0 {
+		apperrors.Handle(apperrors.Newf(apperrors.ValidationFailed, "no order IDs provided"))
 		return
-	}
-
-	parts := strings.Split(params.OrderIDs, ",")
-	var ids []uuid.UUID
-	for _, p := range parts {
-		p = strings.TrimSpace(p)
-		if p == "" {
-			continue
-		}
-		id, e := uuid.Parse(p)
-		if e != nil {
-			apperrors.Handle(apperrors.Newf(apperrors.ValidationFailed, "invalid order_id: %s", p))
-			return
-		}
-		ids = append(ids, id)
 	}
 
 	switch params.Action {

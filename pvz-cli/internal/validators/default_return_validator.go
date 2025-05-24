@@ -38,9 +38,12 @@ func (v *DefaultReturnValidator) ValidateClientReturn(orders []models.Order, req
 }
 
 func (v *DefaultReturnValidator) ValidateReturnToCourier(o models.Order) error {
+	if o.Status == models.Returned {
+		return nil
+	}
 	now := time.Now()
-	if o.Status != models.Accepted {
-		return apperrors.Newf(apperrors.ValidationFailed, "order %s status is %s, not ACCEPTED", o.OrderID, o.Status)
+	if o.Status == models.Issued {
+		return apperrors.Newf(apperrors.ValidationFailed, "cannot return order %s that is taken by client", o.OrderID)
 	}
 	if o.ExpiresAt.After(now) {
 		return apperrors.Newf(apperrors.StorageExpired, "cannot return order %s before expiration", o.OrderID)

@@ -1,7 +1,6 @@
 package services
 
 import (
-	"github.com/google/uuid"
 	"pvz-cli/internal/apperrors"
 	"pvz-cli/internal/data/repositories"
 	"pvz-cli/internal/models"
@@ -23,7 +22,7 @@ func (s *defaultHistoryService) Record(e models.HistoryEntry) error {
 	return nil
 }
 
-func (s *defaultHistoryService) GetByOrder(orderID uuid.UUID) ([]models.HistoryEntry, error) {
+func (s *defaultHistoryService) GetByOrder(orderID string) ([]models.HistoryEntry, error) {
 	entries, err := s.historyRepo.LoadByOrder(orderID)
 	if err != nil {
 		return nil, apperrors.Newf(apperrors.InternalError, "failed to load history for order %s: %v", orderID, err)

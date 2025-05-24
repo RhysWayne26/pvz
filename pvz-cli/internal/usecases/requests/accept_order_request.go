@@ -1,12 +1,11 @@
 package requests
 
 import (
-	"github.com/google/uuid"
 	"time"
 )
 
 type AcceptOrderRequest struct {
-	OrderID   uuid.UUID
-	UserID    uuid.UUID
+	OrderID   string
+	UserID    string
 	ExpiresAt time.Time
 }

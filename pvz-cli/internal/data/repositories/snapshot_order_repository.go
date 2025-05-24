@@ -5,7 +5,6 @@ import (
 	"pvz-cli/internal/constants"
 	"sort"
 
-	"github.com/google/uuid"
 	"pvz-cli/internal/data/storage"
 	"pvz-cli/internal/models"
 	"pvz-cli/internal/usecases/requests"
@@ -41,7 +40,7 @@ func (r *snapshotOrderRepository) Save(order models.Order) error {
 	return r.storage.Save(snap)
 }
 
-func (r *snapshotOrderRepository) Load(id uuid.UUID) (models.Order, error) {
+func (r *snapshotOrderRepository) Load(id string) (models.Order, error) {
 	snap, err := r.storage.Load()
 	if err != nil {
 		return models.Order{}, err
@@ -55,7 +54,7 @@ func (r *snapshotOrderRepository) Load(id uuid.UUID) (models.Order, error) {
 	return models.Order{}, errors.New("order not found")
 }
 
-func (r *snapshotOrderRepository) Delete(id uuid.UUID) error {
+func (r *snapshotOrderRepository) Delete(id string) error {
 	snap, err := r.storage.Load()
 	if err != nil {
 		return err
@@ -79,7 +78,7 @@ func (r *snapshotOrderRepository) List(filter requests.ListOrdersFilter) ([]mode
 	}
 
 	sort.Slice(snap.Orders, func(i, j int) bool {
-		return snap.Orders[i].OrderID.String() < snap.Orders[j].OrderID.String()
+		return snap.Orders[i].OrderID < snap.Orders[j].OrderID
 	})
 
 	var result []models.Order
@@ -88,7 +87,7 @@ func (r *snapshotOrderRepository) List(filter requests.ListOrdersFilter) ([]mode
 			continue
 		}
 
-		if filter.LastID != nil && o.OrderID.String() <= filter.LastID.String() {
+		if filter.LastID != "" && o.OrderID <= filter.LastID {
 			continue
 		}
 

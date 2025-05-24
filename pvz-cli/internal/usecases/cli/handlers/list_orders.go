@@ -2,43 +2,49 @@ package handlers
 
 import (
 	"fmt"
-	"github.com/google/uuid"
 	"pvz-cli/internal/apperrors"
 	"pvz-cli/internal/constants"
 	"pvz-cli/internal/usecases/requests"
 	"pvz-cli/internal/usecases/services"
+	"pvz-cli/internal/utils"
+	"strings"
 )
 
 type ListOrdersParams struct {
-	UserID   string
-	InPvz    bool
-	UseInPvz bool
-	Last     *int
-	LastID   string
-	Page     *int
-	Limit    *int
+	UserID string `json:"user_id"`
+	InPvz  *bool  `json:"in_pvz,omitempty"`
+	Last   *int   `json:"last,omitempty"`
+	LastID string `json:"last_id,omitempty"`
+	Page   *int   `json:"page,omitempty"`
+	Limit  *int   `json:"limit,omitempty"`
 }
 
 func HandleListOrdersCommand(params ListOrdersParams, svc services.OrderService) {
-	userID, err := uuid.Parse(params.UserID)
-	if err != nil {
-		apperrors.Handle(apperrors.Newf(apperrors.ValidationFailed, "invalid user_id"))
-		return
-	}
-
-	var lastID *uuid.UUID
+	userID := strings.TrimSpace(params.UserID)
+	var lastID string
 	if params.LastID != "" {
-		parsed, err := uuid.Parse(params.LastID)
-		if err != nil {
-			apperrors.Handle(apperrors.Newf(apperrors.ValidationFailed, "invalid last_id"))
-			return
-		}
-		lastID = &parsed
+		parsed := strings.TrimSpace(params.LastID)
+		lastID = parsed
 	}
 
 	var inPvzPtr *bool
-	if params.UseInPvz {
-		inPvzPtr = &params.InPvz
+	if params.InPvz != nil {
+		inPvzPtr = params.InPvz
+	}
+
+	if err := utils.ValidatePositiveInt("last", params.Last); err != nil {
+		apperrors.Handle(err)
+		return
+	}
+
+	if err := utils.ValidatePositiveInt("page", params.Page); err != nil {
+		apperrors.Handle(err)
+		return
+	}
+
+	if err := utils.ValidatePositiveInt("limit", params.Limit); err != nil {
+		apperrors.Handle(err)
+		return
 	}
 
 	filter := requests.ListOrdersFilter{

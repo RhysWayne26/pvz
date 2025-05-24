@@ -5,6 +5,7 @@ import (
 	"pvz-cli/internal/apperrors"
 	"pvz-cli/internal/constants"
 	"pvz-cli/internal/usecases/services"
+	"pvz-cli/internal/utils"
 )
 
 type ListReturnsParams struct {
@@ -20,6 +21,16 @@ func HandleListReturnsCommand(params ListReturnsParams, svc services.ReturnServi
 	}
 	if params.Limit != nil {
 		limit = *params.Limit
+	}
+
+	if err := utils.ValidatePositiveInt("page", params.Page); err != nil {
+		apperrors.Handle(err)
+		return
+	}
+
+	if err := utils.ValidatePositiveInt("limit", params.Limit); err != nil {
+		apperrors.Handle(err)
+		return
 	}
 
 	entries, err := svc.ListReturns(page, limit)

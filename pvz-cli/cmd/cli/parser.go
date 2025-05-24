@@ -88,30 +88,64 @@ func (p *ArgsParser) ProcessOrdersParams() (handlers.ProcessOrdersParams, error)
 
 func (p *ArgsParser) ListOrdersParams() (handlers.ListOrdersParams, error) {
 	m := p.asMap()
-
+	allowed := map[string]struct{}{
+		"--user-id": {}, "--in-pvz": {}, "--last": {},
+		"--page": {}, "--limit": {}, "--last-id": {},
+	}
+	for key := range m {
+		if _, ok := allowed[key]; !ok {
+			return handlers.ListOrdersParams{},
+				apperrors.Newf(apperrors.ValidationFailed, "unknown flag %q", key)
+		}
+	}
 	if m["--user-id"] == "" {
-		return handlers.ListOrdersParams{}, apperrors.Newf(apperrors.ValidationFailed, "user-id is required")
+		return handlers.ListOrdersParams{},
+			apperrors.Newf(apperrors.ValidationFailed, "user-id is required")
 	}
 
-	_, hasInPvz := m["--in-pvz"]
-	inPvz := hasInPvz
+	inPvz, err := parseOptionalBool(m, "--in-pvz")
+	if err != nil {
+		return handlers.ListOrdersParams{}, err
+	}
+
+	last, err := parseOptionalInt(m, "--last")
+	if err != nil {
+		return handlers.ListOrdersParams{}, err
+	}
+	page, err := parseOptionalInt(m, "--page")
+	if err != nil {
+		return handlers.ListOrdersParams{}, err
+	}
+	limit, err := parseOptionalInt(m, "--limit")
+	if err != nil {
+		return handlers.ListOrdersParams{}, err
+	}
 
 	return handlers.ListOrdersParams{
-		UserID:   m["--user-id"],
-		InPvz:    inPvz,
-		UseInPvz: hasInPvz,
-		Last:     parseOptionalInt(m["--last"]),
-		Page:     parseOptionalInt(m["--page"]),
-		Limit:    parseOptionalInt(m["--limit"]),
-		LastID:   m["--last-id"],
+		UserID: m["--user-id"],
+		InPvz:  inPvz,
+		Last:   last,
+		Page:   page,
+		Limit:  limit,
+		LastID: m["--last-id"],
 	}, nil
 }
 
 func (p *ArgsParser) ListReturnsParams() (handlers.ListReturnsParams, error) {
 	m := p.asMap()
+
+	page, err := parseOptionalInt(m, "--page")
+	if err != nil {
+		return handlers.ListReturnsParams{}, err
+	}
+	limit, err := parseOptionalInt(m, "--limit")
+	if err != nil {
+		return handlers.ListReturnsParams{}, err
+	}
+
 	return handlers.ListReturnsParams{
-		Page:  parseOptionalInt(m["--page"]),
-		Limit: parseOptionalInt(m["--limit"]),
+		Page:  page,
+		Limit: limit,
 	}, nil
 }
 
@@ -134,21 +168,41 @@ func (p *ArgsParser) ScrollOrdersParams() (handlers.ScrollOrdersParams, error) {
 		return handlers.ScrollOrdersParams{}, apperrors.Newf(apperrors.ValidationFailed, "user-id is required")
 	}
 
+	limit, err := parseOptionalInt(m, "--limit")
+	if err != nil {
+		return handlers.ScrollOrdersParams{}, err
+	}
+
 	return handlers.ScrollOrdersParams{
 		UserID: m["--user-id"],
-		Limit:  parseOptionalInt(m["--limit"]),
+		Limit:  limit,
 	}, nil
 }
 
-func parseOptionalInt(s string) *int {
-	if s == "" {
-		return nil
+func parseOptionalInt(m map[string]string, key string) (*int, error) {
+	s, ok := m[key]
+	if !ok || s == "" {
+		return nil, nil
 	}
 
 	val, err := strconv.Atoi(s)
 	if err != nil {
-		return nil
+		return nil, apperrors.Newf(apperrors.ValidationFailed, "%s must be an integer", key)
 	}
+	return &val, nil
+}
 
-	return &val
+func parseOptionalBool(m map[string]string, key string) (*bool, error) {
+	if _, ok := m[key]; !ok {
+		return nil, nil
+	}
+	b := true
+	if val := m[key]; val != "" {
+		parsed, err := strconv.ParseBool(val)
+		if err != nil {
+			return nil, apperrors.Newf(apperrors.ValidationFailed, "%s must be boolean", key)
+		}
+		b = parsed
+	}
+	return &b, nil
 }

@@ -1,9 +1,7 @@
 package requests
 
-import "github.com/google/uuid"
-
 type ScrollOrdersRequest struct {
-	UserID  uuid.UUID
+	UserID  string
 	Limit   *int
-	AfterID *uuid.UUID
+	AfterID string
 }

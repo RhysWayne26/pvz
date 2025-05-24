@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"strings"
 
 	"pvz-cli/internal/apperrors"
 	"pvz-cli/internal/usecases/services"
@@ -17,7 +18,7 @@ func HandleImportOrdersCommand(params ImportOrdersParams, svc services.OrderServ
 		return
 	}
 
-	count, err := svc.ImportOrders(params.File)
+	count, err := svc.ImportOrders(strings.TrimSpace(params.File))
 	if err != nil {
 		apperrors.Handle(err)
 		return
