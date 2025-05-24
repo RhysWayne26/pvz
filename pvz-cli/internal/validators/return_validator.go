@@ -6,6 +6,6 @@ import (
 )
 
 type ReturnValidator interface {
-	ValidateClientReturn(orders []models.Order, req requests.ClientReturnRequest) error
+	ValidateClientReturn(orders []models.Order, req requests.ClientReturnsRequest) error
 	ValidateReturnToCourier(o models.Order) error
 }

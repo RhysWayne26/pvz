@@ -1,6 +1,6 @@
 package requests
 
-type ClientReturnRequest struct {
+type IssueOrdersRequest struct {
 	OrderIDs []string
 	UserID   string
 }

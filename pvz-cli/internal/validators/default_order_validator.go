@@ -24,7 +24,7 @@ func (v *DefaultOrderValidator) ValidateAccept(o models.Order, req requests.Acce
 	return nil
 }
 
-func (v *DefaultOrderValidator) ValidateIssue(orders []models.Order, req requests.IssueOrderRequest) error {
+func (v *DefaultOrderValidator) ValidateIssue(orders []models.Order, req requests.IssueOrdersRequest) error {
 	if len(req.OrderIDs) == 0 {
 		return apperrors.Newf(apperrors.ValidationFailed, "no order IDs provided")
 	}
@@ -32,7 +32,7 @@ func (v *DefaultOrderValidator) ValidateIssue(orders []models.Order, req request
 	now := time.Now()
 	for _, o := range orders {
 		if o.UserID != req.UserID {
-			return apperrors.Newf(apperrors.ValidationFailed, "orders belong to different users")
+			return apperrors.Newf(apperrors.ValidationFailed, "order %s belongs to different user", o.OrderID)
 		}
 		if o.Status != models.Accepted {
 			return apperrors.Newf(apperrors.ValidationFailed, "order %s status is %s, not ACCEPTED", o.OrderID, o.Status)

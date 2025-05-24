@@ -1,6 +1,8 @@
 package services
 
 import (
+	"fmt"
+	"pvz-cli/internal/usecases/common"
 	"sort"
 	"time"
 
@@ -32,49 +34,60 @@ func NewDefaultReturnService(
 	}
 }
 
-func (s *defaultReturnService) CreateClientReturn(req requests.ClientReturnRequest) error {
-	orders := make([]models.Order, 0, len(req.OrderIDs))
-	for _, id := range req.OrderIDs {
-		o, err := s.orderRepo.Load(id)
-		if err != nil {
-			return apperrors.Newf(apperrors.OrderNotFound, "order %s not found", id)
-		}
-		orders = append(orders, o)
-	}
-
-	if err := s.validator.ValidateClientReturn(orders, req); err != nil {
-		return err
-	}
-
+func (s *defaultReturnService) CreateClientReturns(req requests.ClientReturnsRequest) []common.ProcessResult {
+	results := make([]common.ProcessResult, 0, len(req.OrderIDs))
 	now := time.Now()
-	for _, o := range orders {
-		o.Status = models.Returned
-		o.ReturnedAt = &now
 
-		if err := s.orderRepo.Save(o); err != nil {
-			return apperrors.Newf(apperrors.InternalError, "failed to save order %s: %v", o.OrderID, err)
+	for _, id := range req.OrderIDs {
+		res := common.ProcessResult{OrderID: id}
+
+		order, err := s.orderRepo.Load(id)
+		if err != nil {
+			res.Error = apperrors.Newf(apperrors.OrderNotFound, "order %s not found", id)
+			results = append(results, res)
+			continue
+		}
+
+		if err := s.validator.ValidateClientReturn([]models.Order{order}, req); err != nil {
+			res.Error = err
+			results = append(results, res)
+			continue
+		}
+
+		order.Status = models.Returned
+		order.ReturnedAt = &now
+
+		if err := s.orderRepo.Save(order); err != nil {
+			res.Error = apperrors.Newf(apperrors.InternalError, "failed to save order %s: %v", order.OrderID, err)
+			results = append(results, res)
+			continue
 		}
 
 		ret := models.ReturnEntry{
-			OrderID:    o.OrderID,
-			UserID:     o.UserID,
+			OrderID:    order.OrderID,
+			UserID:     order.UserID,
 			ReturnedAt: now,
 		}
 		if err := s.returnRepo.Save(ret); err != nil {
-			return apperrors.Newf(apperrors.InternalError, "failed to save return entry for order %s: %v", o.OrderID, err)
+			res.Error = apperrors.Newf(apperrors.InternalError, "failed to save return entry for order %s: %v", order.OrderID, err)
+			results = append(results, res)
+			continue
 		}
 
 		entry := models.HistoryEntry{
-			OrderID:   o.OrderID,
+			OrderID:   order.OrderID,
 			Event:     models.EventReturnedFromClient,
 			Timestamp: now,
 		}
 		if err := s.historySvc.Record(entry); err != nil {
-			return apperrors.Newf(apperrors.InternalError, "failed to record history for order %s: %v", o.OrderID, err)
+			fmt.Printf("WARNING: failed to record history for order %s: %v\n", order.OrderID, err)
 		}
+
+		res.Error = nil
+		results = append(results, res)
 	}
 
-	return nil
+	return results
 }
 
 func (s *defaultReturnService) ReturnToCourier(req requests.ReturnOrderRequest) error {

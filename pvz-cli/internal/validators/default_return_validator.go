@@ -14,7 +14,7 @@ func NewDefaultReturnValidator() *DefaultReturnValidator {
 	return &DefaultReturnValidator{}
 }
 
-func (v *DefaultReturnValidator) ValidateClientReturn(orders []models.Order, req requests.ClientReturnRequest) error {
+func (v *DefaultReturnValidator) ValidateClientReturn(orders []models.Order, req requests.ClientReturnsRequest) error {
 	if len(req.OrderIDs) == 0 {
 		return apperrors.Newf(apperrors.ValidationFailed, "no order IDs provided")
 	}
@@ -43,7 +43,7 @@ func (v *DefaultReturnValidator) ValidateReturnToCourier(o models.Order) error {
 	}
 	now := time.Now()
 	if o.Status == models.Issued {
-		return apperrors.Newf(apperrors.ValidationFailed, "cannot return order %s that is taken by client", o.OrderID)
+		return apperrors.Newf(apperrors.OrderNotFound, "order %s not found", o.OrderID)
 	}
 	if o.ExpiresAt.After(now) {
 		return apperrors.Newf(apperrors.StorageExpired, "cannot return order %s before expiration", o.OrderID)

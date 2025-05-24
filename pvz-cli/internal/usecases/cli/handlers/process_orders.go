@@ -6,7 +6,6 @@ import (
 	"pvz-cli/internal/constants"
 	"pvz-cli/internal/usecases/requests"
 	"pvz-cli/internal/usecases/services"
-	"pvz-cli/internal/utils"
 	"strings"
 )
 
@@ -16,36 +15,41 @@ type ProcessOrdersParams struct {
 	OrderIDs string `json:"order_ids"`
 }
 
-func HandleProcessOrders(params ProcessOrdersParams,
-	orderSvc services.OrderService, returnSvc services.ReturnService,
+func HandleProcessOrders(
+	params ProcessOrdersParams,
+	orderSvc services.OrderService,
+	returnSvc services.ReturnService,
 ) {
-	uid := strings.TrimSpace(params.UserID)
-	rawOrders := strings.Split(params.OrderIDs, ",")
-	ids := utils.UniqueStrings(rawOrders)
-	if len(ids) == 0 {
+	id := strings.TrimSpace(params.UserID)
+	orderIds := strings.Split(params.OrderIDs, ",")
+	if len(orderIds) == 0 {
 		apperrors.Handle(apperrors.Newf(apperrors.ValidationFailed, "no order IDs provided"))
 		return
 	}
 
 	switch params.Action {
 	case constants.ActionIssue:
-		req := requests.IssueOrderRequest{UserID: uid, OrderIDs: ids}
-		if err := orderSvc.IssueOrder(req); err != nil {
-			apperrors.Handle(err)
-			return
-		}
-		for _, id := range ids {
-			fmt.Printf("PROCESSED: %s\n", id)
+		req := requests.IssueOrdersRequest{UserID: id, OrderIDs: orderIds}
+		results := orderSvc.IssueOrders(req)
+
+		for _, res := range results {
+			if res.Error == nil {
+				fmt.Printf("PROCESSED: %s\n", res.OrderID)
+			} else {
+				apperrors.Handle(res.Error)
+			}
 		}
 
 	case constants.ActionReturn:
-		req := requests.ClientReturnRequest{UserID: uid, OrderIDs: ids}
-		if err := returnSvc.CreateClientReturn(req); err != nil {
-			apperrors.Handle(err)
-			return
-		}
-		for _, id := range ids {
-			fmt.Printf("PROCESSED: %s\n", id)
+		req := requests.ClientReturnsRequest{UserID: id, OrderIDs: orderIds}
+		results := returnSvc.CreateClientReturns(req)
+
+		for _, res := range results {
+			if res.Error == nil {
+				fmt.Printf("PROCESSED: %s\n", res.OrderID)
+			} else {
+				apperrors.Handle(res.Error)
+			}
 		}
 
 	default:

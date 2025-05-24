@@ -8,6 +8,7 @@ import (
 	"pvz-cli/internal/constants"
 	"pvz-cli/internal/data/repositories"
 	"pvz-cli/internal/models"
+	"pvz-cli/internal/usecases/common"
 	"pvz-cli/internal/usecases/requests"
 	"pvz-cli/internal/validators"
 	"strings"
@@ -60,40 +61,50 @@ func (s *defaultOrderService) AcceptOrder(req requests.AcceptOrderRequest) error
 	return nil
 }
 
-func (s *defaultOrderService) IssueOrder(req requests.IssueOrderRequest) error {
-	var orders []models.Order
-	for _, id := range req.OrderIDs {
-		o, err := s.orderRepo.Load(id)
-		if err != nil {
-			return apperrors.Newf(apperrors.OrderNotFound, "order %s not found", id)
-		}
-		orders = append(orders, o)
-	}
-
-	if err := s.validator.ValidateIssue(orders, req); err != nil {
-		return err
-	}
-
+func (s *defaultOrderService) IssueOrders(req requests.IssueOrdersRequest) []common.ProcessResult {
+	results := make([]common.ProcessResult, 0, len(req.OrderIDs))
 	now := time.Now()
-	for _, o := range orders {
-		o.Status = models.Issued
-		o.IssuedAt = &now
 
-		if err := s.orderRepo.Save(o); err != nil {
-			return apperrors.Newf(apperrors.InternalError, "failed to save order %s: %v", o.OrderID, err)
+	for _, id := range req.OrderIDs {
+		res := common.ProcessResult{OrderID: id}
+
+		order, err := s.orderRepo.Load(id)
+		if err != nil {
+			res.Error = apperrors.Newf(apperrors.OrderNotFound, "order %s not found", id)
+			results = append(results, res)
+			continue
+		}
+
+		if err := s.validator.ValidateIssue([]models.Order{order}, req); err != nil {
+			res.Error = err
+			results = append(results, res)
+			continue
+		}
+
+		order.Status = models.Issued
+		order.IssuedAt = &now
+
+		if err := s.orderRepo.Save(order); err != nil {
+			res.Error = apperrors.Newf(apperrors.InternalError, "failed to save order %s: %v", id, err)
+			results = append(results, res)
+			continue
 		}
 
 		entry := models.HistoryEntry{
-			OrderID:   o.OrderID,
+			OrderID:   order.OrderID,
 			Event:     models.EventIssued,
 			Timestamp: now,
 		}
+
 		if err := s.historySvc.Record(entry); err != nil {
-			return apperrors.Newf(apperrors.InternalError, "failed to record history for order %s: %v", o.OrderID, err)
+			fmt.Printf("WARNING: failed to record history for order %s: %v\n", id, err)
 		}
+
+		res.Error = nil
+		results = append(results, res)
 	}
 
-	return nil
+	return results
 }
 
 func (s *defaultOrderService) ListOrders(filter requests.ListOrdersFilter) ([]models.Order, string, int, error) {
@@ -142,9 +153,8 @@ func (s *defaultOrderService) ImportOrders(filePath string) (int, error) {
 		return 0, apperrors.Newf(apperrors.InternalError, "cannot open file %q: %v", filePath, err)
 	}
 	defer func() {
-		err := f.Close()
-		if err != nil {
-
+		if err := f.Close(); err != nil {
+			fmt.Printf("WARNING: failed to close file: %v\n", err)
 		}
 	}()
 
