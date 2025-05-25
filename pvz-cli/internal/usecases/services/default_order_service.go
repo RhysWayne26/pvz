@@ -42,6 +42,7 @@ func (s *defaultOrderService) AcceptOrder(req requests.AcceptOrderRequest) error
 	order := models.Order{
 		OrderID:   req.OrderID,
 		UserID:    req.UserID,
+		CreatedAt: time.Now(),
 		Status:    models.Accepted,
 		ExpiresAt: req.ExpiresAt,
 	}
@@ -108,44 +109,25 @@ func (s *defaultOrderService) IssueOrders(req requests.IssueOrdersRequest) []com
 }
 
 func (s *defaultOrderService) ListOrders(filter requests.ListOrdersFilter) ([]models.Order, string, int, error) {
-	all, err := s.orderRepo.List(requests.ListOrdersFilter{
-		UserID: filter.UserID,
-		InPvz:  filter.InPvz,
-	})
+	result, total, err := s.orderRepo.List(filter)
 	if err != nil {
 		return nil, "", 0, apperrors.Newf(apperrors.InternalError, "failed to list orders: %v", err)
 	}
 
 	if filter.Last != nil {
 		n := *filter.Last
-		if len(all) > n {
-			all = all[len(all)-n:]
+		if len(result) > n {
+			result = result[len(result)-n:]
 		}
-		return all, "", len(all), nil
+		total = len(result)
 	}
 
-	filtered, err := s.orderRepo.List(filter)
-	if err != nil {
-		return nil, "", 0, apperrors.Newf(apperrors.InternalError, "failed to list paginated: %v", err)
+	var nextLastID string
+	if len(result) > 0 {
+		nextLastID = result[len(result)-1].OrderID
 	}
 
-	var nextLast string
-	if len(filtered) > 0 {
-		last := filtered[len(filtered)-1].OrderID
-		nextLast = last
-	}
-
-	countFilter := filter
-	countFilter.Page = nil
-	countFilter.Limit = nil
-	countFilter.LastID = ""
-
-	counted, err := s.orderRepo.List(countFilter)
-	if err != nil {
-		return nil, "", 0, apperrors.Newf(apperrors.InternalError, "failed to count orders: %v", err)
-	}
-
-	return filtered, nextLast, len(counted), nil
+	return result, nextLastID, total, nil
 }
 func (s *defaultOrderService) ImportOrders(filePath string) (int, error) {
 	f, err := os.Open(filePath)

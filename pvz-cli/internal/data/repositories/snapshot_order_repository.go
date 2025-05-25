@@ -4,6 +4,7 @@ import (
 	"errors"
 	"pvz-cli/internal/constants"
 	"sort"
+	"time"
 
 	"pvz-cli/internal/data/storage"
 	"pvz-cli/internal/models"
@@ -71,15 +72,25 @@ func (r *snapshotOrderRepository) Delete(id string) error {
 	return r.storage.Save(snap)
 }
 
-func (r *snapshotOrderRepository) List(filter requests.ListOrdersFilter) ([]models.Order, error) {
+func (r *snapshotOrderRepository) List(filter requests.ListOrdersFilter) ([]models.Order, int, error) {
 	snap, err := r.storage.Load()
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	sort.Slice(snap.Orders, func(i, j int) bool {
-		return snap.Orders[i].OrderID < snap.Orders[j].OrderID
+		return snap.Orders[i].CreatedAt.Before(snap.Orders[j].CreatedAt)
 	})
+
+	var lastCreatedAt time.Time
+	if filter.LastID != "" {
+		for _, o := range snap.Orders {
+			if o.OrderID == filter.LastID {
+				lastCreatedAt = o.CreatedAt
+				break
+			}
+		}
+	}
 
 	var result []models.Order
 	for _, o := range snap.Orders {
@@ -87,41 +98,37 @@ func (r *snapshotOrderRepository) List(filter requests.ListOrdersFilter) ([]mode
 			continue
 		}
 
-		if filter.LastID != "" && o.OrderID <= filter.LastID {
+		if filter.LastID != "" && !o.CreatedAt.After(lastCreatedAt) {
 			continue
 		}
 
-		if filter.InPvz != nil && *filter.InPvz {
-			if o.Status == models.Issued {
-				continue
-			}
+		if filter.InPvz != nil && *filter.InPvz && o.Status == models.Issued {
+			continue
 		}
 
 		result = append(result, o)
 	}
 
+	total := len(result)
 	if filter.Page != nil && filter.Limit != nil {
 		start := (*filter.Page - 1) * (*filter.Limit)
 		end := start + *filter.Limit
 		if start >= len(result) {
-			return []models.Order{}, nil
+			return []models.Order{}, total, nil
 		}
-
 		if end > len(result) {
 			end = len(result)
 		}
-
-		return result[start:end], nil
+		return result[start:end], total, nil
 	}
 
 	limit := constants.DefaultLimit
 	if filter.Limit != nil {
 		limit = *filter.Limit
 	}
-
 	if len(result) > limit {
 		result = result[:limit]
 	}
 
-	return result, nil
+	return result, total, nil
 }
