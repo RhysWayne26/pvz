@@ -1,0 +1,35 @@
+run:
+  timeout: 3m
+  tests: true
+
+linters:
+  enable:
+    - gofmt
+    - errcheck
+    - ineffassign
+    - unused
+    - goconst
+    - gocyclo
+    - gocognit
+    - staticcheck
+    - revive
+  disable:
+    - goimports
+
+  settings:
+    gocyclo:
+      min-complexity: 15
+    gocognit:
+      min-complexity: 15
+    goconst:
+      min-len: 2
+      min-occurrences: 2
+    revive:
+      severity: warning
+      rules:
+        - name: indent-error-flow
+        - name: var-naming
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

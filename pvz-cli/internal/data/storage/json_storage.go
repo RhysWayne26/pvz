@@ -10,23 +10,23 @@ import (
 	"sync"
 )
 
-type JsonStorage struct {
+type JSONStorage struct {
 	path  string
 	mutex sync.Mutex
 }
 
-func NewJsonStorage(path string) *JsonStorage {
-	return &JsonStorage{path: path}
+func NewJSONStorage(path string) *JSONStorage {
+	return &JSONStorage{path: path}
 }
 
-func (s *JsonStorage) Save(snapshot *data.Snapshot) error {
+func (s *JSONStorage) Save(snapshot *data.Snapshot) error {
 	if shutdown.IsShuttingDown() {
 		return fmt.Errorf("save aborted: shutting down")
 	}
 
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	if err := os.MkdirAll(filepath.Dir(s.path), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(s.path), 0750); err != nil {
 		return fmt.Errorf("mkdir target dir: %w", err)
 	}
 
@@ -78,7 +78,7 @@ func (s *JsonStorage) Save(snapshot *data.Snapshot) error {
 	return nil
 }
 
-func (s *JsonStorage) Load() (*data.Snapshot, error) {
+func (s *JSONStorage) Load() (*data.Snapshot, error) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	file, err := os.Open(s.path)

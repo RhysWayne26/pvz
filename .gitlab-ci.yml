@@ -1,0 +1,39 @@
+image: golang:1.24
+
+stages:
+  - lint
+  - security
+  - build
+
+variables:
+  GO111MODULE: "on"
+  GOPROXY: "https://proxy.golang.org,direct"
+
+before_script:
+  - cd pvz-cli
+  - go mod download
+  - go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+  - go install github.com/securego/gosec/v2/cmd/gosec@latest
+
+lint:
+  stage: lint
+  script:
+    - make lint
+  artifacts:
+    when: on_failure
+    expire_in: 1 hour
+    reports:
+      dotenv: .golangci-report.env
+
+security:
+  stage: security
+  script:
+    - make security
+
+build:
+  stage: build
+  script:
+    - make build
+  artifacts:
+    paths:
+      - pvz-cli/pvz

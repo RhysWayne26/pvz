@@ -25,7 +25,7 @@ func main() {
 	}()
 
 	cfg := config.Load()
-	store := storage.NewJsonStorage(cfg.Path)
+	store := storage.NewJSONStorage(cfg.Path)
 
 	orderRepo := repositories.NewSnapshotOrderRepository(store)
 	returnRepo := repositories.NewSnapshotReturnRepository(store)

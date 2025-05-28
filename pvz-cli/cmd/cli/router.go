@@ -10,6 +10,20 @@ import (
 	"strings"
 )
 
+const (
+	CmdHelp         = "help"
+	CmdAcceptOrder  = "accept-order"
+	CmdReturnOrder  = "return-order"
+	CmdProcess      = "process-orders"
+	CmdListOrders   = "list-orders"
+	CmdListReturns  = "list-returns"
+	CmdOrderHistory = "order-history"
+	CmdImportOrders = "import-orders"
+	CmdScrollOrders = "scroll-orders"
+	CmdNext         = "next"
+	CmdExit         = "exit"
+)
+
 type Router struct {
 	OrderService   services.OrderService
 	ReturnService  services.ReturnService
@@ -28,10 +42,10 @@ func (c *Router) runBatch(cmd string, args []string) {
 	parser := NewArgsParser(args)
 
 	switch cmd {
-	case "help":
+	case CmdHelp:
 		handlers.HandleHelpCommand()
 
-	case "accept-order":
+	case CmdAcceptOrder:
 		params, err := parser.AcceptOrderParams()
 		if err != nil {
 			apperrors.Handle(err)
@@ -39,7 +53,7 @@ func (c *Router) runBatch(cmd string, args []string) {
 		}
 		handlers.HandleAcceptOrderCommand(params, c.OrderService)
 
-	case "return-order":
+	case CmdReturnOrder:
 		params, err := parser.ReturnOrderParams()
 		if err != nil {
 			apperrors.Handle(err)
@@ -47,7 +61,7 @@ func (c *Router) runBatch(cmd string, args []string) {
 		}
 		handlers.HandleReturnOrderCommand(params, c.ReturnService)
 
-	case "process-orders":
+	case CmdProcess:
 		params, err := parser.ProcessOrdersParams()
 		if err != nil {
 			apperrors.Handle(err)
@@ -55,7 +69,7 @@ func (c *Router) runBatch(cmd string, args []string) {
 		}
 		handlers.HandleProcessOrders(params, c.OrderService, c.ReturnService)
 
-	case "list-orders":
+	case CmdListOrders:
 		params, err := parser.ListOrdersParams()
 		if err != nil {
 			apperrors.Handle(err)
@@ -63,7 +77,7 @@ func (c *Router) runBatch(cmd string, args []string) {
 		}
 		handlers.HandleListOrdersCommand(params, c.OrderService)
 
-	case "list-returns":
+	case CmdListReturns:
 		params, err := parser.ListReturnsParams()
 		if err != nil {
 			apperrors.Handle(err)
@@ -71,10 +85,10 @@ func (c *Router) runBatch(cmd string, args []string) {
 		}
 		handlers.HandleListReturnsCommand(params, c.ReturnService)
 
-	case "order-history":
+	case CmdOrderHistory:
 		handlers.HandleOrderHistoryCommand(c.HistoryService)
 
-	case "import-orders":
+	case CmdImportOrders:
 		params, err := parser.ImportOrdersParams()
 		if err != nil {
 			apperrors.Handle(err)
@@ -82,7 +96,7 @@ func (c *Router) runBatch(cmd string, args []string) {
 		}
 		handlers.HandleImportOrdersCommand(params, c.OrderService)
 
-	case "scroll-orders":
+	case CmdScrollOrders:
 		params, err := parser.ScrollOrdersParams()
 		if err != nil {
 			apperrors.Handle(err)
@@ -116,10 +130,10 @@ func (c *Router) runInteractive() {
 		switch line {
 		case "":
 			continue
-		case "help":
+		case CmdHelp:
 			handlers.HandleHelpCommand()
 			continue
-		case "exit":
+		case CmdExit:
 			fmt.Println("Exiting...")
 			return
 		}
@@ -127,7 +141,7 @@ func (c *Router) runInteractive() {
 		parts := strings.Fields(line)
 		cmd := parts[0]
 		args := parts[1:]
-		if cmd == "next" {
+		if cmd == CmdNext {
 			if lastScrollArgs == nil {
 				_, err := fmt.Fprintln(os.Stderr, "ERROR: no previous scroll-orders")
 				if err != nil {
@@ -135,11 +149,11 @@ func (c *Router) runInteractive() {
 				}
 				continue
 			}
-			cmd = "scroll-orders"
+			cmd = CmdScrollOrders
 			args = lastScrollArgs
 		}
 
-		if cmd == "scroll-orders" {
+		if cmd == CmdScrollOrders {
 			lastScrollArgs = args
 		}
 

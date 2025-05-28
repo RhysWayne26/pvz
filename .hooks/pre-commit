@@ -1,0 +1,10 @@
+#!/bin/sh
+
+cd pvz-cli || exit 1
+echo ">>> running linters before commit"
+make lint
+RESULT=$?
+if [ $RESULT -ne 0 ]; then
+  echo >&2 "lint errors detected, commit aborted."
+  exit $RESULT
+fi

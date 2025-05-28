@@ -21,15 +21,15 @@ func HandleProcessOrders(
 	returnSvc services.ReturnService,
 ) {
 	id := strings.TrimSpace(params.UserID)
-	orderIds := strings.Split(params.OrderIDs, ",")
-	if len(orderIds) == 0 {
+	orderIDs := strings.Split(params.OrderIDs, ",")
+	if len(orderIDs) == 0 {
 		apperrors.Handle(apperrors.Newf(apperrors.ValidationFailed, "no order IDs provided"))
 		return
 	}
 
 	switch params.Action {
 	case constants.ActionIssue:
-		req := requests.IssueOrdersRequest{UserID: id, OrderIDs: orderIds}
+		req := requests.IssueOrdersRequest{UserID: id, OrderIDs: orderIDs}
 		results := orderSvc.IssueOrders(req)
 
 		for _, res := range results {
@@ -41,7 +41,7 @@ func HandleProcessOrders(
 		}
 
 	case constants.ActionReturn:
-		req := requests.ClientReturnsRequest{UserID: id, OrderIDs: orderIds}
+		req := requests.ClientReturnsRequest{UserID: id, OrderIDs: orderIDs}
 		results := returnSvc.CreateClientReturns(req)
 
 		for _, res := range results {

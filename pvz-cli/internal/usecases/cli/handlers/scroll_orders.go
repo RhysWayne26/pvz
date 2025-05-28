@@ -45,9 +45,8 @@ func HandleScrollOrdersCommand(params ScrollOrdersParams, svc services.OrderServ
 			cmd := strings.TrimSpace(reader.Text())
 			if cmd == "exit" {
 				return
-			} else {
-				fmt.Println("No more data. Only 'exit' is valid.")
 			}
+			fmt.Println("No more data. Only 'exit' is valid.")
 			continue
 		}
 

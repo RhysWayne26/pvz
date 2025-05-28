@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"pvz-cli/internal/apperrors"
 	"pvz-cli/internal/constants"
 	"pvz-cli/internal/data/repositories"
@@ -130,6 +131,10 @@ func (s *defaultOrderService) ListOrders(filter requests.ListOrdersFilter) ([]mo
 	return result, nextLastID, total, nil
 }
 func (s *defaultOrderService) ImportOrders(filePath string) (int, error) {
+	cleanPath := filepath.Clean(filePath)
+	if strings.Contains(cleanPath, "..") {
+		return 0, fmt.Errorf("path traversal not allowed")
+	}
 	f, err := os.Open(filePath)
 	if err != nil {
 		return 0, apperrors.Newf(apperrors.InternalError, "cannot open file %q: %v", filePath, err)
