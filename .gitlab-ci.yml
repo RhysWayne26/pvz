@@ -41,6 +41,9 @@ security:
 build:
   stage: build
   needs: [lint, security]
+  only:
+    - merge_requests
+    - master
   script:
     - make build
   artifacts:
