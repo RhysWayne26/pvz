@@ -1,10 +1,11 @@
+version: "2"
+
 run:
   timeout: 3m
   tests: true
 
 linters:
   enable:
-    - gofmt
     - errcheck
     - ineffassign
     - unused
@@ -13,8 +14,6 @@ linters:
     - gocognit
     - staticcheck
     - revive
-  disable:
-    - goimports
 
   settings:
     gocyclo:

@@ -38,11 +38,11 @@ func main() {
 	orderSvc := services.NewDefaultOrderService(orderRepo, historySvc, orderValidator)
 	returnSvc := services.NewDefaultReturnService(orderRepo, returnRepo, historySvc, returnValidator)
 
-	router := cli.Router{
-		OrderService:   orderSvc,
-		ReturnService:  returnSvc,
-		HistoryService: historySvc,
-	}
+	router := cli.NewRouter(
+		orderSvc,
+		returnSvc,
+		historySvc,
+	)
 
 	router.Run()
 }

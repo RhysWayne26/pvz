@@ -1,6 +1,9 @@
 /.idea
+
 pvz-cli/pvz.exe
 pvz-cli/pvz
 pvz-cli/orders.json
 pvz-cli/storage.json
 pvz-cli/.golangci-report.env
+
+.git
