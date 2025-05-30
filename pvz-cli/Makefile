@@ -30,11 +30,11 @@ start:
 run: setup update lint security build start
 
 docs-generate:
-	@echo "Generating per-package dev-docs…"
+	@echo "generating per-package dev-docs"
 	@mkdir -p docs/dev
-	@for pkg in $$(go list ./...); do
-	  file="$$(echo $$pkg | sed 's#/#-#g').md";
-	  echo "  - $$pkg → $$file";
-	  go doc -all $$pkg > docs/dev/$$file;
+	@for pkg in $$(go list ./...); do \
+	  file="$$(echo $$pkg | sed 's#/#-#g').md"; \
+	  echo "  - $$pkg → $$file"; \
+	  go doc -all $$pkg > docs/dev/$$file; \
 	done
-	@echo "Done: docs/dev/*.md"
+	@echo "done: docs/dev/*.md"
