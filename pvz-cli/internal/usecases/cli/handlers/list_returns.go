@@ -4,18 +4,13 @@ import (
 	"fmt"
 	"pvz-cli/internal/apperrors"
 	"pvz-cli/internal/constants"
+	"pvz-cli/internal/usecases/dto"
 	"pvz-cli/internal/usecases/services"
 	"pvz-cli/internal/utils"
 )
 
-// ListReturnsParams contains parameters for list-returns command
-type ListReturnsParams struct {
-	Page  *int `json:"page,omitempty"`
-	Limit *int `json:"limit,omitempty"`
-}
-
 // HandleListReturnsCommand processes list-returns command with pagination
-func HandleListReturnsCommand(params ListReturnsParams, svc services.ReturnService) {
+func HandleListReturnsCommand(params dto.ListReturnsParams, svc services.ReturnService) {
 	page := constants.DefaultPage
 	limit := constants.DefaultLimit
 	if params.Page != nil {

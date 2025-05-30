@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"pvz-cli/internal/usecases/dto"
 	"strings"
 
 	"pvz-cli/internal/apperrors"
@@ -14,14 +15,8 @@ import (
 	"pvz-cli/internal/utils"
 )
 
-// ScrollOrdersParams contains parameters for scroll-orders command
-type ScrollOrdersParams struct {
-	UserID string `json:"user_id"`
-	Limit  *int   `json:"limit,omitempty"`
-}
-
 // HandleScrollOrdersCommand processes scroll-orders command with infinite scroll functionality
-func HandleScrollOrdersCommand(params ScrollOrdersParams, svc services.OrderService) {
+func HandleScrollOrdersCommand(params dto.ScrollOrdersParams, svc services.OrderService) {
 	userID, limit, err := prepareScrollParams(params)
 	if err != nil {
 		apperrors.Handle(err)
@@ -30,7 +25,7 @@ func HandleScrollOrdersCommand(params ScrollOrdersParams, svc services.OrderServ
 	scrollOrders(userID, limit, svc)
 }
 
-func prepareScrollParams(params ScrollOrdersParams) (string, int, error) {
+func prepareScrollParams(params dto.ScrollOrdersParams) (string, int, error) {
 	userID := strings.TrimSpace(params.UserID)
 	if err := utils.ValidatePositiveInt("limit", params.Limit); err != nil {
 		return "", 0, err

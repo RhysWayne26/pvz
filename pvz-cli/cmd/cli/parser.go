@@ -2,7 +2,7 @@ package cli
 
 import (
 	"pvz-cli/internal/apperrors"
-	"pvz-cli/internal/usecases/cli/handlers"
+	"pvz-cli/internal/usecases/dto"
 	"strconv"
 )
 
@@ -33,30 +33,30 @@ func (p *ArgsParser) asMap() map[string]string {
 }
 
 // AcceptOrderParams parses and validates parameters for accept-order command
-func (p *ArgsParser) AcceptOrderParams() (handlers.AcceptOrderParams, error) {
+func (p *ArgsParser) AcceptOrderParams() (dto.AcceptOrderParams, error) {
 	m := p.asMap()
 
 	if m["--order-id"] == "" {
-		return handlers.AcceptOrderParams{}, apperrors.Newf(apperrors.ValidationFailed, "order-id is required")
+		return dto.AcceptOrderParams{}, apperrors.Newf(apperrors.ValidationFailed, "order-id is required")
 	}
 	if m["--user-id"] == "" {
-		return handlers.AcceptOrderParams{}, apperrors.Newf(apperrors.ValidationFailed, "user-id is required")
+		return dto.AcceptOrderParams{}, apperrors.Newf(apperrors.ValidationFailed, "user-id is required")
 	}
 	if m["--expires"] == "" {
-		return handlers.AcceptOrderParams{}, apperrors.Newf(apperrors.ValidationFailed, "expires is required")
+		return dto.AcceptOrderParams{}, apperrors.Newf(apperrors.ValidationFailed, "expires is required")
 	}
 	if m["--weight"] == "" {
-		return handlers.AcceptOrderParams{}, apperrors.Newf(apperrors.ValidationFailed, "weight is required")
+		return dto.AcceptOrderParams{}, apperrors.Newf(apperrors.ValidationFailed, "weight is required")
 	}
 	if m["--price"] == "" {
-		return handlers.AcceptOrderParams{}, apperrors.Newf(apperrors.ValidationFailed, "price is required")
+		return dto.AcceptOrderParams{}, apperrors.Newf(apperrors.ValidationFailed, "price is required")
 	}
 	pkg := m["--package"]
 	if pkg == "" {
 		pkg = "none"
 	}
 
-	return handlers.AcceptOrderParams{
+	return dto.AcceptOrderParams{
 		OrderID:   m["--order-id"],
 		UserID:    m["--user-id"],
 		ExpiresAt: m["--expires"],
@@ -67,35 +67,35 @@ func (p *ArgsParser) AcceptOrderParams() (handlers.AcceptOrderParams, error) {
 }
 
 // ReturnOrderParams parses and validates parameters for return-order command
-func (p *ArgsParser) ReturnOrderParams() (handlers.ReturnOrderParams, error) {
+func (p *ArgsParser) ReturnOrderParams() (dto.ReturnOrderParams, error) {
 	m := p.asMap()
 
 	if m["--order-id"] == "" {
-		return handlers.ReturnOrderParams{}, apperrors.Newf(apperrors.ValidationFailed, "order-id is required")
+		return dto.ReturnOrderParams{}, apperrors.Newf(apperrors.ValidationFailed, "order-id is required")
 	}
 
-	return handlers.ReturnOrderParams{
+	return dto.ReturnOrderParams{
 		OrderID: m["--order-id"],
 	}, nil
 }
 
 // ProcessOrdersParams parses and validates parameters for process-orders command
-func (p *ArgsParser) ProcessOrdersParams() (handlers.ProcessOrdersParams, error) {
+func (p *ArgsParser) ProcessOrdersParams() (dto.ProcessOrdersParams, error) {
 	m := p.asMap()
 
 	if m["--user-id"] == "" {
-		return handlers.ProcessOrdersParams{}, apperrors.Newf(apperrors.ValidationFailed, "user-id is required")
+		return dto.ProcessOrdersParams{}, apperrors.Newf(apperrors.ValidationFailed, "user-id is required")
 	}
 
 	if m["--action"] == "" {
-		return handlers.ProcessOrdersParams{}, apperrors.Newf(apperrors.ValidationFailed, "action is required")
+		return dto.ProcessOrdersParams{}, apperrors.Newf(apperrors.ValidationFailed, "action is required")
 	}
 
 	if m["--order-ids"] == "" {
-		return handlers.ProcessOrdersParams{}, apperrors.Newf(apperrors.ValidationFailed, "order-ids is required")
+		return dto.ProcessOrdersParams{}, apperrors.Newf(apperrors.ValidationFailed, "order-ids is required")
 	}
 
-	return handlers.ProcessOrdersParams{
+	return dto.ProcessOrdersParams{
 		UserID:   m["--user-id"],
 		Action:   m["--action"],
 		OrderIDs: m["--order-ids"],
@@ -103,7 +103,7 @@ func (p *ArgsParser) ProcessOrdersParams() (handlers.ProcessOrdersParams, error)
 }
 
 // ListOrdersParams parses and validates parameters for list-orders command
-func (p *ArgsParser) ListOrdersParams() (handlers.ListOrdersParams, error) {
+func (p *ArgsParser) ListOrdersParams() (dto.ListOrdersParams, error) {
 	m := p.asMap()
 	allowed := map[string]struct{}{
 		"--user-id": {}, "--in-pvz": {}, "--last": {},
@@ -111,34 +111,34 @@ func (p *ArgsParser) ListOrdersParams() (handlers.ListOrdersParams, error) {
 	}
 	for key := range m {
 		if _, ok := allowed[key]; !ok {
-			return handlers.ListOrdersParams{},
+			return dto.ListOrdersParams{},
 				apperrors.Newf(apperrors.ValidationFailed, "unknown flag %q", key)
 		}
 	}
 	if m["--user-id"] == "" {
-		return handlers.ListOrdersParams{},
+		return dto.ListOrdersParams{},
 			apperrors.Newf(apperrors.ValidationFailed, "user-id is required")
 	}
 
 	inPvz, err := parseOptionalBool(m, "--in-pvz")
 	if err != nil {
-		return handlers.ListOrdersParams{}, err
+		return dto.ListOrdersParams{}, err
 	}
 
 	last, err := parseOptionalInt(m, "--last")
 	if err != nil {
-		return handlers.ListOrdersParams{}, err
+		return dto.ListOrdersParams{}, err
 	}
 	page, err := parseOptionalInt(m, "--page")
 	if err != nil {
-		return handlers.ListOrdersParams{}, err
+		return dto.ListOrdersParams{}, err
 	}
 	limit, err := parseOptionalInt(m, "--limit")
 	if err != nil {
-		return handlers.ListOrdersParams{}, err
+		return dto.ListOrdersParams{}, err
 	}
 
-	return handlers.ListOrdersParams{
+	return dto.ListOrdersParams{
 		UserID: m["--user-id"],
 		InPvz:  inPvz,
 		Last:   last,
@@ -149,51 +149,51 @@ func (p *ArgsParser) ListOrdersParams() (handlers.ListOrdersParams, error) {
 }
 
 // ListReturnsParams parses and validates parameters for list-returns command
-func (p *ArgsParser) ListReturnsParams() (handlers.ListReturnsParams, error) {
+func (p *ArgsParser) ListReturnsParams() (dto.ListReturnsParams, error) {
 	m := p.asMap()
 
 	page, err := parseOptionalInt(m, "--page")
 	if err != nil {
-		return handlers.ListReturnsParams{}, err
+		return dto.ListReturnsParams{}, err
 	}
 	limit, err := parseOptionalInt(m, "--limit")
 	if err != nil {
-		return handlers.ListReturnsParams{}, err
+		return dto.ListReturnsParams{}, err
 	}
 
-	return handlers.ListReturnsParams{
+	return dto.ListReturnsParams{
 		Page:  page,
 		Limit: limit,
 	}, nil
 }
 
 // ImportOrdersParams parses and validates parameters for import-orders command
-func (p *ArgsParser) ImportOrdersParams() (handlers.ImportOrdersParams, error) {
+func (p *ArgsParser) ImportOrdersParams() (dto.ImportOrdersParams, error) {
 	m := p.asMap()
 
 	if m["--file"] == "" {
-		return handlers.ImportOrdersParams{}, apperrors.Newf(apperrors.ValidationFailed, "file is required")
+		return dto.ImportOrdersParams{}, apperrors.Newf(apperrors.ValidationFailed, "file is required")
 	}
 
-	return handlers.ImportOrdersParams{
+	return dto.ImportOrdersParams{
 		File: m["--file"],
 	}, nil
 }
 
 // ScrollOrdersParams parses and validates parameters for scroll-orders command
-func (p *ArgsParser) ScrollOrdersParams() (handlers.ScrollOrdersParams, error) {
+func (p *ArgsParser) ScrollOrdersParams() (dto.ScrollOrdersParams, error) {
 	m := p.asMap()
 
 	if m["--user-id"] == "" {
-		return handlers.ScrollOrdersParams{}, apperrors.Newf(apperrors.ValidationFailed, "user-id is required")
+		return dto.ScrollOrdersParams{}, apperrors.Newf(apperrors.ValidationFailed, "user-id is required")
 	}
 
 	limit, err := parseOptionalInt(m, "--limit")
 	if err != nil {
-		return handlers.ScrollOrdersParams{}, err
+		return dto.ScrollOrdersParams{}, err
 	}
 
-	return handlers.ScrollOrdersParams{
+	return dto.ScrollOrdersParams{
 		UserID: m["--user-id"],
 		Limit:  limit,
 	}, nil

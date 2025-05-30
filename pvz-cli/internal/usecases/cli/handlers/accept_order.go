@@ -5,6 +5,7 @@ import (
 	"pvz-cli/internal/apperrors"
 	"pvz-cli/internal/constants"
 	"pvz-cli/internal/models"
+	"pvz-cli/internal/usecases/dto"
 	"pvz-cli/internal/usecases/requests"
 	"pvz-cli/internal/usecases/services"
 	"pvz-cli/internal/utils"
@@ -13,37 +14,24 @@ import (
 	"time"
 )
 
-// AcceptOrderParams contains parameters for accept-order command
-type AcceptOrderParams struct {
-	OrderID   string `json:"order_id"`
-	UserID    string `json:"user_id"`
-	ExpiresAt string `json:"expires_at"`
-	Weight    string `json:"weight"`
-	Price     string `json:"price"`
-	Package   string `json:"package"`
-}
-
-// HandleAcceptOrderCommand processes accept-order command with package pricing validation
-func HandleAcceptOrderCommand(params AcceptOrderParams, svc services.OrderService) {
+// HandleAcceptOrderCommand processes accept-order command with package pricing validation, optionally suppressing output for batch import
+func HandleAcceptOrderCommand(params dto.AcceptOrderParams, svc services.OrderService, silent bool) error {
 	orderID := strings.TrimSpace(params.OrderID)
 	userID := strings.TrimSpace(params.UserID)
 
 	expiresAt, err := time.Parse(constants.TimeLayout, strings.TrimSpace(params.ExpiresAt))
 	if err != nil {
-		apperrors.Handle(apperrors.Newf(apperrors.ValidationFailed, "invalid expires_at format"))
-		return
+		return apperrors.Newf(apperrors.ValidationFailed, "invalid expires_at format")
 	}
 
 	weight, err := handlePositiveFloatParam("weight", params.Weight, 3)
 	if err != nil {
-		apperrors.Handle(err)
-		return
+		return err
 	}
 
 	price, err := handlePositiveFloatParam("price", params.Price, 1)
 	if err != nil {
-		apperrors.Handle(err)
-		return
+		return err
 	}
 
 	rawPkg := strings.TrimSpace(params.Package)
@@ -60,13 +48,16 @@ func HandleAcceptOrderCommand(params AcceptOrderParams, svc services.OrderServic
 
 	order, err := svc.AcceptOrder(req)
 	if err != nil {
-		apperrors.Handle(err)
-		return
+		return err
 	}
 
+	if silent {
+		return nil
+	}
 	fmt.Printf("ORDER_ACCEPTED: %s\n", order.OrderID)
 	fmt.Printf("PACKAGE: %s\n", order.Package)
 	fmt.Printf("TOTAL_PRICE: %.1f\n", order.Price)
+	return nil
 }
 
 func handlePositiveFloatParam(name string, raw string, maxFractionDigits int) (float64, error) {

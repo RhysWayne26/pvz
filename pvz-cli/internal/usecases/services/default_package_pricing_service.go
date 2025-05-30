@@ -1,7 +1,6 @@
 package services
 
 import (
-	"math"
 	"pvz-cli/internal/apperrors"
 	"pvz-cli/internal/models"
 	"pvz-cli/internal/validators"
@@ -19,9 +18,6 @@ func NewDefaultPackagePricingService(v validators.PackageValidator) *DefaultPack
 
 // Evaluate calculates package surcharge and validates weight constraints for given package type
 func (s *DefaultPackagePricingService) Evaluate(pkg models.PackageType, weight float64, price float64) (float64, error) {
-	price = round(price, 1)
-	weight = round(weight, 3)
-
 	if weight <= 0 {
 		return 0, apperrors.Newf(apperrors.ValidationFailed, "weight must be > 0")
 	}
@@ -49,10 +45,6 @@ func (s *DefaultPackagePricingService) Evaluate(pkg models.PackageType, weight f
 		surcharge = 20 + 1
 	}
 
-	return surcharge, nil
-}
-
-func round(value float64, precision int) float64 {
-	scale := math.Pow(10, float64(precision))
-	return math.Round(value*scale) / scale
+	totalPrice := price + surcharge
+	return totalPrice, nil
 }

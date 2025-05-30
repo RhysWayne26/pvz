@@ -11,6 +11,8 @@ import (
 	"strings"
 )
 
+const silentAcceptOrderOutput = false
+
 type batchHandler func(args []string)
 
 // Router handles command routing and execution for both batch and interactive modes
@@ -34,77 +36,7 @@ func NewRouter(
 		HistoryService: histSvc,
 		handlers:       make(map[string]batchHandler),
 	}
-
-	r.handlers[constants.CmdHelp] = func(_ []string) {
-		handlers.HandleHelpCommand()
-	}
-	r.handlers[constants.CmdAcceptOrder] = func(args []string) {
-		p := NewArgsParser(args)
-		params, err := p.AcceptOrderParams()
-		if err != nil {
-			apperrors.Handle(err)
-			return
-		}
-		handlers.HandleAcceptOrderCommand(params, r.OrderService)
-	}
-	r.handlers[constants.CmdReturnOrder] = func(args []string) {
-		p := NewArgsParser(args)
-		params, err := p.ReturnOrderParams()
-		if err != nil {
-			apperrors.Handle(err)
-			return
-		}
-		handlers.HandleReturnOrderCommand(params, r.ReturnService)
-	}
-	r.handlers[constants.CmdProcess] = func(args []string) {
-		p := NewArgsParser(args)
-		params, err := p.ProcessOrdersParams()
-		if err != nil {
-			apperrors.Handle(err)
-			return
-		}
-		handlers.HandleProcessOrders(params, r.OrderService, r.ReturnService)
-	}
-	r.handlers[constants.CmdListOrders] = func(args []string) {
-		p := NewArgsParser(args)
-		params, err := p.ListOrdersParams()
-		if err != nil {
-			apperrors.Handle(err)
-			return
-		}
-		handlers.HandleListOrdersCommand(params, r.OrderService)
-	}
-	r.handlers[constants.CmdListReturns] = func(args []string) {
-		p := NewArgsParser(args)
-		params, err := p.ListReturnsParams()
-		if err != nil {
-			apperrors.Handle(err)
-			return
-		}
-		handlers.HandleListReturnsCommand(params, r.ReturnService)
-	}
-	r.handlers[constants.CmdOrderHistory] = func(_ []string) {
-		handlers.HandleOrderHistoryCommand(r.HistoryService)
-	}
-	r.handlers[constants.CmdImportOrders] = func(args []string) {
-		p := NewArgsParser(args)
-		params, err := p.ImportOrdersParams()
-		if err != nil {
-			apperrors.Handle(err)
-			return
-		}
-		handlers.HandleImportOrdersCommand(params, r.OrderService)
-	}
-	r.handlers[constants.CmdScrollOrders] = func(args []string) {
-		p := NewArgsParser(args)
-		params, err := p.ScrollOrdersParams()
-		if err != nil {
-			apperrors.Handle(err)
-			return
-		}
-		handlers.HandleScrollOrdersCommand(params, r.OrderService)
-	}
-
+	r.registerHandlers()
 	return r
 }
 
@@ -185,5 +117,116 @@ func (c *Router) runInteractive() {
 			return
 		}
 		c.runBatch(cmd, args)
+	}
+}
+
+func (c *Router) registerHandlers() {
+	c.handlers[constants.CmdHelp] = c.helpHandler()
+	c.handlers[constants.CmdAcceptOrder] = c.acceptOrderHandler()
+	c.handlers[constants.CmdReturnOrder] = c.returnOrderHandler()
+	c.handlers[constants.CmdProcess] = c.processOrdersHandler()
+	c.handlers[constants.CmdListOrders] = c.listOrdersHandler()
+	c.handlers[constants.CmdListReturns] = c.listReturnsHandler()
+	c.handlers[constants.CmdOrderHistory] = c.orderHistoryHandler()
+	c.handlers[constants.CmdImportOrders] = c.importOrdersHandler()
+	c.handlers[constants.CmdScrollOrders] = c.scrollOrdersHandler()
+}
+
+func (c *Router) helpHandler() batchHandler {
+	return func(_ []string) {
+		handlers.HandleHelpCommand()
+	}
+}
+
+func (c *Router) acceptOrderHandler() batchHandler {
+	return func(args []string) {
+		p := NewArgsParser(args)
+		params, err := p.AcceptOrderParams()
+		if err != nil {
+			apperrors.Handle(err)
+			return
+		}
+		err = handlers.HandleAcceptOrderCommand(params, c.OrderService, silentAcceptOrderOutput)
+		if err != nil {
+			apperrors.Handle(err)
+		}
+	}
+}
+
+func (c *Router) returnOrderHandler() batchHandler {
+	return func(args []string) {
+		p := NewArgsParser(args)
+		params, err := p.ReturnOrderParams()
+		if err != nil {
+			apperrors.Handle(err)
+			return
+		}
+		handlers.HandleReturnOrderCommand(params, c.ReturnService)
+	}
+}
+
+func (c *Router) processOrdersHandler() batchHandler {
+	return func(args []string) {
+		p := NewArgsParser(args)
+		params, err := p.ProcessOrdersParams()
+		if err != nil {
+			apperrors.Handle(err)
+			return
+		}
+		handlers.HandleProcessOrders(params, c.OrderService, c.ReturnService)
+	}
+}
+
+func (c *Router) listOrdersHandler() batchHandler {
+	return func(args []string) {
+		p := NewArgsParser(args)
+		params, err := p.ListOrdersParams()
+		if err != nil {
+			apperrors.Handle(err)
+			return
+		}
+		handlers.HandleListOrdersCommand(params, c.OrderService)
+	}
+}
+
+func (c *Router) listReturnsHandler() batchHandler {
+	return func(args []string) {
+		p := NewArgsParser(args)
+		params, err := p.ListReturnsParams()
+		if err != nil {
+			apperrors.Handle(err)
+			return
+		}
+		handlers.HandleListReturnsCommand(params, c.ReturnService)
+	}
+}
+
+func (c *Router) orderHistoryHandler() batchHandler {
+	return func(_ []string) {
+		handlers.HandleOrderHistoryCommand(c.HistoryService)
+	}
+}
+
+func (c *Router) importOrdersHandler() batchHandler {
+	return func(args []string) {
+		p := NewArgsParser(args)
+		params, err := p.ImportOrdersParams()
+		if err != nil {
+			apperrors.Handle(err)
+			return
+		}
+		handlers.HandleImportOrdersCommand(params, c.OrderService)
+	}
+}
+
+func (c *Router) scrollOrdersHandler() batchHandler {
+	return func(args []string) {
+		p := NewArgsParser(args)
+		params, err := p.ScrollOrdersParams()
+		if err != nil {
+			apperrors.Handle(err)
+			return
+		}
+		handlers.HandleScrollOrdersCommand(params, c.OrderService)
 	}
 }

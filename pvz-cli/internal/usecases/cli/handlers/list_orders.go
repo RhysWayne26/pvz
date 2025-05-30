@@ -4,24 +4,15 @@ import (
 	"fmt"
 	"pvz-cli/internal/apperrors"
 	"pvz-cli/internal/constants"
+	"pvz-cli/internal/usecases/dto"
 	"pvz-cli/internal/usecases/requests"
 	"pvz-cli/internal/usecases/services"
 	"pvz-cli/internal/utils"
 	"strings"
 )
 
-// ListOrdersParams contains parameters for list-orders command
-type ListOrdersParams struct {
-	UserID string `json:"user_id"`
-	InPvz  *bool  `json:"in_pvz,omitempty"`
-	Last   *int   `json:"last,omitempty"`
-	LastID string `json:"last_id,omitempty"`
-	Page   *int   `json:"page,omitempty"`
-	Limit  *int   `json:"limit,omitempty"`
-}
-
 // HandleListOrdersCommand processes list-orders command with filtering and pagination
-func HandleListOrdersCommand(params ListOrdersParams, svc services.OrderService) {
+func HandleListOrdersCommand(params dto.ListOrdersParams, svc services.OrderService) {
 	userID := strings.TrimSpace(params.UserID)
 	var lastID string
 	if params.LastID != "" {

@@ -2,29 +2,34 @@ package handlers
 
 import (
 	"fmt"
-	"strings"
-
 	"pvz-cli/internal/apperrors"
+	"pvz-cli/internal/usecases/dto"
 	"pvz-cli/internal/usecases/services"
+	"pvz-cli/internal/utils"
 )
 
-// ImportOrdersParams contains parameters for import-orders command
-type ImportOrdersParams struct {
-	File string `json:"file"`
-}
+const silentAcceptOrderOutput = true
 
 // HandleImportOrdersCommand processes bulk order import from JSON file
-func HandleImportOrdersCommand(params ImportOrdersParams, svc services.OrderService) {
+func HandleImportOrdersCommand(params dto.ImportOrdersParams, svc services.OrderService) {
 	if params.File == "" {
 		apperrors.Handle(apperrors.Newf(apperrors.ValidationFailed, "file path must not be empty"))
 		return
 	}
 
-	count, err := svc.ImportOrders(strings.TrimSpace(params.File))
+	orders, err := utils.ParseOrdersFromFile(params.File)
 	if err != nil {
 		apperrors.Handle(err)
 		return
 	}
 
-	fmt.Printf("IMPORTED: %d\n", count)
+	errorCount := 0
+	for _, order := range orders {
+		if err := HandleAcceptOrderCommand(order, svc, silentAcceptOrderOutput); err != nil {
+			fmt.Printf("ERROR importing %s: %v\n", order.OrderID, err)
+			errorCount++
+		}
+	}
+
+	fmt.Printf("IMPORTED: %d\n", len(orders)-errorCount)
 }

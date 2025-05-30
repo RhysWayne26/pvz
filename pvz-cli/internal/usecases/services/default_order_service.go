@@ -7,7 +7,6 @@ import (
 	"pvz-cli/internal/models"
 	"pvz-cli/internal/usecases/common"
 	"pvz-cli/internal/usecases/requests"
-	"pvz-cli/internal/utils"
 	"pvz-cli/internal/validators"
 	"time"
 )
@@ -41,12 +40,11 @@ func (s *defaultOrderService) AcceptOrder(req requests.AcceptOrderRequest) (mode
 		return models.Order{}, err
 	}
 
-	surcharge, err := s.packagePricingSvc.Evaluate(req.Package, req.Weight, req.Price)
+	totalPrice, err := s.packagePricingSvc.Evaluate(req.Package, req.Weight, req.Price)
 	if err != nil {
 		return models.Order{}, err
 	}
 
-	totalPrice := req.Price + surcharge
 	order := models.Order{
 		OrderID:   req.OrderID,
 		UserID:    req.UserID,
@@ -141,23 +139,4 @@ func (s *defaultOrderService) ListOrders(filter requests.ListOrdersFilter) ([]mo
 	}
 
 	return result, nextLastID, total, nil
-}
-
-// ImportOrders imports orders from file and processes them through AcceptOrder
-func (s *defaultOrderService) ImportOrders(filePath string) (int, error) {
-	orderRequests, err := utils.ParseOrdersFromFile(filePath)
-	if err != nil {
-		return 0, err
-	}
-
-	var imported int
-	for _, req := range orderRequests {
-		if _, err := s.AcceptOrder(req); err != nil {
-			fmt.Printf("ERROR importing %s: %v\n", req.OrderID, err)
-		} else {
-			imported++
-		}
-	}
-
-	return imported, nil
 }
