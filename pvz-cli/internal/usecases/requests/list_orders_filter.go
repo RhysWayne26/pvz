@@ -1,5 +1,6 @@
 package requests
 
+// ListOrdersFilter contains filtering and pagination parameters for listing orders
 type ListOrdersFilter struct {
 	UserID string
 	InPvz  *bool

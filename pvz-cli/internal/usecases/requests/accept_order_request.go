@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// AcceptOrderRequest contains parameters for accepting an order with package pricing
 type AcceptOrderRequest struct {
 	OrderID   string
 	UserID    string

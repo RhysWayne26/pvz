@@ -9,12 +9,14 @@ import (
 	"strings"
 )
 
+// ProcessOrdersParams contains parameters for process-orders command
 type ProcessOrdersParams struct {
 	UserID   string `json:"user_id"`
 	Action   string `json:"action"`
 	OrderIDs string `json:"order_ids"`
 }
 
+// HandleProcessOrders processes orders for issue or return actions
 func HandleProcessOrders(
 	params ProcessOrdersParams,
 	orderSvc services.OrderService,

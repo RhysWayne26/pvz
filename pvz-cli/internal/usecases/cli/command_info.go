@@ -1,11 +1,13 @@
 package cli
 
+// CommandInfo contains information about a CLI command
 type CommandInfo struct {
 	Name        string
 	Description string
 	Usage       string
 }
 
+// AllCommands contains metadata for all available CLI commands
 var AllCommands = []CommandInfo{
 	{
 		Name:        "help",

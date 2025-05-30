@@ -14,11 +14,13 @@ import (
 	"pvz-cli/internal/utils"
 )
 
+// ScrollOrdersParams contains parameters for scroll-orders command
 type ScrollOrdersParams struct {
 	UserID string `json:"user_id"`
 	Limit  *int   `json:"limit,omitempty"`
 }
 
+// HandleScrollOrdersCommand processes scroll-orders command with infinite scroll functionality
 func HandleScrollOrdersCommand(params ScrollOrdersParams, svc services.OrderService) {
 	userID, limit, err := prepareScrollParams(params)
 	if err != nil {

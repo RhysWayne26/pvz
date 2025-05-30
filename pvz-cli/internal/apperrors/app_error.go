@@ -5,6 +5,7 @@ import (
 	"fmt"
 )
 
+// AppError represents application-specific error with structured error code
 type AppError struct {
 	Code    ErrorCode
 	Message string
@@ -19,6 +20,7 @@ func (e *AppError) Unwrap() error {
 	return e.Err
 }
 
+// Newf creates a new formatted application error with specified code
 func Newf(code ErrorCode, format string, args ...any) error {
 	return &AppError{
 		Code:    code,
@@ -26,6 +28,7 @@ func Newf(code ErrorCode, format string, args ...any) error {
 	}
 }
 
+// Handle processes and displays application errors to the user
 func Handle(err error) {
 	var appErr *AppError
 	if errors.As(err, &appErr) {

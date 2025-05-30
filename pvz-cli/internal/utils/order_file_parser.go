@@ -15,6 +15,7 @@ import (
 	"pvz-cli/internal/usecases/requests"
 )
 
+// ParseOrdersFromFile reads and parses order data from JSON file into order requests
 func ParseOrdersFromFile(filePath string) ([]requests.AcceptOrderRequest, error) {
 	rawData, err := readRawData(filePath)
 	if err != nil {

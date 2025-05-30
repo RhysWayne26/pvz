@@ -13,6 +13,7 @@ import (
 	"time"
 )
 
+// AcceptOrderParams contains parameters for accept-order command
 type AcceptOrderParams struct {
 	OrderID   string `json:"order_id"`
 	UserID    string `json:"user_id"`
@@ -22,6 +23,7 @@ type AcceptOrderParams struct {
 	Package   string `json:"package"`
 }
 
+// HandleAcceptOrderCommand processes accept-order command with package pricing validation
 func HandleAcceptOrderCommand(params AcceptOrderParams, svc services.OrderService) {
 	orderID := strings.TrimSpace(params.OrderID)
 	userID := strings.TrimSpace(params.UserID)

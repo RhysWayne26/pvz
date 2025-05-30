@@ -8,10 +8,12 @@ import (
 	"strings"
 )
 
+// ReturnOrderParams contains parameters for return-order command
 type ReturnOrderParams struct {
 	OrderID string `json:"order_id"`
 }
 
+// HandleReturnOrderCommand processes return-order command to return order to courier
 func HandleReturnOrderCommand(params ReturnOrderParams, svc services.ReturnService) {
 	orderID := strings.TrimSpace(params.OrderID)
 

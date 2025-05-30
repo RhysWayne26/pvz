@@ -15,10 +15,12 @@ type snapshotOrderRepository struct {
 	storage storage.Storage
 }
 
+// NewSnapshotOrderRepository creates a new order repository using snapshot storage
 func NewSnapshotOrderRepository(s storage.Storage) OrderRepository {
 	return &snapshotOrderRepository{storage: s}
 }
 
+// Save stores or updates an order in the repository
 func (r *snapshotOrderRepository) Save(order models.Order) error {
 	snap, err := r.storage.Load()
 	if err != nil {
@@ -41,6 +43,7 @@ func (r *snapshotOrderRepository) Save(order models.Order) error {
 	return r.storage.Save(snap)
 }
 
+// Load retrieves an order by its ID
 func (r *snapshotOrderRepository) Load(id string) (models.Order, error) {
 	snap, err := r.storage.Load()
 	if err != nil {
@@ -55,6 +58,7 @@ func (r *snapshotOrderRepository) Load(id string) (models.Order, error) {
 	return models.Order{}, errors.New("order not found")
 }
 
+// Delete removes an order from the repository
 func (r *snapshotOrderRepository) Delete(id string) error {
 	snap, err := r.storage.Load()
 	if err != nil {
@@ -72,6 +76,7 @@ func (r *snapshotOrderRepository) Delete(id string) error {
 	return r.storage.Save(snap)
 }
 
+// List retrieves filtered and paginated list of orders
 func (r *snapshotOrderRepository) List(filter requests.ListOrdersFilter) ([]models.Order, int, error) {
 	orders, err := r.loadAndSort()
 	if err != nil {

@@ -6,6 +6,7 @@ import (
 	"strings"
 )
 
+// ValidatePositiveInt validates that integer parameter is positive
 func ValidatePositiveInt(name string, val *int) error {
 	if val != nil && *val <= 0 {
 		return apperrors.Newf(
@@ -16,6 +17,7 @@ func ValidatePositiveInt(name string, val *int) error {
 	return nil
 }
 
+// ValidatePositiveFloat validates that float parameter is positive
 func ValidatePositiveFloat(name string, val float64) error {
 	if val <= 0 {
 		return apperrors.Newf(
@@ -26,6 +28,7 @@ func ValidatePositiveFloat(name string, val float64) error {
 	return nil
 }
 
+// ValidateFractionDigits validates that float has no more than specified fractional digits
 func ValidateFractionDigits(name string, value float64, maxDigits int) error {
 	s := fmt.Sprintf("%.10f", value)
 	parts := strings.Split(s, ".")

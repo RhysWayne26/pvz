@@ -7,6 +7,7 @@ import (
 	"pvz-cli/internal/usecases/services"
 )
 
+// HandleOrderHistoryCommand processes order-history command and displays all order events
 func HandleOrderHistoryCommand(svc services.HistoryService) {
 	entries, err := svc.ListAll(constants.DefaultHistoryPage, constants.DefaultHistoryLimit)
 	if err != nil {

@@ -13,6 +13,7 @@ import (
 
 type batchHandler func(args []string)
 
+// Router handles command routing and execution for both batch and interactive modes
 type Router struct {
 	OrderService   services.OrderService
 	ReturnService  services.ReturnService
@@ -21,6 +22,7 @@ type Router struct {
 	handlers map[string]batchHandler
 }
 
+// NewRouter creates a new command router with all necessary services and command handlers
 func NewRouter(
 	orderSvc services.OrderService,
 	returnSvc services.ReturnService,
@@ -106,6 +108,7 @@ func NewRouter(
 	return r
 }
 
+// Run starts the application in either batch mode (with command-line args) or interactive mode
 func (c *Router) Run() {
 	if len(os.Args) > 1 {
 		c.runBatch(os.Args[1], os.Args[2:])

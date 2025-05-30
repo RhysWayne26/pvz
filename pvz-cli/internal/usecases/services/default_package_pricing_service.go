@@ -7,14 +7,17 @@ import (
 	"pvz-cli/internal/validators"
 )
 
+// DefaultPackagePricingService implements package pricing business logic with validation
 type DefaultPackagePricingService struct {
 	validator validators.PackageValidator
 }
 
+// NewDefaultPackagePricingService creates a new package pricing service with validator
 func NewDefaultPackagePricingService(v validators.PackageValidator) *DefaultPackagePricingService {
 	return &DefaultPackagePricingService{validator: v}
 }
 
+// Evaluate calculates package surcharge and validates weight constraints for given package type
 func (s *DefaultPackagePricingService) Evaluate(pkg models.PackageType, weight float64, price float64) (float64, error) {
 	price = round(price, 1)
 	weight = round(weight, 3)

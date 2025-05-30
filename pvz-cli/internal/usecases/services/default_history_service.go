@@ -11,10 +11,12 @@ type defaultHistoryService struct {
 	historyRepo repositories.HistoryRepository
 }
 
+// NewDefaultHistoryService creates a new history service with history repository
 func NewDefaultHistoryService(historyRepo repositories.HistoryRepository) HistoryService {
 	return &defaultHistoryService{historyRepo: historyRepo}
 }
 
+// Record saves a history entry to the repository
 func (s *defaultHistoryService) Record(e models.HistoryEntry) error {
 	if err := s.historyRepo.Save(e); err != nil {
 		return apperrors.Newf(apperrors.InternalError, "failed to save history entry")
@@ -22,6 +24,7 @@ func (s *defaultHistoryService) Record(e models.HistoryEntry) error {
 	return nil
 }
 
+// GetByOrder retrieves all history entries for a specific order, sorted by timestamp
 func (s *defaultHistoryService) GetByOrder(orderID string) ([]models.HistoryEntry, error) {
 	entries, err := s.historyRepo.LoadByOrder(orderID)
 	if err != nil {
@@ -36,6 +39,7 @@ func (s *defaultHistoryService) GetByOrder(orderID string) ([]models.HistoryEntr
 	return entries, nil
 }
 
+// ListAll retrieves paginated list of all history entries, sorted by timestamp
 func (s *defaultHistoryService) ListAll(page, limit int) ([]models.HistoryEntry, error) {
 	entries, err := s.historyRepo.LoadAll(page, limit)
 	if err != nil {

@@ -10,10 +10,12 @@ type snapshotHistoryRepository struct {
 	storage storage.Storage
 }
 
+// NewSnapshotHistoryRepository creates a new history repository using snapshot storage
 func NewSnapshotHistoryRepository(s storage.Storage) HistoryRepository {
 	return &snapshotHistoryRepository{storage: s}
 }
 
+// Save stores history entry in the repository
 func (r *snapshotHistoryRepository) Save(e models.HistoryEntry) error {
 	snap, err := r.storage.Load()
 	if err != nil {
@@ -24,6 +26,7 @@ func (r *snapshotHistoryRepository) Save(e models.HistoryEntry) error {
 	return r.storage.Save(snap)
 }
 
+// LoadByOrder retrieves history entries for specific order
 func (r *snapshotHistoryRepository) LoadByOrder(orderID string) ([]models.HistoryEntry, error) {
 	snap, err := r.storage.Load()
 	if err != nil {
@@ -44,6 +47,7 @@ func (r *snapshotHistoryRepository) LoadByOrder(orderID string) ([]models.Histor
 	return filtered, nil
 }
 
+// LoadAll retrieves paginated list of all history entries
 func (r *snapshotHistoryRepository) LoadAll(page, limit int) ([]models.HistoryEntry, error) {
 	snap, err := r.storage.Load()
 	if err != nil {

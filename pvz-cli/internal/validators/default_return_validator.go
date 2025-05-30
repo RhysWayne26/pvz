@@ -8,13 +8,15 @@ import (
 	"time"
 )
 
-type DefaultReturnValidator struct{}
+type defaultReturnValidator struct{}
 
-func NewDefaultReturnValidator() *DefaultReturnValidator {
-	return &DefaultReturnValidator{}
+// NewDefaultReturnValidator creates a new return validator
+func NewDefaultReturnValidator() ReturnValidator {
+	return &defaultReturnValidator{}
 }
 
-func (v *DefaultReturnValidator) ValidateClientReturn(orders []models.Order, req requests.ClientReturnsRequest) error {
+// ValidateClientReturn validates client return requests including ownership and return window
+func (v *defaultReturnValidator) ValidateClientReturn(orders []models.Order, req requests.ClientReturnsRequest) error {
 	if len(req.OrderIDs) == 0 {
 		return apperrors.Newf(apperrors.ValidationFailed, "no order IDs provided")
 	}
@@ -37,7 +39,8 @@ func (v *DefaultReturnValidator) ValidateClientReturn(orders []models.Order, req
 	return nil
 }
 
-func (v *DefaultReturnValidator) ValidateReturnToCourier(o models.Order) error {
+// ValidateReturnToCourier validates order return to courier including status and expiration
+func (v *defaultReturnValidator) ValidateReturnToCourier(o models.Order) error {
 	if o.Status == models.Returned {
 		return nil
 	}

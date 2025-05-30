@@ -19,6 +19,7 @@ type defaultOrderService struct {
 	validator         validators.OrderValidator
 }
 
+// NewDefaultOrderService creates a new order service with all required dependencies
 func NewDefaultOrderService(
 	orderRepo repositories.OrderRepository, packagePricingService PackagePricingService, historyService HistoryService, validator validators.OrderValidator) OrderService {
 	return &defaultOrderService{
@@ -29,6 +30,7 @@ func NewDefaultOrderService(
 	}
 }
 
+// AcceptOrder accepts an order with package pricing calculation and validation
 func (s *defaultOrderService) AcceptOrder(req requests.AcceptOrderRequest) (models.Order, error) {
 	existing, err := s.orderRepo.Load(req.OrderID)
 	if err != nil {
@@ -71,6 +73,7 @@ func (s *defaultOrderService) AcceptOrder(req requests.AcceptOrderRequest) (mode
 	return order, nil
 }
 
+// IssueOrders processes multiple orders for issuance to clients
 func (s *defaultOrderService) IssueOrders(req requests.IssueOrdersRequest) []common.ProcessResult {
 	results := make([]common.ProcessResult, 0, len(req.OrderIDs))
 	now := time.Now()
@@ -117,6 +120,7 @@ func (s *defaultOrderService) IssueOrders(req requests.IssueOrdersRequest) []com
 	return results
 }
 
+// ListOrders retrieves filtered and paginated list of orders
 func (s *defaultOrderService) ListOrders(filter requests.ListOrdersFilter) ([]models.Order, string, int, error) {
 	result, total, err := s.orderRepo.List(filter)
 	if err != nil {
@@ -138,6 +142,8 @@ func (s *defaultOrderService) ListOrders(filter requests.ListOrdersFilter) ([]mo
 
 	return result, nextLastID, total, nil
 }
+
+// ImportOrders imports orders from file and processes them through AcceptOrder
 func (s *defaultOrderService) ImportOrders(filePath string) (int, error) {
 	orderRequests, err := utils.ParseOrdersFromFile(filePath)
 	if err != nil {

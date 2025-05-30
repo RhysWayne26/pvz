@@ -5,6 +5,7 @@ import (
 	"pvz-cli/internal/usecases/cli"
 )
 
+// HandleHelpCommand displays all available commands with their descriptions and usage
 func HandleHelpCommand() {
 	fmt.Println("Доступные команды:")
 	for _, cmd := range cli.AllCommands {

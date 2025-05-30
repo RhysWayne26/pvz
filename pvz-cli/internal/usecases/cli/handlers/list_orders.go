@@ -10,6 +10,7 @@ import (
 	"strings"
 )
 
+// ListOrdersParams contains parameters for list-orders command
 type ListOrdersParams struct {
 	UserID string `json:"user_id"`
 	InPvz  *bool  `json:"in_pvz,omitempty"`
@@ -19,6 +20,7 @@ type ListOrdersParams struct {
 	Limit  *int   `json:"limit,omitempty"`
 }
 
+// HandleListOrdersCommand processes list-orders command with filtering and pagination
 func HandleListOrdersCommand(params ListOrdersParams, svc services.OrderService) {
 	userID := strings.TrimSpace(params.UserID)
 	var lastID string

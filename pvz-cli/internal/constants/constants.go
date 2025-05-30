@@ -2,6 +2,7 @@ package constants
 
 import "time"
 
+// Application constants for default values, time layouts and command names
 const (
 	DefaultPage         = 1
 	DefaultLimit        = 20

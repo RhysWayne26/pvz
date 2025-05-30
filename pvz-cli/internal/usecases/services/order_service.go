@@ -6,6 +6,7 @@ import (
 	"pvz-cli/internal/usecases/requests"
 )
 
+// OrderService handles certain order-related: acceptance, issuance and listing
 type OrderService interface {
 	AcceptOrder(req requests.AcceptOrderRequest) (models.Order, error)
 	IssueOrders(req requests.IssueOrdersRequest) []common.ProcessResult

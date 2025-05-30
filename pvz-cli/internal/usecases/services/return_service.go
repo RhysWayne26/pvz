@@ -6,6 +6,7 @@ import (
 	"pvz-cli/internal/usecases/requests"
 )
 
+// ReturnService handles order return operations for both clients and couriers
 type ReturnService interface {
 	CreateClientReturns(req requests.ClientReturnsRequest) []common.ProcessResult
 	ReturnToCourier(req requests.ReturnOrderRequest) error

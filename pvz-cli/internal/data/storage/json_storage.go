@@ -10,15 +10,18 @@ import (
 	"sync"
 )
 
+// JSONStorage implements storage interface using JSON files
 type JSONStorage struct {
 	path  string
 	mutex sync.Mutex
 }
 
+// NewJSONStorage creates a new JSON-based storage with specified file path
 func NewJSONStorage(path string) *JSONStorage {
 	return &JSONStorage{path: path}
 }
 
+// Save persists snapshot to JSON file with atomic write operation
 func (s *JSONStorage) Save(snapshot *data.Snapshot) error {
 	if shutdown.IsShuttingDown() {
 		return fmt.Errorf("save aborted: shutting down")
@@ -78,6 +81,7 @@ func (s *JSONStorage) Save(snapshot *data.Snapshot) error {
 	return nil
 }
 
+// Load reads snapshot from JSON file or returns empty snapshot if file doesn't exist
 func (s *JSONStorage) Load() (*data.Snapshot, error) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()

@@ -20,6 +20,7 @@ type defaultReturnService struct {
 	validator  validators.ReturnValidator
 }
 
+// NewDefaultReturnService creates a new return service with all required dependencies
 func NewDefaultReturnService(
 	orderRepo repositories.OrderRepository,
 	returnRepo repositories.ReturnRepository,
@@ -34,6 +35,7 @@ func NewDefaultReturnService(
 	}
 }
 
+// CreateClientReturns processes multiple client return requests
 func (s *defaultReturnService) CreateClientReturns(req requests.ClientReturnsRequest) []common.ProcessResult {
 	results := make([]common.ProcessResult, 0, len(req.OrderIDs))
 	now := time.Now()
@@ -90,6 +92,7 @@ func (s *defaultReturnService) CreateClientReturns(req requests.ClientReturnsReq
 	return results
 }
 
+// ReturnToCourier processes return of order back to courier/warehouse
 func (s *defaultReturnService) ReturnToCourier(req requests.ReturnOrderRequest) error {
 	orderID := req.OrderID
 	o, err := s.orderRepo.Load(orderID)
@@ -117,6 +120,7 @@ func (s *defaultReturnService) ReturnToCourier(req requests.ReturnOrderRequest) 
 	return nil
 }
 
+// ListReturns retrieves paginated list of return entries sorted by return date
 func (s *defaultReturnService) ListReturns(page, limit int) ([]models.ReturnEntry, error) {
 	rets, err := s.returnRepo.List(page, limit)
 	if err != nil {

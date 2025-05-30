@@ -6,10 +6,12 @@ import (
 	"strconv"
 )
 
+// ArgsParser parses command-line arguments into structured parameters for different commands
 type ArgsParser struct {
 	args []string
 }
 
+// NewArgsParser creates a new command-line arguments parser
 func NewArgsParser(args []string) *ArgsParser {
 	return &ArgsParser{args: args}
 }
@@ -30,6 +32,7 @@ func (p *ArgsParser) asMap() map[string]string {
 	return m
 }
 
+// AcceptOrderParams parses and validates parameters for accept-order command
 func (p *ArgsParser) AcceptOrderParams() (handlers.AcceptOrderParams, error) {
 	m := p.asMap()
 
@@ -63,6 +66,7 @@ func (p *ArgsParser) AcceptOrderParams() (handlers.AcceptOrderParams, error) {
 	}, nil
 }
 
+// ReturnOrderParams parses and validates parameters for return-order command
 func (p *ArgsParser) ReturnOrderParams() (handlers.ReturnOrderParams, error) {
 	m := p.asMap()
 
@@ -75,6 +79,7 @@ func (p *ArgsParser) ReturnOrderParams() (handlers.ReturnOrderParams, error) {
 	}, nil
 }
 
+// ProcessOrdersParams parses and validates parameters for process-orders command
 func (p *ArgsParser) ProcessOrdersParams() (handlers.ProcessOrdersParams, error) {
 	m := p.asMap()
 
@@ -97,6 +102,7 @@ func (p *ArgsParser) ProcessOrdersParams() (handlers.ProcessOrdersParams, error)
 	}, nil
 }
 
+// ListOrdersParams parses and validates parameters for list-orders command
 func (p *ArgsParser) ListOrdersParams() (handlers.ListOrdersParams, error) {
 	m := p.asMap()
 	allowed := map[string]struct{}{
@@ -142,6 +148,7 @@ func (p *ArgsParser) ListOrdersParams() (handlers.ListOrdersParams, error) {
 	}, nil
 }
 
+// ListReturnsParams parses and validates parameters for list-returns command
 func (p *ArgsParser) ListReturnsParams() (handlers.ListReturnsParams, error) {
 	m := p.asMap()
 
@@ -160,6 +167,7 @@ func (p *ArgsParser) ListReturnsParams() (handlers.ListReturnsParams, error) {
 	}, nil
 }
 
+// ImportOrdersParams parses and validates parameters for import-orders command
 func (p *ArgsParser) ImportOrdersParams() (handlers.ImportOrdersParams, error) {
 	m := p.asMap()
 
@@ -172,6 +180,7 @@ func (p *ArgsParser) ImportOrdersParams() (handlers.ImportOrdersParams, error) {
 	}, nil
 }
 
+// ScrollOrdersParams parses and validates parameters for scroll-orders command
 func (p *ArgsParser) ScrollOrdersParams() (handlers.ScrollOrdersParams, error) {
 	m := p.asMap()
 

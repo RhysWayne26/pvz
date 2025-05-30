@@ -1,4 +1,4 @@
-.PHONY: setup update lint security build start run
+.PHONY: docs docs-serve docs-generate setup update lint security build start run
 
 GOOS ?= $(shell go env GOOS)
 EXT =
@@ -6,6 +6,10 @@ EXT =
 ifeq ($(GOOS),windows)
 EXT = .exe
 endif
+
+docs:
+	@echo "Starting documentation server at http://localhost:6060"
+	godoc -http=:6060
 
 setup:
 	mkdir -p ../.git/hooks

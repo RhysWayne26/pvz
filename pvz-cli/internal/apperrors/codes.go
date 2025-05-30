@@ -1,7 +1,9 @@
 package apperrors
 
+// ErrorCode represents specific application error codes
 type ErrorCode string
 
+// Application error codes for different failure scenarios
 const (
 	OrderNotFound      ErrorCode = "ORDER_NOT_FOUND"
 	OrderAlreadyExists ErrorCode = "ORDER_ALREADY_EXISTS"
