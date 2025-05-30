@@ -86,12 +86,17 @@ func fetchOrdersPage(
 
 func displayOrders(orders []models.Order) {
 	for _, o := range orders {
-		fmt.Printf(
-			"ORDER: %s %s %s %s\n",
-			o.OrderID, o.UserID, o.Status,
+		fmt.Printf("ORDER: %s %s %s %s %s %.3f %.1f\n",
+			o.OrderID,
+			o.UserID,
+			o.Status,
 			o.ExpiresAt.Format(constants.TimeLayout),
+			o.Package,
+			o.Weight,
+			o.Price,
 		)
 	}
+
 }
 
 func promptNext(scanner *bufio.Scanner) bool {

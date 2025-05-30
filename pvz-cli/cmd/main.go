@@ -33,9 +33,11 @@ func main() {
 
 	orderValidator := validators.NewDefaultOrderValidator()
 	returnValidator := validators.NewDefaultReturnValidator()
+	packageValidator := validators.NewDefaultPackageValidator()
 
 	historySvc := services.NewDefaultHistoryService(historyRepo)
-	orderSvc := services.NewDefaultOrderService(orderRepo, historySvc, orderValidator)
+	packagePricingSvc := services.NewDefaultPackagePricingService(packageValidator)
+	orderSvc := services.NewDefaultOrderService(orderRepo, packagePricingSvc, historySvc, orderValidator)
 	returnSvc := services.NewDefaultReturnService(orderRepo, returnRepo, historySvc, returnValidator)
 
 	router := cli.NewRouter(

@@ -36,19 +36,30 @@ func (p *ArgsParser) AcceptOrderParams() (handlers.AcceptOrderParams, error) {
 	if m["--order-id"] == "" {
 		return handlers.AcceptOrderParams{}, apperrors.Newf(apperrors.ValidationFailed, "order-id is required")
 	}
-
 	if m["--user-id"] == "" {
 		return handlers.AcceptOrderParams{}, apperrors.Newf(apperrors.ValidationFailed, "user-id is required")
 	}
-
 	if m["--expires"] == "" {
 		return handlers.AcceptOrderParams{}, apperrors.Newf(apperrors.ValidationFailed, "expires is required")
+	}
+	if m["--weight"] == "" {
+		return handlers.AcceptOrderParams{}, apperrors.Newf(apperrors.ValidationFailed, "weight is required")
+	}
+	if m["--price"] == "" {
+		return handlers.AcceptOrderParams{}, apperrors.Newf(apperrors.ValidationFailed, "price is required")
+	}
+	pkg := m["--package"]
+	if pkg == "" {
+		pkg = "none"
 	}
 
 	return handlers.AcceptOrderParams{
 		OrderID:   m["--order-id"],
 		UserID:    m["--user-id"],
 		ExpiresAt: m["--expires"],
+		Weight:    m["--weight"],
+		Price:     m["--price"],
+		Package:   pkg,
 	}, nil
 }
 

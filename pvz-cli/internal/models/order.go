@@ -12,4 +12,7 @@ type Order struct {
 	ExpiresAt  time.Time   `json:"expires_at"`
 	IssuedAt   *time.Time  `json:"issued_at,omitempty"`
 	ReturnedAt *time.Time  `json:"returned_at,omitempty"`
+	Package    PackageType `json:"package"`
+	Weight     float64     `json:"weight"`
+	Price      float64     `json:"price"`
 }

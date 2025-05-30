@@ -7,7 +7,7 @@ import (
 )
 
 type OrderService interface {
-	AcceptOrder(req requests.AcceptOrderRequest) error
+	AcceptOrder(req requests.AcceptOrderRequest) (models.Order, error)
 	IssueOrders(req requests.IssueOrdersRequest) []common.ProcessResult
 	ListOrders(filter requests.ListOrdersFilter) ([]models.Order, string, int, error)
 	ImportOrders(filePath string) (int, error)

@@ -8,4 +8,6 @@ const (
 	StorageExpired     ErrorCode = "STORAGE_EXPIRED"
 	ValidationFailed   ErrorCode = "VALIDATION_FAILED"
 	InternalError      ErrorCode = "INTERNAL_ERROR"
+	InvalidPackage     ErrorCode = "INVALID_PACKAGE"
+	WeightTooHeavy     ErrorCode = "WEIGHT_TOO_HEAVY"
 )

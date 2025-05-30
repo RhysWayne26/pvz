@@ -63,7 +63,15 @@ func HandleListOrdersCommand(params ListOrdersParams, svc services.OrderService)
 	}
 
 	for _, o := range orders {
-		fmt.Printf("ORDER: %s %s %s %s\n", o.OrderID, o.UserID, o.Status, o.ExpiresAt.Format(constants.TimeLayout))
+		fmt.Printf("ORDER: %s %s %s %s %s %.3f %.1f\n",
+			o.OrderID,
+			o.UserID,
+			o.Status,
+			o.ExpiresAt.Format(constants.TimeLayout),
+			o.Package,
+			o.Weight,
+			o.Price,
+		)
 	}
 	fmt.Printf("TOTAL: %d\n", total)
 }
