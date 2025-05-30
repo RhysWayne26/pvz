@@ -1,4 +1,4 @@
-.PHONY: docs docs-serve docs-generate setup update lint security build start run
+.PHONY: docs-generate setup update lint security build start run
 
 GOOS ?= $(shell go env GOOS)
 EXT =
@@ -6,10 +6,6 @@ EXT =
 ifeq ($(GOOS),windows)
 EXT = .exe
 endif
-
-docs:
-	@echo "Starting documentation server at http://localhost:6060"
-	godoc -http=:6060
 
 setup:
 	mkdir -p ../.git/hooks
@@ -32,3 +28,13 @@ start:
 	./pvz$(EXT)
 
 run: setup update lint security build start
+
+docs-generate:
+	@echo "Generating per-package dev-docs…"
+	@mkdir -p docs/dev
+	@for pkg in $$(go list ./...); do
+	  file="$$(echo $$pkg | sed 's#/#-#g').md";
+	  echo "  - $$pkg → $$file";
+	  go doc -all $$pkg > docs/dev/$$file;
+	done
+	@echo "Done: docs/dev/*.md"

@@ -17,7 +17,7 @@ var AllCommands = []CommandInfo{
 	{
 		Name:        "accept-order",
 		Description: "Принять заказ от курьера.",
-		Usage:       "accept-order --order-id <id> --user-id <id> --expires <yyyy-mm-dd>",
+		Usage:       "accept-order --order-id <id> --user-id <id> --expires <yyyy-mm-dd> --weight <float> --price <float> [--package <bag|box|film|bag+film|box+film>]",
 	},
 	{
 		Name:        "return-order",
