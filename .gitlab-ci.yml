@@ -17,6 +17,10 @@ before_script:
 
 lint:
   stage: lint
+  allow_failure: false
+  only:
+    - merge_requests
+    - master
   script:
     - make lint
   artifacts:
@@ -27,11 +31,16 @@ lint:
 
 security:
   stage: security
+  only:
+    - merge_requests
+    - master
+  allow_failure: false
   script:
     - make security
 
 build:
   stage: build
+  needs: [lint, security]
   script:
     - make build
   artifacts:
