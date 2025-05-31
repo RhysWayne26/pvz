@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"pvz-cli/internal/usecases/strategies"
 	"syscall"
 
 	"pvz-cli/cmd/cli"
@@ -35,8 +36,10 @@ func main() {
 	returnValidator := validators.NewDefaultReturnValidator()
 	packageValidator := validators.NewDefaultPackageValidator()
 
+	pricingStrategy := strategies.NewDefaultPricingStrategy()
+
 	historySvc := services.NewDefaultHistoryService(historyRepo)
-	packagePricingSvc := services.NewDefaultPackagePricingService(packageValidator)
+	packagePricingSvc := services.NewDefaultPackagePricingService(packageValidator, pricingStrategy)
 	orderSvc := services.NewDefaultOrderService(orderRepo, packagePricingSvc, historySvc, orderValidator)
 	returnSvc := services.NewDefaultReturnService(orderRepo, returnRepo, historySvc, returnValidator)
 

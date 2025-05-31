@@ -83,14 +83,14 @@ func fetchOrdersPage(
 
 func displayOrders(orders []models.Order) {
 	for _, o := range orders {
-		fmt.Printf("ORDER: %s %s %s %s %s %.3f %.1f\n",
+		fmt.Printf("ORDER: %s %s %s %s %s %.*f %.*f\n",
 			o.OrderID,
 			o.UserID,
 			o.Status,
 			o.ExpiresAt.Format(constants.TimeLayout),
 			o.Package,
-			o.Weight,
-			o.Price,
+			constants.WeightFractionDigit, o.Weight,
+			constants.PriceFractionDigit, o.Price,
 		)
 	}
 

@@ -26,4 +26,7 @@ const (
 	CmdScrollOrders = "scroll-orders"
 	CmdNext         = "next"
 	CmdExit         = "exit"
+
+	WeightFractionDigit = 3
+	PriceFractionDigit  = 2
 )

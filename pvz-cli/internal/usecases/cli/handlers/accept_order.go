@@ -24,12 +24,12 @@ func HandleAcceptOrderCommand(params dto.AcceptOrderParams, svc services.OrderSe
 		return apperrors.Newf(apperrors.ValidationFailed, "invalid expires_at format")
 	}
 
-	weight, err := handlePositiveFloatParam("weight", params.Weight, 3)
+	weight, err := handlePositiveFloatParam("weight", params.Weight, constants.WeightFractionDigit)
 	if err != nil {
 		return err
 	}
 
-	price, err := handlePositiveFloatParam("price", params.Price, 1)
+	price, err := handlePositiveFloatParam("price", params.Price, constants.PriceFractionDigit)
 	if err != nil {
 		return err
 	}
@@ -54,7 +54,7 @@ func HandleAcceptOrderCommand(params dto.AcceptOrderParams, svc services.OrderSe
 	}
 	fmt.Printf("ORDER_ACCEPTED: %s\n", order.OrderID)
 	fmt.Printf("PACKAGE: %s\n", order.Package)
-	fmt.Printf("TOTAL_PRICE: %.1f\n", order.Price)
+	fmt.Printf("TOTAL_PRICE: %.*f\n", constants.PriceFractionDigit, order.Price)
 	return nil
 }
 
