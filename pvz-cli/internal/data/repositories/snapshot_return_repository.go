@@ -5,17 +5,18 @@ import (
 	"pvz-cli/internal/models"
 )
 
-type snapshotReturnRepository struct {
+// SnapshotReturnRepository is an implementation of the ReturnRepository interface that uses snapshot storage.
+type SnapshotReturnRepository struct {
 	storage storage.Storage
 }
 
-// NewSnapshotReturnRepository creates a new return repository using snapshot storage
-func NewSnapshotReturnRepository(storage storage.Storage) ReturnRepository {
-	return &snapshotReturnRepository{storage}
+// NewSnapshotReturnRepository creates a new instance of SnapshotReturnRepository
+func NewSnapshotReturnRepository(storage storage.Storage) *SnapshotReturnRepository {
+	return &SnapshotReturnRepository{storage}
 }
 
 // Save stores a return entry in the repository
-func (r *snapshotReturnRepository) Save(ret models.ReturnEntry) error {
+func (r *SnapshotReturnRepository) Save(ret models.ReturnEntry) error {
 	snap, err := r.storage.Load()
 	if err != nil {
 		return err
@@ -26,7 +27,7 @@ func (r *snapshotReturnRepository) Save(ret models.ReturnEntry) error {
 }
 
 // List retrieves paginated list of return entries
-func (r *snapshotReturnRepository) List(page, limit int) ([]models.ReturnEntry, error) {
+func (r *SnapshotReturnRepository) List(page, limit int) ([]models.ReturnEntry, error) {
 	snap, err := r.storage.Load()
 	if err != nil {
 		return nil, err

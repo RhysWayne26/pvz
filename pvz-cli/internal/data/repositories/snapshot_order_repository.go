@@ -11,17 +11,18 @@ import (
 	"pvz-cli/internal/usecases/requests"
 )
 
-type snapshotOrderRepository struct {
+// SnapshotOrderRepository is an implementation of the OrderRepository interface that uses snapshot storage.
+type SnapshotOrderRepository struct {
 	storage storage.Storage
 }
 
-// NewSnapshotOrderRepository creates a new order repository using snapshot storage
-func NewSnapshotOrderRepository(s storage.Storage) OrderRepository {
-	return &snapshotOrderRepository{storage: s}
+// NewSnapshotOrderRepository creates a new instance of SnapshotOrderRepository
+func NewSnapshotOrderRepository(s storage.Storage) *SnapshotOrderRepository {
+	return &SnapshotOrderRepository{storage: s}
 }
 
 // Save stores or updates an order in the repository
-func (r *snapshotOrderRepository) Save(order models.Order) error {
+func (r *SnapshotOrderRepository) Save(order models.Order) error {
 	snap, err := r.storage.Load()
 	if err != nil {
 		return err
@@ -44,7 +45,7 @@ func (r *snapshotOrderRepository) Save(order models.Order) error {
 }
 
 // Load retrieves an order by its ID
-func (r *snapshotOrderRepository) Load(id string) (models.Order, error) {
+func (r *SnapshotOrderRepository) Load(id string) (models.Order, error) {
 	snap, err := r.storage.Load()
 	if err != nil {
 		return models.Order{}, err
@@ -59,7 +60,7 @@ func (r *snapshotOrderRepository) Load(id string) (models.Order, error) {
 }
 
 // Delete removes an order from the repository
-func (r *snapshotOrderRepository) Delete(id string) error {
+func (r *SnapshotOrderRepository) Delete(id string) error {
 	snap, err := r.storage.Load()
 	if err != nil {
 		return err
@@ -77,11 +78,12 @@ func (r *snapshotOrderRepository) Delete(id string) error {
 }
 
 // List retrieves filtered and paginated list of orders
-func (r *snapshotOrderRepository) List(filter requests.ListOrdersFilter) ([]models.Order, int, error) {
-	orders, err := r.loadAndSort()
+func (r *SnapshotOrderRepository) List(filter requests.ListOrdersFilter) ([]models.Order, int, error) {
+	snap, err := r.storage.Load()
 	if err != nil {
 		return nil, 0, err
 	}
+	orders := sortByCreatedAt(snap.Orders)
 	lastCreatedAt := findLastCreatedAt(orders, filter.LastID)
 	var filters []orderFilter
 	filters = append(filters, filterByUser(filter.UserID))
@@ -105,15 +107,11 @@ func (r *snapshotOrderRepository) List(filter requests.ListOrdersFilter) ([]mode
 	return paged, total, nil
 }
 
-func (r *snapshotOrderRepository) loadAndSort() ([]models.Order, error) {
-	snap, err := r.storage.Load()
-	if err != nil {
-		return nil, err
-	}
-	sort.Slice(snap.Orders, func(i, j int) bool {
-		return snap.Orders[i].CreatedAt.Before(snap.Orders[j].CreatedAt)
+func sortByCreatedAt(orders []models.Order) []models.Order {
+	sort.Slice(orders, func(i, j int) bool {
+		return orders[i].CreatedAt.Before(orders[j].CreatedAt)
 	})
-	return snap.Orders, nil
+	return orders
 }
 
 func findLastCreatedAt(orders []models.Order, lastID string) time.Time {

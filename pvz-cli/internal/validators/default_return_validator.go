@@ -8,15 +8,16 @@ import (
 	"time"
 )
 
-type defaultReturnValidator struct{}
+// DefaultReturnValidator is a default implementation of the ReturnValidator interface.
+type DefaultReturnValidator struct{}
 
-// NewDefaultReturnValidator creates a new return validator
-func NewDefaultReturnValidator() ReturnValidator {
-	return &defaultReturnValidator{}
+// NewDefaultReturnValidator creates a new instance of DefaultReturnValidator
+func NewDefaultReturnValidator() *DefaultReturnValidator {
+	return &DefaultReturnValidator{}
 }
 
 // ValidateClientReturn validates client return requests including ownership and return window
-func (v *defaultReturnValidator) ValidateClientReturn(orders []models.Order, req requests.ClientReturnsRequest) error {
+func (v *DefaultReturnValidator) ValidateClientReturn(orders []models.Order, req requests.ClientReturnsRequest) error {
 	if len(req.OrderIDs) == 0 {
 		return apperrors.Newf(apperrors.ValidationFailed, "no order IDs provided")
 	}
@@ -40,7 +41,7 @@ func (v *defaultReturnValidator) ValidateClientReturn(orders []models.Order, req
 }
 
 // ValidateReturnToCourier validates order return to courier including status and expiration
-func (v *defaultReturnValidator) ValidateReturnToCourier(o models.Order) error {
+func (v *DefaultReturnValidator) ValidateReturnToCourier(o models.Order) error {
 	if o.Status == models.Returned {
 		return nil
 	}

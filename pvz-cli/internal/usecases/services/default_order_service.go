@@ -11,17 +11,21 @@ import (
 	"time"
 )
 
-type defaultOrderService struct {
+// DefaultOrderService is a default implementation of OrderService interface
+type DefaultOrderService struct {
 	orderRepo         repositories.OrderRepository
 	packagePricingSvc PackagePricingService
 	historySvc        HistoryService
 	validator         validators.OrderValidator
 }
 
-// NewDefaultOrderService creates a new order service with all required dependencies
+// NewDefaultOrderService creates a new instance of DefaultOrderService
 func NewDefaultOrderService(
-	orderRepo repositories.OrderRepository, packagePricingService PackagePricingService, historyService HistoryService, validator validators.OrderValidator) OrderService {
-	return &defaultOrderService{
+	orderRepo repositories.OrderRepository,
+	packagePricingService PackagePricingService,
+	historyService HistoryService,
+	validator validators.OrderValidator) *DefaultOrderService {
+	return &DefaultOrderService{
 		orderRepo:         orderRepo,
 		packagePricingSvc: packagePricingService,
 		historySvc:        historyService,
@@ -30,7 +34,7 @@ func NewDefaultOrderService(
 }
 
 // AcceptOrder accepts an order with package pricing calculation and validation
-func (s *defaultOrderService) AcceptOrder(req requests.AcceptOrderRequest) (models.Order, error) {
+func (s *DefaultOrderService) AcceptOrder(req requests.AcceptOrderRequest) (models.Order, error) {
 	existing, err := s.orderRepo.Load(req.OrderID)
 	if err != nil {
 		existing = models.Order{}
@@ -72,7 +76,7 @@ func (s *defaultOrderService) AcceptOrder(req requests.AcceptOrderRequest) (mode
 }
 
 // IssueOrders processes multiple orders for issuance to clients
-func (s *defaultOrderService) IssueOrders(req requests.IssueOrdersRequest) []common.ProcessResult {
+func (s *DefaultOrderService) IssueOrders(req requests.IssueOrdersRequest) []common.ProcessResult {
 	results := make([]common.ProcessResult, 0, len(req.OrderIDs))
 	now := time.Now()
 
@@ -119,7 +123,7 @@ func (s *defaultOrderService) IssueOrders(req requests.IssueOrdersRequest) []com
 }
 
 // ListOrders retrieves filtered and paginated list of orders
-func (s *defaultOrderService) ListOrders(filter requests.ListOrdersFilter) ([]models.Order, string, int, error) {
+func (s *DefaultOrderService) ListOrders(filter requests.ListOrdersFilter) ([]models.Order, string, int, error) {
 	result, total, err := s.orderRepo.List(filter)
 	if err != nil {
 		return nil, "", 0, apperrors.Newf(apperrors.InternalError, "failed to list orders: %v", err)

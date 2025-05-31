@@ -5,15 +5,16 @@ import (
 	"pvz-cli/internal/models"
 )
 
-type defaultPackageValidator struct{}
+// DefaultPackageValidator is a default implementation of the PackageValidator interface.
+type DefaultPackageValidator struct{}
 
-// NewDefaultPackageValidator creates a new package validator
-func NewDefaultPackageValidator() PackageValidator {
-	return &defaultPackageValidator{}
+// NewDefaultPackageValidator creates a new instance of DefaultPackageValidator
+func NewDefaultPackageValidator() *DefaultPackageValidator {
+	return &DefaultPackageValidator{}
 }
 
 // Validate checks if package type is valid and supports given weight
-func (v *defaultPackageValidator) Validate(pkg models.PackageType, weight float64) error {
+func (v *DefaultPackageValidator) Validate(pkg models.PackageType, weight float64) error {
 	if !v.isValidPackageType(pkg) {
 		return apperrors.Newf(apperrors.InvalidPackage, "package type is not valid")
 	}
@@ -30,7 +31,7 @@ func (v *defaultPackageValidator) Validate(pkg models.PackageType, weight float6
 	return nil
 }
 
-func (v *defaultPackageValidator) isValidPackageType(pkg models.PackageType) bool {
+func (v *DefaultPackageValidator) isValidPackageType(pkg models.PackageType) bool {
 	switch pkg {
 	case models.PackageNone, models.PackageBag, models.PackageBox,
 		models.PackageFilm, models.PackageBagFilm, models.PackageBoxFilm:

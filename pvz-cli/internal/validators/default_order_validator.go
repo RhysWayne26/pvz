@@ -8,15 +8,16 @@ import (
 	"pvz-cli/internal/usecases/requests"
 )
 
-type defaultOrderValidator struct{}
+// DefaultOrderValidator is a default implementation of the OrderValidator interface.
+type DefaultOrderValidator struct{}
 
-// NewDefaultOrderValidator creates a new order validator
-func NewDefaultOrderValidator() OrderValidator {
-	return &defaultOrderValidator{}
+// NewDefaultOrderValidator creates a new instance of DefaultOrderValidator.
+func NewDefaultOrderValidator() *DefaultOrderValidator {
+	return &DefaultOrderValidator{}
 }
 
 // ValidateAccept validates order acceptance requirements including expiry date and duplicates
-func (v *defaultOrderValidator) ValidateAccept(o models.Order, req requests.AcceptOrderRequest) error {
+func (v *DefaultOrderValidator) ValidateAccept(o models.Order, req requests.AcceptOrderRequest) error {
 	if req.ExpiresAt.Before(time.Now()) {
 		return apperrors.Newf(apperrors.ValidationFailed, "expires date is in the past")
 	}
@@ -27,7 +28,7 @@ func (v *defaultOrderValidator) ValidateAccept(o models.Order, req requests.Acce
 }
 
 // ValidateIssue validates order issuance requirements including user ownership and status
-func (v *defaultOrderValidator) ValidateIssue(orders []models.Order, req requests.IssueOrdersRequest) error {
+func (v *DefaultOrderValidator) ValidateIssue(orders []models.Order, req requests.IssueOrdersRequest) error {
 	if len(req.OrderIDs) == 0 {
 		return apperrors.Newf(apperrors.ValidationFailed, "no order IDs provided")
 	}

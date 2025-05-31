@@ -6,17 +6,18 @@ import (
 	"pvz-cli/internal/models"
 )
 
-type snapshotHistoryRepository struct {
+// SnapshotHistoryRepository is an implementation of the HistoryRepository interface that uses snapshot storage.
+type SnapshotHistoryRepository struct {
 	storage storage.Storage
 }
 
-// NewSnapshotHistoryRepository creates a new history repository using snapshot storage
-func NewSnapshotHistoryRepository(s storage.Storage) HistoryRepository {
-	return &snapshotHistoryRepository{storage: s}
+// NewSnapshotHistoryRepository creates a new instance of SnapshotHistoryRepository
+func NewSnapshotHistoryRepository(s storage.Storage) *SnapshotHistoryRepository {
+	return &SnapshotHistoryRepository{storage: s}
 }
 
 // Save stores history entry in the repository
-func (r *snapshotHistoryRepository) Save(e models.HistoryEntry) error {
+func (r *SnapshotHistoryRepository) Save(e models.HistoryEntry) error {
 	snap, err := r.storage.Load()
 	if err != nil {
 		return err
@@ -27,7 +28,7 @@ func (r *snapshotHistoryRepository) Save(e models.HistoryEntry) error {
 }
 
 // LoadByOrder retrieves history entries for specific order
-func (r *snapshotHistoryRepository) LoadByOrder(orderID string) ([]models.HistoryEntry, error) {
+func (r *SnapshotHistoryRepository) LoadByOrder(orderID string) ([]models.HistoryEntry, error) {
 	snap, err := r.storage.Load()
 	if err != nil {
 		return nil, err
@@ -48,7 +49,7 @@ func (r *snapshotHistoryRepository) LoadByOrder(orderID string) ([]models.Histor
 }
 
 // LoadAll retrieves paginated list of all history entries
-func (r *snapshotHistoryRepository) LoadAll(page, limit int) ([]models.HistoryEntry, error) {
+func (r *SnapshotHistoryRepository) LoadAll(page, limit int) ([]models.HistoryEntry, error) {
 	snap, err := r.storage.Load()
 	if err != nil {
 		return nil, err

@@ -13,21 +13,22 @@ import (
 	"pvz-cli/internal/validators"
 )
 
-type defaultReturnService struct {
+// DefaultReturnService is a default implementation of ReturnService interface.
+type DefaultReturnService struct {
 	orderRepo  repositories.OrderRepository
 	returnRepo repositories.ReturnRepository
 	historySvc HistoryService
 	validator  validators.ReturnValidator
 }
 
-// NewDefaultReturnService creates a new return service with all required dependencies
+// NewDefaultReturnService creates a new instance of DefaultReturnService
 func NewDefaultReturnService(
 	orderRepo repositories.OrderRepository,
 	returnRepo repositories.ReturnRepository,
 	historySvc HistoryService,
 	validator validators.ReturnValidator,
-) ReturnService {
-	return &defaultReturnService{
+) *DefaultReturnService {
+	return &DefaultReturnService{
 		orderRepo:  orderRepo,
 		returnRepo: returnRepo,
 		historySvc: historySvc,
@@ -36,7 +37,7 @@ func NewDefaultReturnService(
 }
 
 // CreateClientReturns processes multiple client return requests
-func (s *defaultReturnService) CreateClientReturns(req requests.ClientReturnsRequest) []common.ProcessResult {
+func (s *DefaultReturnService) CreateClientReturns(req requests.ClientReturnsRequest) []common.ProcessResult {
 	results := make([]common.ProcessResult, 0, len(req.OrderIDs))
 	now := time.Now()
 
@@ -93,7 +94,7 @@ func (s *defaultReturnService) CreateClientReturns(req requests.ClientReturnsReq
 }
 
 // ReturnToCourier processes return of order back to courier/warehouse
-func (s *defaultReturnService) ReturnToCourier(req requests.ReturnOrderRequest) error {
+func (s *DefaultReturnService) ReturnToCourier(req requests.ReturnOrderRequest) error {
 	orderID := req.OrderID
 	o, err := s.orderRepo.Load(orderID)
 	if err != nil {
@@ -121,7 +122,7 @@ func (s *defaultReturnService) ReturnToCourier(req requests.ReturnOrderRequest) 
 }
 
 // ListReturns retrieves paginated list of return entries sorted by return date
-func (s *defaultReturnService) ListReturns(page, limit int) ([]models.ReturnEntry, error) {
+func (s *DefaultReturnService) ListReturns(page, limit int) ([]models.ReturnEntry, error) {
 	rets, err := s.returnRepo.List(page, limit)
 	if err != nil {
 		return nil, apperrors.Newf(apperrors.InternalError, "failed to list returns: %v", err)

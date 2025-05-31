@@ -7,13 +7,13 @@ import (
 	"pvz-cli/internal/validators"
 )
 
-// DefaultPackagePricingService implements package pricing business logic with validation
+// DefaultPackagePricingService is a default implementation of PackagePricingService interface.
 type DefaultPackagePricingService struct {
 	validator validators.PackageValidator
 	strategy  strategies.PricingStrategy
 }
 
-// NewDefaultPackagePricingService creates a new package pricing service with validator
+// NewDefaultPackagePricingService creates a new instance of DefaultPackagePricingService
 func NewDefaultPackagePricingService(v validators.PackageValidator, s strategies.PricingStrategy) *DefaultPackagePricingService {
 	return &DefaultPackagePricingService{
 		validator: v,
