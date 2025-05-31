@@ -51,10 +51,6 @@ func (p *ArgsParser) AcceptOrderParams() (dto.AcceptOrderParams, error) {
 	if m["--price"] == "" {
 		return dto.AcceptOrderParams{}, apperrors.Newf(apperrors.ValidationFailed, "price is required")
 	}
-	pkg := m["--package"]
-	if pkg == "" {
-		pkg = "none"
-	}
 
 	return dto.AcceptOrderParams{
 		OrderID:   m["--order-id"],
@@ -62,7 +58,7 @@ func (p *ArgsParser) AcceptOrderParams() (dto.AcceptOrderParams, error) {
 		ExpiresAt: m["--expires"],
 		Weight:    m["--weight"],
 		Price:     m["--price"],
-		Package:   pkg,
+		Package:   m["--package"],
 	}, nil
 }
 

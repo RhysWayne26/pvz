@@ -34,9 +34,7 @@ func HandleAcceptOrderCommand(params dto.AcceptOrderParams, svc services.OrderSe
 		return err
 	}
 
-	rawPkg := strings.TrimSpace(params.Package)
-	pkg := models.PackageType(strings.TrimSpace(rawPkg))
-
+	pkg := normalizePackageType(params.Package)
 	req := requests.AcceptOrderRequest{
 		OrderID:   orderID,
 		UserID:    userID,
@@ -72,4 +70,13 @@ func handlePositiveFloatParam(name string, raw string, maxFractionDigits int) (f
 		return 0, err
 	}
 	return val, nil
+}
+
+func normalizePackageType(raw string) models.PackageType {
+	trimmed := strings.TrimSpace(raw)
+	normalized := strings.Trim(trimmed, `"`)
+	if normalized == "" || strings.EqualFold(normalized, "null") {
+		return models.PackageNone
+	}
+	return models.PackageType(normalized)
 }
