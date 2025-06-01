@@ -8,19 +8,16 @@ import (
 // DefaultFacadeHandler is the default implementation of the FacadeHandler interface.
 type DefaultFacadeHandler struct {
 	orderService   services.OrderService
-	returnService  services.ReturnService
 	historyService services.HistoryService
 }
 
 // NewDefaultFacadeHandler constructs a new DefaultFacadeHandler with the provided services.
 func NewDefaultFacadeHandler(
 	orderSvc services.OrderService,
-	returnSvc services.ReturnService,
 	historySvc services.HistoryService,
 ) *DefaultFacadeHandler {
 	return &DefaultFacadeHandler{
 		orderService:   orderSvc,
-		returnService:  returnSvc,
 		historyService: historySvc,
 	}
 }
@@ -37,12 +34,12 @@ func (f *DefaultFacadeHandler) HandleAcceptOrder(params dto.AcceptOrderParams, s
 
 // HandleReturnOrder processes a single order return to courier.
 func (f *DefaultFacadeHandler) HandleReturnOrder(params dto.ReturnOrderParams) error {
-	return NewReturnOrderHandler(params, f.returnService).Handle()
+	return NewReturnOrderHandler(params, f.orderService).Handle()
 }
 
 // HandleProcessOrders processes multiple orders for issue or client return.
 func (f *DefaultFacadeHandler) HandleProcessOrders(params dto.ProcessOrdersParams) error {
-	return NewProcessOrdersHandler(params, f.orderService, f.returnService).Handle()
+	return NewProcessOrdersHandler(params, f.orderService).Handle()
 }
 
 // HandleListOrders lists orders with optional filters and pagination.
@@ -52,7 +49,7 @@ func (f *DefaultFacadeHandler) HandleListOrders(params dto.ListOrdersParams) err
 
 // HandleListReturns lists client returns.
 func (f *DefaultFacadeHandler) HandleListReturns(params dto.ListReturnsParams) error {
-	return NewListReturnsHandler(params, f.returnService).Handle()
+	return NewListReturnsHandler(params, f.orderService).Handle()
 }
 
 // HandleOrderHistory displays the order event history.

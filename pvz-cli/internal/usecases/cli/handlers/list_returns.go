@@ -11,11 +11,11 @@ import (
 // ListReturnsHandler handles the list returns command.
 type ListReturnsHandler struct {
 	params  dto.ListReturnsParams
-	service services.ReturnService
+	service services.OrderService
 }
 
 // NewListReturnsHandler creates an instance of ListReturnsHandler.
-func NewListReturnsHandler(p dto.ListReturnsParams, svc services.ReturnService) *ListReturnsHandler {
+func NewListReturnsHandler(p dto.ListReturnsParams, svc services.OrderService) *ListReturnsHandler {
 	return &ListReturnsHandler{
 		params:  p,
 		service: svc,

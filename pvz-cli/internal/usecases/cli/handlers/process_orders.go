@@ -12,17 +12,15 @@ import (
 
 // ProcessOrdersHandler handles the process orders command.
 type ProcessOrdersHandler struct {
-	params        dto.ProcessOrdersParams
-	orderService  services.OrderService
-	returnService services.ReturnService
+	params  dto.ProcessOrdersParams
+	service services.OrderService
 }
 
 // NewProcessOrdersHandler creates an instance of ProcessOrdersHandler.
-func NewProcessOrdersHandler(p dto.ProcessOrdersParams, orderSvc services.OrderService, returnSvc services.ReturnService) *ProcessOrdersHandler {
+func NewProcessOrdersHandler(p dto.ProcessOrdersParams, orderSvc services.OrderService) *ProcessOrdersHandler {
 	return &ProcessOrdersHandler{
-		params:        p,
-		orderService:  orderSvc,
-		returnService: returnSvc,
+		params:  p,
+		service: orderSvc,
 	}
 }
 
@@ -37,7 +35,7 @@ func (h *ProcessOrdersHandler) Handle() error {
 	switch h.params.Action {
 	case constants.ActionIssue:
 		req := requests.IssueOrdersRequest{UserID: id, OrderIDs: orderIDs}
-		results := h.orderService.IssueOrders(req)
+		results := h.service.IssueOrders(req)
 
 		for _, res := range results {
 			if res.Error == nil {
@@ -49,7 +47,7 @@ func (h *ProcessOrdersHandler) Handle() error {
 
 	case constants.ActionReturn:
 		req := requests.ClientReturnsRequest{UserID: id, OrderIDs: orderIDs}
-		results := h.returnService.CreateClientReturns(req)
+		results := h.service.CreateClientReturns(req)
 
 		for _, res := range results {
 			if res.Error == nil {

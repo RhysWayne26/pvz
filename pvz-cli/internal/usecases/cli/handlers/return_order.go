@@ -11,11 +11,11 @@ import (
 // ReturnOrderHandler handles the return order command.
 type ReturnOrderHandler struct {
 	params  dto.ReturnOrderParams
-	service services.ReturnService
+	service services.OrderService
 }
 
 // NewReturnOrderHandler creates an instance of ReturnOrderHandler.
-func NewReturnOrderHandler(p dto.ReturnOrderParams, svc services.ReturnService) *ReturnOrderHandler {
+func NewReturnOrderHandler(p dto.ReturnOrderParams, svc services.OrderService) *ReturnOrderHandler {
 	return &ReturnOrderHandler{
 		params:  p,
 		service: svc,

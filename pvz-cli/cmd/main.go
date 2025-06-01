@@ -34,17 +34,15 @@ func main() {
 	historyRepo := repositories.NewSnapshotHistoryRepository(store)
 
 	orderValidator := validators.NewDefaultOrderValidator()
-	returnValidator := validators.NewDefaultReturnValidator()
 	packageValidator := validators.NewDefaultPackageValidator()
 
 	pricingStrategy := strategies.NewDefaultPricingStrategy()
 
 	historySvc := services.NewDefaultHistoryService(historyRepo)
 	packagePricingSvc := services.NewDefaultPackagePricingService(packageValidator, pricingStrategy)
-	orderSvc := services.NewDefaultOrderService(orderRepo, packagePricingSvc, historySvc, orderValidator)
-	returnSvc := services.NewDefaultReturnService(orderRepo, returnRepo, historySvc, returnValidator)
+	orderSvc := services.NewDefaultOrderService(orderRepo, returnRepo, packagePricingSvc, historySvc, orderValidator)
 
-	facadeHandler := handlers.NewDefaultFacadeHandler(orderSvc, returnSvc, historySvc)
+	facadeHandler := handlers.NewDefaultFacadeHandler(orderSvc, historySvc)
 
 	router := cli.NewRouter(facadeHandler)
 	router.Run()

@@ -9,4 +9,6 @@ import (
 type OrderValidator interface {
 	ValidateAccept(o models.Order, req requests.AcceptOrderRequest) error
 	ValidateIssue(orders []models.Order, req requests.IssueOrdersRequest) error
+	ValidateClientReturn(orders []models.Order, req requests.ClientReturnsRequest) error
+	ValidateReturnToCourier(o models.Order) error
 }
