@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"os"
 	"pvz-cli/internal/apperrors"
@@ -32,12 +33,12 @@ func NewRouter(
 	return r
 }
 
-// Run starts the application in either batch mode (with command-line args) or interactive mode
-func (c *Router) Run() {
+// Run accepts a context to allow graceful shutdown during interactive mode
+func (c *Router) Run(ctx context.Context) {
 	if len(os.Args) > 1 {
 		c.runBatch(os.Args[1], os.Args[2:])
 	} else {
-		c.runInteractive()
+		c.runInteractive(ctx)
 	}
 }
 
@@ -77,28 +78,27 @@ func parseInteractiveLine(
 	return cmd, args, nil
 }
 
-func (c *Router) runInteractive() {
+func (c *Router) runInteractive(ctx context.Context) {
 	reader := bufio.NewReader(os.Stdin)
 	var lastScrollArgs []string
 
 	fmt.Println("Interactive mode. Type 'help', 'exit' or commands.")
 	for {
+		if ctx.Err() != nil {
+			fmt.Println("Shutting down...")
+			return
+		}
+
 		fmt.Print("> ")
 		line, err := reader.ReadString('\n')
 		if err != nil {
-			_, err2 := fmt.Fprintln(os.Stderr, "read error:", err)
-			if err2 != nil {
-				fmt.Println(err2.Error())
-			}
+			reportError("read error", err)
 			return
 		}
 
 		cmd, args, err := parseInteractiveLine(line, &lastScrollArgs)
 		if err != nil {
-			_, err2 := fmt.Fprintln(os.Stderr, "ERROR:", err)
-			if err2 != nil {
-				fmt.Println(err2.Error())
-			}
+			reportError("ERROR", err)
 			continue
 		}
 		if cmd == "" {
@@ -109,6 +109,13 @@ func (c *Router) runInteractive() {
 			return
 		}
 		c.runBatch(cmd, args)
+	}
+}
+
+func reportError(prefix string, err error) {
+	_, err2 := fmt.Fprintln(os.Stderr, prefix+":", err)
+	if err2 != nil {
+		fmt.Println(err2.Error())
 	}
 }
 

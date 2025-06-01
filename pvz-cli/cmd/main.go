@@ -1,29 +1,32 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/signal"
-	"pvz-cli/internal/usecases/cli/handlers"
-	"pvz-cli/internal/usecases/strategies"
-	"syscall"
-
 	"pvz-cli/cmd/cli"
 	"pvz-cli/internal/config"
 	"pvz-cli/internal/data/repositories"
 	"pvz-cli/internal/data/storage"
 	"pvz-cli/internal/shutdown"
+	"pvz-cli/internal/usecases/cli/handlers"
 	"pvz-cli/internal/usecases/services"
+	"pvz-cli/internal/usecases/strategies"
 	"pvz-cli/internal/validators"
+	"syscall"
 )
 
 func main() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sigs
 		fmt.Println("\nShutdown initiated, other saves will not start.")
 		shutdown.Signal()
+		cancel()
 	}()
 
 	cfg := config.Load()
@@ -45,5 +48,5 @@ func main() {
 	facadeHandler := handlers.NewDefaultFacadeHandler(orderSvc, historySvc)
 
 	router := cli.NewRouter(facadeHandler)
-	router.Run()
+	router.Run(ctx)
 }

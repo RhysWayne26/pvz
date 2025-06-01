@@ -7,3 +7,5 @@ pvz-cli/storage.json
 pvz-cli/.golangci-report.env
 
 .git
+
+pvz-cli/tools/bin
