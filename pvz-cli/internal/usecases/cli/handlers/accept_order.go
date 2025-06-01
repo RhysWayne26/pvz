@@ -14,27 +14,43 @@ import (
 	"time"
 )
 
-// HandleAcceptOrderCommand processes accept-order command with package pricing validation, optionally suppressing output for batch import
-func HandleAcceptOrderCommand(params dto.AcceptOrderParams, svc services.OrderService, silent bool) error {
-	orderID := strings.TrimSpace(params.OrderID)
-	userID := strings.TrimSpace(params.UserID)
+// AcceptOrderHandler handles the accept order command.
+type AcceptOrderHandler struct {
+	params  dto.AcceptOrderParams
+	service services.OrderService
+	silent  bool
+}
 
-	expiresAt, err := time.Parse(constants.TimeLayout, strings.TrimSpace(params.ExpiresAt))
+// NewAcceptOrderHandler creates an instance of AcceptOrderHandler.
+func NewAcceptOrderHandler(p dto.AcceptOrderParams, svc services.OrderService, s bool) *AcceptOrderHandler {
+	return &AcceptOrderHandler{
+		params:  p,
+		service: svc,
+		silent:  s,
+	}
+}
+
+// Handle processes accept-order command with package pricing validation, optionally suppressing output for batch import
+func (h *AcceptOrderHandler) Handle() error {
+	orderID := strings.TrimSpace(h.params.OrderID)
+	userID := strings.TrimSpace(h.params.UserID)
+
+	expiresAt, err := time.Parse(constants.TimeLayout, strings.TrimSpace(h.params.ExpiresAt))
 	if err != nil {
 		return apperrors.Newf(apperrors.ValidationFailed, "invalid expires_at format")
 	}
 
-	weight, err := handlePositiveFloatParam("weight", params.Weight, constants.WeightFractionDigit)
+	weight, err := handlePositiveFloatParam("weight", h.params.Weight, constants.WeightFractionDigit)
 	if err != nil {
 		return err
 	}
 
-	price, err := handlePositiveFloatParam("price", params.Price, constants.PriceFractionDigit)
+	price, err := handlePositiveFloatParam("price", h.params.Price, constants.PriceFractionDigit)
 	if err != nil {
 		return err
 	}
 
-	pkg := normalizePackageType(params.Package)
+	pkg := normalizePackageType(h.params.Package)
 	req := requests.AcceptOrderRequest{
 		OrderID:   orderID,
 		UserID:    userID,
@@ -44,12 +60,12 @@ func HandleAcceptOrderCommand(params dto.AcceptOrderParams, svc services.OrderSe
 		Package:   pkg,
 	}
 
-	order, err := svc.AcceptOrder(req)
+	order, err := h.service.AcceptOrder(req)
 	if err != nil {
 		return err
 	}
 
-	if silent {
+	if h.silent {
 		return nil
 	}
 	fmt.Printf("ORDER_ACCEPTED: %s\n", order.OrderID)

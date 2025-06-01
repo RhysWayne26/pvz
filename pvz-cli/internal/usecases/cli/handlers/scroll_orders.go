@@ -15,14 +15,29 @@ import (
 	"pvz-cli/internal/utils"
 )
 
-// HandleScrollOrdersCommand processes scroll-orders command with infinite scroll functionality
-func HandleScrollOrdersCommand(params dto.ScrollOrdersParams, svc services.OrderService) {
-	userID, limit, err := prepareScrollParams(params)
-	if err != nil {
-		apperrors.Handle(err)
-		return
+// ScrollOrdersHandler handles the scroll order command.
+type ScrollOrdersHandler struct {
+	params  dto.ScrollOrdersParams
+	service services.OrderService
+}
+
+// NewScrollOrdersHandler creates an instance of ScrollOrdersHandler.
+func NewScrollOrdersHandler(p dto.ScrollOrdersParams, svc services.OrderService) *ScrollOrdersHandler {
+	return &ScrollOrdersHandler{
+		params:  p,
+		service: svc,
 	}
-	scrollOrders(userID, limit, svc)
+
+}
+
+// Handle processes scroll-orders command with infinite scroll functionality
+func (h *ScrollOrdersHandler) Handle() error {
+	userID, limit, err := prepareScrollParams(h.params)
+	if err != nil {
+		return err
+	}
+	scrollOrders(userID, limit, h.service)
+	return nil
 }
 
 func prepareScrollParams(params dto.ScrollOrdersParams) (string, int, error) {

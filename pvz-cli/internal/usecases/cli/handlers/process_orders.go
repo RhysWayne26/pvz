@@ -10,23 +10,34 @@ import (
 	"strings"
 )
 
-// HandleProcessOrders processes orders for issue or return actions
-func HandleProcessOrders(
-	params dto.ProcessOrdersParams,
-	orderSvc services.OrderService,
-	returnSvc services.ReturnService,
-) {
-	id := strings.TrimSpace(params.UserID)
-	orderIDs := strings.Split(params.OrderIDs, ",")
+// ProcessOrdersHandler handles the process orders command.
+type ProcessOrdersHandler struct {
+	params        dto.ProcessOrdersParams
+	orderService  services.OrderService
+	returnService services.ReturnService
+}
+
+// NewProcessOrdersHandler creates an instance of ProcessOrdersHandler.
+func NewProcessOrdersHandler(p dto.ProcessOrdersParams, orderSvc services.OrderService, returnSvc services.ReturnService) *ProcessOrdersHandler {
+	return &ProcessOrdersHandler{
+		params:        p,
+		orderService:  orderSvc,
+		returnService: returnSvc,
+	}
+}
+
+// Handle processes orders for issue or return actions
+func (h *ProcessOrdersHandler) Handle() error {
+	id := strings.TrimSpace(h.params.UserID)
+	orderIDs := strings.Split(h.params.OrderIDs, ",")
 	if len(orderIDs) == 0 {
-		apperrors.Handle(apperrors.Newf(apperrors.ValidationFailed, "no order IDs provided"))
-		return
+		return apperrors.Newf(apperrors.ValidationFailed, "no order IDs provided")
 	}
 
-	switch params.Action {
+	switch h.params.Action {
 	case constants.ActionIssue:
 		req := requests.IssueOrdersRequest{UserID: id, OrderIDs: orderIDs}
-		results := orderSvc.IssueOrders(req)
+		results := h.orderService.IssueOrders(req)
 
 		for _, res := range results {
 			if res.Error == nil {
@@ -38,7 +49,7 @@ func HandleProcessOrders(
 
 	case constants.ActionReturn:
 		req := requests.ClientReturnsRequest{UserID: id, OrderIDs: orderIDs}
-		results := returnSvc.CreateClientReturns(req)
+		results := h.returnService.CreateClientReturns(req)
 
 		for _, res := range results {
 			if res.Error == nil {
@@ -49,6 +60,7 @@ func HandleProcessOrders(
 		}
 
 	default:
-		apperrors.Handle(apperrors.Newf(apperrors.ValidationFailed, "unknown action %q", params.Action))
+		return apperrors.Newf(apperrors.ValidationFailed, "unknown action %q", h.params.Action)
 	}
+	return nil
 }

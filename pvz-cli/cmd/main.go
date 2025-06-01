@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"pvz-cli/internal/usecases/cli/handlers"
 	"pvz-cli/internal/usecases/strategies"
 	"syscall"
 
@@ -43,11 +44,8 @@ func main() {
 	orderSvc := services.NewDefaultOrderService(orderRepo, packagePricingSvc, historySvc, orderValidator)
 	returnSvc := services.NewDefaultReturnService(orderRepo, returnRepo, historySvc, returnValidator)
 
-	router := cli.NewRouter(
-		orderSvc,
-		returnSvc,
-		historySvc,
-	)
+	facadeHandler := handlers.NewDefaultFacadeHandler(orderSvc, returnSvc, historySvc)
 
+	router := cli.NewRouter(facadeHandler)
 	router.Run()
 }

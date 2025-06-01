@@ -7,7 +7,6 @@ import (
 	"pvz-cli/internal/apperrors"
 	"pvz-cli/internal/constants"
 	"pvz-cli/internal/usecases/cli/handlers"
-	"pvz-cli/internal/usecases/services"
 	"strings"
 )
 
@@ -17,24 +16,17 @@ type batchHandler func(args []string)
 
 // Router handles command routing and execution for both batch and interactive modes
 type Router struct {
-	OrderService   services.OrderService
-	ReturnService  services.ReturnService
-	HistoryService services.HistoryService
-
-	handlers map[string]batchHandler
+	FacadeHandler handlers.FacadeHandler
+	handlers      map[string]batchHandler
 }
 
 // NewRouter creates a new command router with all necessary services and command handlers
 func NewRouter(
-	orderSvc services.OrderService,
-	returnSvc services.ReturnService,
-	histSvc services.HistoryService,
+	facadeHandler handlers.FacadeHandler,
 ) *Router {
 	r := &Router{
-		OrderService:   orderSvc,
-		ReturnService:  returnSvc,
-		HistoryService: histSvc,
-		handlers:       make(map[string]batchHandler),
+		FacadeHandler: facadeHandler,
+		handlers:      make(map[string]batchHandler),
 	}
 	r.registerHandlers()
 	return r
@@ -134,7 +126,9 @@ func (c *Router) registerHandlers() {
 
 func (c *Router) helpHandler() batchHandler {
 	return func(_ []string) {
-		handlers.HandleHelpCommand()
+		if err := c.FacadeHandler.HandleHelp(); err != nil {
+			apperrors.Handle(err)
+		}
 	}
 }
 
@@ -146,8 +140,7 @@ func (c *Router) acceptOrderHandler() batchHandler {
 			apperrors.Handle(err)
 			return
 		}
-		err = handlers.HandleAcceptOrderCommand(params, c.OrderService, silentAcceptOrderOutput)
-		if err != nil {
+		if err := c.FacadeHandler.HandleAcceptOrder(params, silentAcceptOrderOutput); err != nil {
 			apperrors.Handle(err)
 		}
 	}
@@ -161,7 +154,9 @@ func (c *Router) returnOrderHandler() batchHandler {
 			apperrors.Handle(err)
 			return
 		}
-		handlers.HandleReturnOrderCommand(params, c.ReturnService)
+		if err := c.FacadeHandler.HandleReturnOrder(params); err != nil {
+			apperrors.Handle(err)
+		}
 	}
 }
 
@@ -173,7 +168,9 @@ func (c *Router) processOrdersHandler() batchHandler {
 			apperrors.Handle(err)
 			return
 		}
-		handlers.HandleProcessOrders(params, c.OrderService, c.ReturnService)
+		if err := c.FacadeHandler.HandleProcessOrders(params); err != nil {
+			apperrors.Handle(err)
+		}
 	}
 }
 
@@ -185,7 +182,9 @@ func (c *Router) listOrdersHandler() batchHandler {
 			apperrors.Handle(err)
 			return
 		}
-		handlers.HandleListOrdersCommand(params, c.OrderService)
+		if err := c.FacadeHandler.HandleListOrders(params); err != nil {
+			apperrors.Handle(err)
+		}
 	}
 }
 
@@ -197,13 +196,17 @@ func (c *Router) listReturnsHandler() batchHandler {
 			apperrors.Handle(err)
 			return
 		}
-		handlers.HandleListReturnsCommand(params, c.ReturnService)
+		if err := c.FacadeHandler.HandleListReturns(params); err != nil {
+			apperrors.Handle(err)
+		}
 	}
 }
 
 func (c *Router) orderHistoryHandler() batchHandler {
 	return func(_ []string) {
-		handlers.HandleOrderHistoryCommand(c.HistoryService)
+		if err := c.FacadeHandler.HandleOrderHistory(); err != nil {
+			apperrors.Handle(err)
+		}
 	}
 }
 
@@ -215,7 +218,9 @@ func (c *Router) importOrdersHandler() batchHandler {
 			apperrors.Handle(err)
 			return
 		}
-		handlers.HandleImportOrdersCommand(params, c.OrderService)
+		if err := c.FacadeHandler.HandleImportOrders(params); err != nil {
+			apperrors.Handle(err)
+		}
 	}
 }
 
@@ -227,6 +232,8 @@ func (c *Router) scrollOrdersHandler() batchHandler {
 			apperrors.Handle(err)
 			return
 		}
-		handlers.HandleScrollOrdersCommand(params, c.OrderService)
+		if err := c.FacadeHandler.HandleScrollOrders(params); err != nil {
+			apperrors.Handle(err)
+		}
 	}
 }
