@@ -1,0 +1,29 @@
+#!/bin/sh
+set -e
+cd "$(git rev-parse --show-toplevel)" || exit 1
+
+
+if go env GOROOT >/dev/null 2>&1 && [ -n "$(go env GOROOT)" ]; then
+  echo ">>> valid Go toolchain found: $(go env GOROOT)"
+  STAGED_GO_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '\.go$' || true)
+  if [ -n "$STAGED_GO_FILES" ]; then
+    echo ">>> checking imports with goimports"
+    ERR=$(goimports -l $STAGED_GO_FILES)
+    if [ -n "$ERR" ]; then
+      echo >&2 "The following files have unformatted imports:"
+      echo >&2 "$ERR"
+      echo >&2 "Please run 'goimports -w' on them."
+      exit 1
+    fi
+  fi
+
+  echo ">>> running golangci-lint"
+  make -C pvz-cli lint
+  echo ">>> linters passed"
+
+else
+  echo ">>> no valid Go environment detected, skipping imports + lint checks"
+fi
+
+echo ">>> pre-commit checks passed"
+exit 0

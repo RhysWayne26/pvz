@@ -4,6 +4,7 @@ import (
 	"time"
 )
 
+// Order represents a package order in the PVZ system
 type Order struct {
 	OrderID    string      `json:"order_id"`
 	UserID     string      `json:"user_id"`
@@ -12,4 +13,7 @@ type Order struct {
 	ExpiresAt  time.Time   `json:"expires_at"`
 	IssuedAt   *time.Time  `json:"issued_at,omitempty"`
 	ReturnedAt *time.Time  `json:"returned_at,omitempty"`
+	Package    PackageType `json:"package"`
+	Weight     float64     `json:"weight"`
+	Price      float64     `json:"price"`
 }

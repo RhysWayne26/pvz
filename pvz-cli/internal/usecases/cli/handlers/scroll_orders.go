@@ -4,90 +4,140 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"pvz-cli/internal/utils"
+	"pvz-cli/internal/usecases/dto"
 	"strings"
 
 	"pvz-cli/internal/apperrors"
 	"pvz-cli/internal/constants"
+	"pvz-cli/internal/models"
 	"pvz-cli/internal/usecases/requests"
 	"pvz-cli/internal/usecases/services"
+	"pvz-cli/internal/utils"
 )
 
-type ScrollOrdersParams struct {
-	UserID string `json:"user_id"`
-	Limit  *int   `json:"limit,omitempty"`
+// ScrollOrdersHandler handles the scroll order command.
+type ScrollOrdersHandler struct {
+	params  dto.ScrollOrdersParams
+	service services.OrderService
 }
 
-func HandleScrollOrdersCommand(params ScrollOrdersParams, svc services.OrderService) {
-	userID := strings.TrimSpace(params.UserID)
-
-	if err := utils.ValidatePositiveInt("limit", params.Limit); err != nil {
-		apperrors.Handle(err)
-		return
+// NewScrollOrdersHandler creates an instance of ScrollOrdersHandler.
+func NewScrollOrdersHandler(p dto.ScrollOrdersParams, svc services.OrderService) *ScrollOrdersHandler {
+	return &ScrollOrdersHandler{
+		params:  p,
+		service: svc,
 	}
 
+}
+
+// Handle processes scroll-orders command with infinite scroll functionality
+func (h *ScrollOrdersHandler) Handle() error {
+	userID, limit, err := prepareScrollParams(h.params)
+	if err != nil {
+		return err
+	}
+	scrollOrders(userID, limit, h.service)
+	return nil
+}
+
+func prepareScrollParams(params dto.ScrollOrdersParams) (string, int, error) {
+	userID := strings.TrimSpace(params.UserID)
+	if err := utils.ValidatePositiveInt("limit", params.Limit); err != nil {
+		return "", 0, err
+	}
 	limit := constants.DefaultScrollLimit
 	if params.Limit != nil {
 		limit = *params.Limit
 	}
+	return userID, limit, nil
+}
 
-	reader := bufio.NewScanner(os.Stdin)
-	var lastID string
-	noMoreData := false
+func scrollOrders(userID string, limit int, svc services.OrderService) {
+	scanner := bufio.NewScanner(os.Stdin)
+	lastID := ""
 
 	for {
-		if noMoreData {
-			fmt.Println("No more orders. Type 'exit' to quit.")
-			fmt.Print("> ")
-			if !reader.Scan() {
-				break
-			}
-			cmd := strings.TrimSpace(reader.Text())
-			if cmd == "exit" {
-				return
-			} else {
-				fmt.Println("No more data. Only 'exit' is valid.")
-			}
-			continue
-		}
-
-		filter := requests.ListOrdersFilter{
-			UserID: userID,
-			LastID: lastID,
-			Limit:  &limit,
-		}
-
-		orders, nextID, _, err := svc.ListOrders(filter)
+		orders, nextID, _, err := fetchOrdersPage(svc, userID, lastID, limit)
 		if err != nil {
 			apperrors.Handle(err)
 			return
 		}
 
-		for _, o := range orders {
-			fmt.Printf("ORDER: %s %s %s %s\n", o.OrderID, o.UserID, o.Status, o.ExpiresAt.Format(constants.TimeLayout))
-		}
-
+		displayOrders(orders)
 		if nextID != "" {
 			fmt.Printf("NEXT: %s\n", nextID)
-			lastID = nextID
 		} else {
 			fmt.Println("NEXT: -")
-			noMoreData = true
-		}
-
-		fmt.Print("> ")
-		if !reader.Scan() {
-			break
-		}
-		cmd := strings.TrimSpace(reader.Text())
-
-		switch cmd {
-		case "exit":
+			handleNoMore(scanner)
 			return
-		case "next":
-			continue
-		default:
-			fmt.Println("Type 'next' to continue or 'exit' to quit.")
 		}
+
+		lastID = nextID
+		if !promptNext(scanner) {
+			return
+		}
+	}
+}
+
+func fetchOrdersPage(
+	svc services.OrderService,
+	userID, lastID string,
+	limit int,
+) ([]models.Order, string, bool, error) {
+	filter := requests.ListOrdersFilter{
+		UserID: userID,
+		LastID: lastID,
+		Limit:  &limit,
+	}
+	orders, nextID, _, err := svc.ListOrders(filter)
+	if err != nil {
+		return nil, "", false, err
+	}
+	return orders, nextID, nextID == "", nil
+}
+
+func displayOrders(orders []models.Order) {
+	for _, o := range orders {
+		fmt.Printf("ORDER: %s %s %s %s %s %.*f %.*f\n",
+			o.OrderID,
+			o.UserID,
+			o.Status,
+			o.ExpiresAt.Format(constants.TimeLayout),
+			o.Package,
+			constants.WeightFractionDigit, o.Weight,
+			constants.PriceFractionDigit, o.Price,
+		)
+	}
+
+}
+
+func promptNext(scanner *bufio.Scanner) bool {
+	fmt.Print("> ")
+	if !scanner.Scan() {
+		return false
+	}
+	cmd := strings.TrimSpace(scanner.Text())
+	switch cmd {
+	case constants.CmdNext:
+		return true
+	case constants.CmdExit:
+		return false
+	default:
+		fmt.Println("Type 'next' to continue or 'exit' to quit.")
+		return promptNext(scanner)
+	}
+}
+
+func handleNoMore(scanner *bufio.Scanner) {
+	for {
+		fmt.Println("No more orders. Type 'exit' to quit.")
+		fmt.Print("> ")
+		if !scanner.Scan() {
+			return
+		}
+		if strings.TrimSpace(scanner.Text()) == constants.CmdExit {
+			return
+		}
+		fmt.Println("No more data. Only 'exit' is valid.")
 	}
 }

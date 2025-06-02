@@ -2,68 +2,80 @@ package handlers
 
 import (
 	"fmt"
-	"pvz-cli/internal/apperrors"
 	"pvz-cli/internal/constants"
+	"pvz-cli/internal/usecases/dto"
 	"pvz-cli/internal/usecases/requests"
 	"pvz-cli/internal/usecases/services"
 	"pvz-cli/internal/utils"
 	"strings"
 )
 
-type ListOrdersParams struct {
-	UserID string `json:"user_id"`
-	InPvz  *bool  `json:"in_pvz,omitempty"`
-	Last   *int   `json:"last,omitempty"`
-	LastID string `json:"last_id,omitempty"`
-	Page   *int   `json:"page,omitempty"`
-	Limit  *int   `json:"limit,omitempty"`
+// ListOrdersHandler handles the list order command.
+type ListOrdersHandler struct {
+	params  dto.ListOrdersParams
+	service services.OrderService
 }
 
-func HandleListOrdersCommand(params ListOrdersParams, svc services.OrderService) {
-	userID := strings.TrimSpace(params.UserID)
+// NewListOrdersHandler creates an instance of ListOrdersHandler.
+func NewListOrdersHandler(p dto.ListOrdersParams, svc services.OrderService) *ListOrdersHandler {
+	return &ListOrdersHandler{
+		params:  p,
+		service: svc,
+	}
+
+}
+
+// Handle processes list-orders command with filtering and pagination.
+func (h *ListOrdersHandler) Handle() error {
+	userID := strings.TrimSpace(h.params.UserID)
 	var lastID string
-	if params.LastID != "" {
-		parsed := strings.TrimSpace(params.LastID)
+	if h.params.LastID != "" {
+		parsed := strings.TrimSpace(h.params.LastID)
 		lastID = parsed
 	}
 
 	var inPvzPtr *bool
-	if params.InPvz != nil {
-		inPvzPtr = params.InPvz
+	if h.params.InPvz != nil {
+		inPvzPtr = h.params.InPvz
 	}
 
-	if err := utils.ValidatePositiveInt("last", params.Last); err != nil {
-		apperrors.Handle(err)
-		return
+	if err := utils.ValidatePositiveInt("last", h.params.Last); err != nil {
+		return err
 	}
 
-	if err := utils.ValidatePositiveInt("page", params.Page); err != nil {
-		apperrors.Handle(err)
-		return
+	if err := utils.ValidatePositiveInt("page", h.params.Page); err != nil {
+		return err
 	}
 
-	if err := utils.ValidatePositiveInt("limit", params.Limit); err != nil {
-		apperrors.Handle(err)
-		return
+	if err := utils.ValidatePositiveInt("limit", h.params.Limit); err != nil {
+		return err
 	}
 
 	filter := requests.ListOrdersFilter{
 		UserID: userID,
 		InPvz:  inPvzPtr,
 		LastID: lastID,
-		Page:   params.Page,
-		Limit:  params.Limit,
-		Last:   params.Last,
+		Page:   h.params.Page,
+		Limit:  h.params.Limit,
+		Last:   h.params.Last,
 	}
 
-	orders, _, total, err := svc.ListOrders(filter)
+	orders, _, total, err := h.service.ListOrders(filter)
 	if err != nil {
-		apperrors.Handle(err)
-		return
+		return err
 	}
 
 	for _, o := range orders {
-		fmt.Printf("ORDER: %s %s %s %s\n", o.OrderID, o.UserID, o.Status, o.ExpiresAt.Format(constants.TimeLayout))
+		fmt.Printf("ORDER: %s %s %s %s %s %.*f %.*f\n",
+			o.OrderID,
+			o.UserID,
+			o.Status,
+			o.ExpiresAt.Format(constants.TimeLayout),
+			o.Package,
+			constants.WeightFractionDigit, o.Weight,
+			constants.PriceFractionDigit, o.Price,
+		)
 	}
 	fmt.Printf("TOTAL: %d\n", total)
+	return nil
 }

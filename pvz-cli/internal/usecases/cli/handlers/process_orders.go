@@ -4,33 +4,38 @@ import (
 	"fmt"
 	"pvz-cli/internal/apperrors"
 	"pvz-cli/internal/constants"
+	"pvz-cli/internal/usecases/dto"
 	"pvz-cli/internal/usecases/requests"
 	"pvz-cli/internal/usecases/services"
 	"strings"
 )
 
-type ProcessOrdersParams struct {
-	UserID   string `json:"user_id"`
-	Action   string `json:"action"`
-	OrderIDs string `json:"order_ids"`
+// ProcessOrdersHandler handles the process orders command.
+type ProcessOrdersHandler struct {
+	params  dto.ProcessOrdersParams
+	service services.OrderService
 }
 
-func HandleProcessOrders(
-	params ProcessOrdersParams,
-	orderSvc services.OrderService,
-	returnSvc services.ReturnService,
-) {
-	id := strings.TrimSpace(params.UserID)
-	orderIds := strings.Split(params.OrderIDs, ",")
-	if len(orderIds) == 0 {
-		apperrors.Handle(apperrors.Newf(apperrors.ValidationFailed, "no order IDs provided"))
-		return
+// NewProcessOrdersHandler creates an instance of ProcessOrdersHandler.
+func NewProcessOrdersHandler(p dto.ProcessOrdersParams, orderSvc services.OrderService) *ProcessOrdersHandler {
+	return &ProcessOrdersHandler{
+		params:  p,
+		service: orderSvc,
+	}
+}
+
+// Handle processes orders for issue or return actions
+func (h *ProcessOrdersHandler) Handle() error {
+	id := strings.TrimSpace(h.params.UserID)
+	orderIDs := strings.Split(h.params.OrderIDs, ",")
+	if len(orderIDs) == 0 {
+		return apperrors.Newf(apperrors.ValidationFailed, "no order IDs provided")
 	}
 
-	switch params.Action {
+	switch h.params.Action {
 	case constants.ActionIssue:
-		req := requests.IssueOrdersRequest{UserID: id, OrderIDs: orderIds}
-		results := orderSvc.IssueOrders(req)
+		req := requests.IssueOrdersRequest{UserID: id, OrderIDs: orderIDs}
+		results := h.service.IssueOrders(req)
 
 		for _, res := range results {
 			if res.Error == nil {
@@ -41,8 +46,8 @@ func HandleProcessOrders(
 		}
 
 	case constants.ActionReturn:
-		req := requests.ClientReturnsRequest{UserID: id, OrderIDs: orderIds}
-		results := returnSvc.CreateClientReturns(req)
+		req := requests.ClientReturnsRequest{UserID: id, OrderIDs: orderIDs}
+		results := h.service.CreateClientReturns(req)
 
 		for _, res := range results {
 			if res.Error == nil {
@@ -53,6 +58,7 @@ func HandleProcessOrders(
 		}
 
 	default:
-		apperrors.Handle(apperrors.Newf(apperrors.ValidationFailed, "unknown action %q", params.Action))
+		return apperrors.Newf(apperrors.ValidationFailed, "unknown action %q", h.params.Action)
 	}
+	return nil
 }

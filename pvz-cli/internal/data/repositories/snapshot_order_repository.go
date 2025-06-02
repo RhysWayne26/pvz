@@ -2,24 +2,27 @@ package repositories
 
 import (
 	"errors"
-	"pvz-cli/internal/constants"
 	"sort"
 	"time"
 
+	"pvz-cli/internal/constants"
 	"pvz-cli/internal/data/storage"
 	"pvz-cli/internal/models"
 	"pvz-cli/internal/usecases/requests"
 )
 
-type snapshotOrderRepository struct {
+// SnapshotOrderRepository is an implementation of the OrderRepository interface that uses snapshot storage.
+type SnapshotOrderRepository struct {
 	storage storage.Storage
 }
 
-func NewSnapshotOrderRepository(s storage.Storage) OrderRepository {
-	return &snapshotOrderRepository{storage: s}
+// NewSnapshotOrderRepository creates a new instance of SnapshotOrderRepository
+func NewSnapshotOrderRepository(s storage.Storage) *SnapshotOrderRepository {
+	return &SnapshotOrderRepository{storage: s}
 }
 
-func (r *snapshotOrderRepository) Save(order models.Order) error {
+// Save stores or updates an order in the repository
+func (r *SnapshotOrderRepository) Save(order models.Order) error {
 	snap, err := r.storage.Load()
 	if err != nil {
 		return err
@@ -41,7 +44,8 @@ func (r *snapshotOrderRepository) Save(order models.Order) error {
 	return r.storage.Save(snap)
 }
 
-func (r *snapshotOrderRepository) Load(id string) (models.Order, error) {
+// Load retrieves an order by its ID
+func (r *SnapshotOrderRepository) Load(id string) (models.Order, error) {
 	snap, err := r.storage.Load()
 	if err != nil {
 		return models.Order{}, err
@@ -55,7 +59,8 @@ func (r *snapshotOrderRepository) Load(id string) (models.Order, error) {
 	return models.Order{}, errors.New("order not found")
 }
 
-func (r *snapshotOrderRepository) Delete(id string) error {
+// Delete removes an order from the repository
+func (r *SnapshotOrderRepository) Delete(id string) error {
 	snap, err := r.storage.Load()
 	if err != nil {
 		return err
@@ -72,63 +77,100 @@ func (r *snapshotOrderRepository) Delete(id string) error {
 	return r.storage.Save(snap)
 }
 
-func (r *snapshotOrderRepository) List(filter requests.ListOrdersFilter) ([]models.Order, int, error) {
+// List retrieves filtered and paginated list of orders
+func (r *SnapshotOrderRepository) List(filter requests.ListOrdersFilter) ([]models.Order, int, error) {
 	snap, err := r.storage.Load()
 	if err != nil {
 		return nil, 0, err
 	}
-
-	sort.Slice(snap.Orders, func(i, j int) bool {
-		return snap.Orders[i].CreatedAt.Before(snap.Orders[j].CreatedAt)
-	})
-
-	var lastCreatedAt time.Time
+	orders := sortByCreatedAt(snap.Orders)
+	lastCreatedAt := findLastCreatedAt(orders, filter.LastID)
+	var filters []orderFilter
+	filters = append(filters, filterByUser(filter.UserID))
 	if filter.LastID != "" {
-		for _, o := range snap.Orders {
-			if o.OrderID == filter.LastID {
-				lastCreatedAt = o.CreatedAt
-				break
-			}
-		}
+		filters = append(filters, filterByLastID(lastCreatedAt))
 	}
-
-	var result []models.Order
-	for _, o := range snap.Orders {
-		if o.UserID != filter.UserID {
-			continue
-		}
-
-		if filter.LastID != "" && !o.CreatedAt.After(lastCreatedAt) {
-			continue
-		}
-
-		if filter.InPvz != nil && *filter.InPvz && o.Status == models.Issued {
-			continue
-		}
-
-		result = append(result, o)
+	if filter.InPvz != nil {
+		filters = append(filters, filterByInPvz(filter.InPvz))
 	}
-
-	total := len(result)
-	if filter.Page != nil && filter.Limit != nil {
-		start := (*filter.Page - 1) * (*filter.Limit)
-		end := start + *filter.Limit
-		if start >= len(result) {
-			return []models.Order{}, total, nil
-		}
-		if end > len(result) {
-			end = len(result)
-		}
-		return result[start:end], total, nil
-	}
-
+	filtered := applyFilters(orders, filters...)
+	total := len(filtered)
+	page := constants.DefaultPage
 	limit := constants.DefaultLimit
+	if filter.Page != nil {
+		page = *filter.Page
+	}
 	if filter.Limit != nil {
 		limit = *filter.Limit
 	}
-	if len(result) > limit {
-		result = result[:limit]
-	}
+	paged := paginate(filtered, page, limit)
+	return paged, total, nil
+}
 
-	return result, total, nil
+func sortByCreatedAt(orders []models.Order) []models.Order {
+	sort.Slice(orders, func(i, j int) bool {
+		return orders[i].CreatedAt.Before(orders[j].CreatedAt)
+	})
+	return orders
+}
+
+func findLastCreatedAt(orders []models.Order, lastID string) time.Time {
+	for _, o := range orders {
+		if o.OrderID == lastID {
+			return o.CreatedAt
+		}
+	}
+	return time.Time{}
+}
+
+type orderFilter func(models.Order) bool
+
+func filterByUser(userID string) orderFilter {
+	return func(o models.Order) bool {
+		return o.UserID == userID
+	}
+}
+
+func filterByLastID(ts time.Time) orderFilter {
+	return func(o models.Order) bool {
+		return o.CreatedAt.After(ts)
+	}
+}
+
+func filterByInPvz(inPvz *bool) orderFilter {
+	return func(o models.Order) bool {
+		if inPvz != nil && *inPvz && o.Status == models.Issued {
+			return false
+		}
+		return true
+	}
+}
+
+func applyFilters(orders []models.Order, filters ...orderFilter) []models.Order {
+	var out []models.Order
+	for _, o := range orders {
+		keep := true
+		for _, f := range filters {
+			if !f(o) {
+				keep = false
+				break
+			}
+		}
+		if keep {
+			out = append(out, o)
+		}
+	}
+	return out
+}
+
+func paginate(orders []models.Order, page, limit int) []models.Order {
+	start := (page - 1) * limit
+	if start >= len(orders) {
+		return []models.Order{}
+	}
+	end := start + limit
+	if end > len(orders) {
+		end = len(orders)
+	}
+	return orders[start:end]
 }

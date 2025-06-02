@@ -5,6 +5,7 @@ import (
 	"pvz-cli/internal/usecases/requests"
 )
 
+// OrderRepository handles persistence operations for orders
 type OrderRepository interface {
 	Save(order models.Order) error
 	Load(id string) (models.Order, error)

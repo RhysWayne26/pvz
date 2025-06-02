@@ -2,45 +2,53 @@ package handlers
 
 import (
 	"fmt"
-	"pvz-cli/internal/apperrors"
 	"pvz-cli/internal/constants"
+	"pvz-cli/internal/usecases/dto"
 	"pvz-cli/internal/usecases/services"
 	"pvz-cli/internal/utils"
 )
 
-type ListReturnsParams struct {
-	Page  *int `json:"page,omitempty"`
-	Limit *int `json:"limit,omitempty"`
+// ListReturnsHandler handles the list returns command.
+type ListReturnsHandler struct {
+	params  dto.ListReturnsParams
+	service services.OrderService
 }
 
-func HandleListReturnsCommand(params ListReturnsParams, svc services.ReturnService) {
+// NewListReturnsHandler creates an instance of ListReturnsHandler.
+func NewListReturnsHandler(p dto.ListReturnsParams, svc services.OrderService) *ListReturnsHandler {
+	return &ListReturnsHandler{
+		params:  p,
+		service: svc,
+	}
+}
+
+// Handle processes list-returns command with pagination
+func (h *ListReturnsHandler) Handle() error {
 	page := constants.DefaultPage
 	limit := constants.DefaultLimit
-	if params.Page != nil {
-		page = *params.Page
+	if h.params.Page != nil {
+		page = *h.params.Page
 	}
-	if params.Limit != nil {
-		limit = *params.Limit
-	}
-
-	if err := utils.ValidatePositiveInt("page", params.Page); err != nil {
-		apperrors.Handle(err)
-		return
+	if h.params.Limit != nil {
+		limit = *h.params.Limit
 	}
 
-	if err := utils.ValidatePositiveInt("limit", params.Limit); err != nil {
-		apperrors.Handle(err)
-		return
+	if err := utils.ValidatePositiveInt("page", h.params.Page); err != nil {
+		return err
 	}
 
-	entries, err := svc.ListReturns(page, limit)
+	if err := utils.ValidatePositiveInt("limit", h.params.Limit); err != nil {
+		return err
+	}
+
+	entries, err := h.service.ListReturns(page, limit)
 	if err != nil {
-		apperrors.Handle(err)
-		return
+		return err
 	}
 
 	for _, r := range entries {
 		fmt.Printf("RETURN: %s %s %s\n", r.OrderID, r.UserID, r.ReturnedAt.Format(constants.TimeLayout))
 	}
 	fmt.Printf("PAGE: %d LIMIT: %d\n", page, limit)
+	return nil
 }
