@@ -1,3 +1,5 @@
+include proto.mk
+
 .PHONY: tools/install tools/clean docs-generate setup update lint security build start run
 TOOLS_BIN := $(shell pwd)/tools/bin
 
@@ -78,3 +80,6 @@ docs-generate:
 	  go doc -all $$pkg > docs/dev/$$file; \
 	done
 	@echo "done: docs/dev/*.md"
+
+.PHONY: proto
+proto: proto/init

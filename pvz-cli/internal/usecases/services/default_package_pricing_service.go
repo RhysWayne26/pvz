@@ -1,10 +1,10 @@
 package services
 
 import (
-	"pvz-cli/internal/apperrors"
+	"pvz-cli/internal/common/apperrors"
 	"pvz-cli/internal/models"
-	"pvz-cli/internal/usecases/strategies"
-	"pvz-cli/internal/validators"
+	"pvz-cli/internal/usecases/services/strategies"
+	"pvz-cli/internal/usecases/services/validators"
 )
 
 // DefaultPackagePricingService is a default implementation of PackagePricingService interface.

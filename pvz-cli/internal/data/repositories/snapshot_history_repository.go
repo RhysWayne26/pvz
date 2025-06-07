@@ -28,7 +28,7 @@ func (r *SnapshotHistoryRepository) Save(e models.HistoryEntry) error {
 }
 
 // LoadByOrder retrieves history entries for specific order
-func (r *SnapshotHistoryRepository) LoadByOrder(orderID string) ([]models.HistoryEntry, error) {
+func (r *SnapshotHistoryRepository) LoadByOrder(orderID uint64) ([]models.HistoryEntry, error) {
 	snap, err := r.storage.Load()
 	if err != nil {
 		return nil, err

@@ -2,10 +2,10 @@ package repositories
 
 import (
 	"errors"
+	"pvz-cli/internal/common/constants"
 	"sort"
 	"time"
 
-	"pvz-cli/internal/constants"
 	"pvz-cli/internal/data/storage"
 	"pvz-cli/internal/models"
 	"pvz-cli/internal/usecases/requests"
@@ -45,7 +45,7 @@ func (r *SnapshotOrderRepository) Save(order models.Order) error {
 }
 
 // Load retrieves an order by its ID
-func (r *SnapshotOrderRepository) Load(id string) (models.Order, error) {
+func (r *SnapshotOrderRepository) Load(id uint64) (models.Order, error) {
 	snap, err := r.storage.Load()
 	if err != nil {
 		return models.Order{}, err
@@ -60,7 +60,7 @@ func (r *SnapshotOrderRepository) Load(id string) (models.Order, error) {
 }
 
 // Delete removes an order from the repository
-func (r *SnapshotOrderRepository) Delete(id string) error {
+func (r *SnapshotOrderRepository) Delete(id uint64) error {
 	snap, err := r.storage.Load()
 	if err != nil {
 		return err
@@ -78,16 +78,17 @@ func (r *SnapshotOrderRepository) Delete(id string) error {
 }
 
 // List retrieves filtered and paginated list of orders
-func (r *SnapshotOrderRepository) List(filter requests.ListOrdersFilter) ([]models.Order, int, error) {
+func (r *SnapshotOrderRepository) List(filter requests.ListOrdersRequest) ([]models.Order, int, error) {
 	snap, err := r.storage.Load()
 	if err != nil {
 		return nil, 0, err
 	}
 	orders := sortByCreatedAt(snap.Orders)
-	lastCreatedAt := findLastCreatedAt(orders, filter.LastID)
+	var lastCreatedAt time.Time
 	var filters []orderFilter
 	filters = append(filters, filterByUser(filter.UserID))
-	if filter.LastID != "" {
+	if filter.LastID != nil {
+		lastCreatedAt = findLastCreatedAt(orders, *filter.LastID)
 		filters = append(filters, filterByLastID(lastCreatedAt))
 	}
 	if filter.InPvz != nil {
@@ -114,7 +115,7 @@ func sortByCreatedAt(orders []models.Order) []models.Order {
 	return orders
 }
 
-func findLastCreatedAt(orders []models.Order, lastID string) time.Time {
+func findLastCreatedAt(orders []models.Order, lastID uint64) time.Time {
 	for _, o := range orders {
 		if o.OrderID == lastID {
 			return o.CreatedAt
@@ -125,7 +126,7 @@ func findLastCreatedAt(orders []models.Order, lastID string) time.Time {
 
 type orderFilter func(models.Order) bool
 
-func filterByUser(userID string) orderFilter {
+func filterByUser(userID uint64) orderFilter {
 	return func(o models.Order) bool {
 		return o.UserID == userID
 	}

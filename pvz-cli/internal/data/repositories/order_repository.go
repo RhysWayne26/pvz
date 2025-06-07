@@ -8,7 +8,7 @@ import (
 // OrderRepository handles persistence operations for orders
 type OrderRepository interface {
 	Save(order models.Order) error
-	Load(id string) (models.Order, error)
-	Delete(id string) error
-	List(filter requests.ListOrdersFilter) ([]models.Order, int, error)
+	Load(id uint64) (models.Order, error)
+	Delete(uint64) error
+	List(filter requests.ListOrdersRequest) ([]models.Order, int, error)
 }

@@ -6,8 +6,8 @@ import (
 
 // Order represents a package order in the PVZ system
 type Order struct {
-	OrderID    string      `json:"order_id"`
-	UserID     string      `json:"user_id"`
+	OrderID    uint64      `json:"order_id"`
+	UserID     uint64      `json:"user_id"`
 	Status     OrderStatus `json:"status"`
 	CreatedAt  time.Time   `json:"created_at"`
 	ExpiresAt  time.Time   `json:"expires_at"`

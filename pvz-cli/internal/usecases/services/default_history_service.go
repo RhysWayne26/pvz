@@ -1,7 +1,7 @@
 package services
 
 import (
-	"pvz-cli/internal/apperrors"
+	"pvz-cli/internal/common/apperrors"
 	"pvz-cli/internal/data/repositories"
 	"pvz-cli/internal/models"
 	"sort"
@@ -26,10 +26,10 @@ func (s *DefaultHistoryService) Record(e models.HistoryEntry) error {
 }
 
 // GetByOrder retrieves all history entries for a specific order, sorted by timestamp
-func (s *DefaultHistoryService) GetByOrder(orderID string) ([]models.HistoryEntry, error) {
+func (s *DefaultHistoryService) GetByOrder(orderID uint64) ([]models.HistoryEntry, error) {
 	entries, err := s.historyRepo.LoadByOrder(orderID)
 	if err != nil {
-		return nil, apperrors.Newf(apperrors.InternalError, "failed to load history for order %s: %v", orderID, err)
+		return nil, apperrors.Newf(apperrors.InternalError, "failed to load history for order %d: %v", orderID, err)
 
 	}
 
