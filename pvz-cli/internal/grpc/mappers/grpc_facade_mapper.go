@@ -9,7 +9,7 @@ import (
 // GRPCFacadeMapper defines conversion between protobuf messages and internal request/response DTOs.
 type GRPCFacadeMapper interface {
 	// FromPbAcceptOrderRequest maps protobuf AcceptOrderRequest to internal AcceptOrderRequest.
-	FromPbAcceptOrderRequest(*pb.AcceptOrderRequest) requests.AcceptOrderRequest
+	FromPbAcceptOrderRequest(*pb.AcceptOrderRequest) (requests.AcceptOrderRequest, error)
 
 	// FromPbReturnOrderRequest maps protobuf OrderIdRequest to internal ReturnOrderRequest.
 	FromPbReturnOrderRequest(*pb.OrderIdRequest) requests.ReturnOrderRequest
@@ -17,11 +17,11 @@ type GRPCFacadeMapper interface {
 	// FromPbProcessOrdersRequest maps protobuf ProcessOrdersRequest to internal ProcessOrdersRequest.
 	FromPbProcessOrdersRequest(*pb.ProcessOrdersRequest) requests.ProcessOrdersRequest
 
-	// FromPbListOrdersRequest maps protobuf ListOrdersRequest to internal ListOrdersRequest.
-	FromPbListOrdersRequest(*pb.ListOrdersRequest) requests.ListOrdersRequest
+	// FromPbListOrdersRequest maps protobuf OrdersFilterRequest to internal OrdersFilterRequest.
+	FromPbListOrdersRequest(*pb.ListOrdersRequest) requests.OrdersFilterRequest
 
 	// FromPbListReturnsRequest maps protobuf ListReturnsRequest to internal ListReturnsRequest.
-	FromPbListReturnsRequest(*pb.ListReturnsRequest) requests.ListReturnsRequest
+	FromPbListReturnsRequest(*pb.ListReturnsRequest) requests.OrdersFilterRequest
 
 	// FromPbImportOrdersRequest maps protobuf ImportOrdersRequest to internal ImportOrdersRequest.
 	FromPbImportOrdersRequest(*pb.ImportOrdersRequest) requests.ImportOrdersRequest
@@ -39,7 +39,7 @@ type GRPCFacadeMapper interface {
 	ToPbOrdersList(res responses.ListOrdersResponse) *pb.OrdersList
 
 	// ToPbReturnsList maps internal ListReturnsResponse to protobuf ReturnsList.
-	ToPbReturnsList(res responses.ListReturnsResponse) *pb.ReturnsList
+	ToPbReturnsList(res responses.ListOrdersResponse) *pb.ReturnsList
 
 	// ToPbOrderHistoryList maps internal OrderHistoryResponse to protobuf OrderHistoryList.
 	ToPbOrderHistoryList(res responses.OrderHistoryResponse) *pb.OrderHistoryList

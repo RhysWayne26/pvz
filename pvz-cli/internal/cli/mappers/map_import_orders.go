@@ -18,16 +18,19 @@ func (f *DefaultCLIFacadeMapper) MapImportOrdersParams(p params.ImportOrdersPara
 		return requests.ImportOrdersRequest{}, err
 	}
 
-	var result []requests.AcceptOrderRequest
+	var statuses []requests.ImportOrderStatus
 	for i, raw := range rawOrders {
-		order, err := f.MapAcceptOrderParams(raw)
+		itemNumber := i + 1
+		status := requests.ImportOrderStatus{ItemNumber: itemNumber}
+		acceptRequest, err := f.MapAcceptOrderParams(raw)
 		if err != nil {
-			return requests.ImportOrdersRequest{}, apperrors.Newf(apperrors.ValidationFailed, "order #%d: %v", i+1, err)
+			status.Error = apperrors.Newf(apperrors.InvalidBatchEntry, "order #%d: %v", itemNumber, err)
+		} else {
+			status.Request = &acceptRequest
 		}
-		result = append(result, order)
+		statuses = append(statuses, status)
 	}
-
 	return requests.ImportOrdersRequest{
-		Orders: result,
+		Statuses: statuses,
 	}, nil
 }

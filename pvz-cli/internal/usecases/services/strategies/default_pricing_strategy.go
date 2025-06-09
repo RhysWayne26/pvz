@@ -11,7 +11,7 @@ func NewDefaultPricingStrategy() *DefaultPricingStrategy {
 }
 
 // GetSurcharge returns the surcharge amount for the given package type according to the default pricing rules.
-func (d *DefaultPricingStrategy) GetSurcharge(pkg models.PackageType) float64 {
+func (d *DefaultPricingStrategy) GetSurcharge(pkg models.PackageType) float32 {
 	switch pkg {
 	case models.PackageNone:
 		return 0

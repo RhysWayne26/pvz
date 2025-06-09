@@ -15,8 +15,8 @@ func toPbOrder(o models.Order) *pb.Order {
 		UserId:     o.UserID,
 		Status:     toPbOrderStatus(o.Status),
 		ExpiresAt:  timestamppb.New(o.ExpiresAt),
-		Weight:     float32(o.Weight),
-		TotalPrice: float32(o.Price),
+		Weight:     o.Weight,
+		TotalPrice: o.Price,
 		Package:    toPbPackageTypePtr(o.Package),
 	}
 }

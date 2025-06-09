@@ -1,9 +1,8 @@
 package utils
 
 import (
-	"fmt"
+	"math"
 	"pvz-cli/internal/common/apperrors"
-	"strings"
 )
 
 // ValidatePositiveInt validates that integer parameter is positive
@@ -18,7 +17,7 @@ func ValidatePositiveInt(name string, val *int) error {
 }
 
 // ValidatePositiveFloat validates that float parameter is positive
-func ValidatePositiveFloat(name string, val float64) error {
+func ValidatePositiveFloat(name string, val float32) error {
 	if val <= 0 {
 		return apperrors.Newf(
 			apperrors.ValidationFailed,
@@ -29,14 +28,14 @@ func ValidatePositiveFloat(name string, val float64) error {
 }
 
 // ValidateFractionDigits validates that float has no more than specified fractional digits
-func ValidateFractionDigits(name string, value float64, maxDigits int) error {
-	s := fmt.Sprintf("%.10f", value)
-	parts := strings.Split(s, ".")
-	if len(parts) != 2 {
-		return nil
-	}
-	frac := strings.TrimRight(parts[1], "0")
-	if len(frac) > maxDigits {
+func ValidateFractionDigits(name string, value float32, maxDigits int) error {
+	v := float64(value)
+	mult := math.Pow10(maxDigits)
+	vMult := v * mult
+	intPart := math.Round(vMult)
+
+	const epsilon = 1e-3
+	if math.Abs(vMult-intPart) > epsilon {
 		return apperrors.Newf(
 			apperrors.ValidationFailed,
 			"%s must have at most %d fractional digits", name, maxDigits,

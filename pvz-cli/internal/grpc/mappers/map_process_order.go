@@ -15,7 +15,7 @@ func (f *DefaultGRPCFacadeMapper) FromPbProcessOrdersRequest(in *pb.ProcessOrder
 	case pb.ActionType_ACTION_TYPE_RETURN:
 		action = requests.ActionReturn
 	default:
-		action = ""
+		action = "unknown"
 	}
 	return requests.ProcessOrdersRequest{
 		UserID:   in.UserId,
@@ -27,8 +27,8 @@ func (f *DefaultGRPCFacadeMapper) FromPbProcessOrdersRequest(in *pb.ProcessOrder
 // ToPbProcessResult maps the internal ProcessOrdersResponse to a gRPC ProcessResult.
 func (f *DefaultGRPCFacadeMapper) ToPbProcessResult(res responses.ProcessOrdersResponse) *pb.ProcessResult {
 	var failedIDs []uint64
-	for id := range res.Failed {
-		failedIDs = append(failedIDs, id)
+	for _, report := range res.Failed {
+		failedIDs = append(failedIDs, report.OrderID)
 	}
 	return &pb.ProcessResult{
 		Processed: res.Processed,

@@ -2,8 +2,6 @@ package handlers
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"pvz-cli/internal/common/apperrors"
 	"pvz-cli/internal/common/constants"
 	"pvz-cli/internal/usecases/requests"
@@ -45,33 +43,23 @@ func (f *DefaultFacadeHandler) HandleProcessOrders(
 	return buildProcessOrdersResponse(results), nil
 }
 
-func buildProcessOrdersResponse(results []services.ProcessResult) responses.ProcessOrdersResponse {
-	resp := responses.ProcessOrdersResponse{
-		Processed: make([]uint64, 0, len(results)),
-		Failed:    make(map[uint64]responses.FailedOrder),
+func buildProcessOrdersResponse(resultsFromService []services.ProcessResult) responses.ProcessOrdersResponse {
+	res := responses.ProcessOrdersResponse{
+		Processed: make([]uint64, 0, len(resultsFromService)),
+		Failed:    make([]responses.ProcessFailReport, 0, len(resultsFromService)),
 	}
 
-	for _, r := range results {
-		if r.Error == nil {
-			resp.Processed = append(resp.Processed, r.OrderID)
-			fmt.Printf("PROCESSED: %d\n", r.OrderID)
-			continue
-		}
-
-		var appErr *apperrors.AppError
-		if errors.As(r.Error, &appErr) {
-			resp.Failed[r.OrderID] = responses.FailedOrder{
-				Code:    appErr.Code,
-				Message: appErr.Message,
-			}
+	for _, result := range resultsFromService {
+		if result.Error != nil {
+			res.Failed = append(res.Failed, responses.ProcessFailReport{
+				OrderID: result.OrderID,
+				Error:   result.Error,
+			})
 		} else {
-			resp.Failed[r.OrderID] = responses.FailedOrder{
-				Code:    apperrors.InternalError,
-				Message: r.Error.Error(),
-			}
+			res.Processed = append(res.Processed, result.OrderID)
 		}
-		apperrors.Handle(r.Error)
+
 	}
 
-	return resp
+	return res
 }

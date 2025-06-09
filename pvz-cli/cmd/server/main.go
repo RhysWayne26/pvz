@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"pvz-cli/internal/common/apperrors"
 	"syscall"
 	"time"
 
@@ -47,7 +46,6 @@ func main() {
 	store := storage.NewJSONStorage(cfg.Path)
 
 	orderRepo := repositories.NewSnapshotOrderRepository(store)
-	returnRepo := repositories.NewSnapshotReturnRepository(store)
 	historyRepo := repositories.NewSnapshotHistoryRepository(store)
 
 	orderValidator := validators.NewDefaultOrderValidator()
@@ -56,7 +54,7 @@ func main() {
 
 	historySvc := services.NewDefaultHistoryService(historyRepo)
 	packagePricingSvc := services.NewDefaultPackagePricingService(packageValidator, pricingStrategy)
-	orderSvc := services.NewDefaultOrderService(orderRepo, returnRepo, packagePricingSvc, historySvc, orderValidator)
+	orderSvc := services.NewDefaultOrderService(orderRepo, packagePricingSvc, historySvc, orderValidator)
 
 	facadeHandler := handlers.NewDefaultFacadeHandler(orderSvc, historySvc)
 	facadeMapper := mappers.NewDefaultGRPCFacadeMapper()
@@ -79,7 +77,7 @@ func main() {
 	}()
 
 	mux := runtime.NewServeMux(
-		runtime.WithErrorHandler(apperrors.GatewayErrorHandler),
+		runtime.WithErrorHandler(gateway.GRPCGatewayErrorHandler),
 	)
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
 	if err := pb.RegisterOrdersServiceHandlerFromEndpoint(ctx, mux, ":50051", opts); err != nil {

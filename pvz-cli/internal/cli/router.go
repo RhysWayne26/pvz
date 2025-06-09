@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"pvz-cli/internal/usecases/requests"
 	"strings"
 
 	"pvz-cli/internal/cli/mappers"
@@ -12,8 +13,6 @@ import (
 	"pvz-cli/internal/common/constants"
 	"pvz-cli/internal/usecases/handlers"
 )
-
-const silentAcceptOrderOutput = false
 
 type batchHandler func(ctx context.Context, args []string)
 
@@ -39,16 +38,16 @@ func NewRouter(
 }
 
 // Run accepts a context to allow graceful shutdown during interactive mode
-func (c *Router) Run(ctx context.Context) {
+func (r *Router) Run(ctx context.Context) {
 	if len(os.Args) > 1 {
-		c.runBatch(ctx, os.Args[1], os.Args[2:])
+		r.runBatch(ctx, os.Args[1], os.Args[2:])
 	} else {
-		c.runInteractive(ctx)
+		r.runInteractive(ctx)
 	}
 }
 
-func (c *Router) runBatch(ctx context.Context, cmd string, args []string) {
-	if h, ok := c.handlers[cmd]; ok {
+func (r *Router) runBatch(ctx context.Context, cmd string, args []string) {
+	if h, ok := r.handlers[cmd]; ok {
 		h(ctx, args)
 	} else {
 		fmt.Printf("ERROR: unknown command %q\n", cmd)
@@ -83,7 +82,7 @@ func parseInteractiveLine(
 	return cmd, args, nil
 }
 
-func (c *Router) runInteractive(ctx context.Context) {
+func (r *Router) runInteractive(ctx context.Context) {
 	reader := bufio.NewReader(os.Stdin)
 	var lastScrollArgs []string
 
@@ -113,7 +112,7 @@ func (c *Router) runInteractive(ctx context.Context) {
 			fmt.Println("Exiting...")
 			return
 		}
-		c.runBatch(ctx, cmd, args)
+		r.runBatch(ctx, cmd, args)
 	}
 }
 
@@ -124,27 +123,28 @@ func reportError(prefix string, err error) {
 	}
 }
 
-func (c *Router) registerHandlers() {
-	c.handlers[constants.CmdHelp] = c.helpHandler()
-	c.handlers[constants.CmdAcceptOrder] = c.acceptOrderHandler()
-	c.handlers[constants.CmdReturnOrder] = c.returnOrderHandler()
-	c.handlers[constants.CmdProcess] = c.processOrdersHandler()
-	c.handlers[constants.CmdListOrders] = c.listOrdersHandler()
-	c.handlers[constants.CmdListReturns] = c.listReturnsHandler()
-	c.handlers[constants.CmdOrderHistory] = c.orderHistoryHandler()
-	c.handlers[constants.CmdImportOrders] = c.importOrdersHandler()
-	c.handlers[constants.CmdScrollOrders] = c.scrollOrdersHandler()
+func (r *Router) registerHandlers() {
+	r.handlers[constants.CmdHelp] = r.helpHandler()
+	r.handlers[constants.CmdAcceptOrder] = r.acceptOrderHandler()
+	r.handlers[constants.CmdReturnOrder] = r.returnOrderHandler()
+	r.handlers[constants.CmdProcess] = r.processOrdersHandler()
+	r.handlers[constants.CmdListOrders] = r.listOrdersHandler()
+	r.handlers[constants.CmdListReturns] = r.listReturnsHandler()
+	r.handlers[constants.CmdOrderHistory] = r.orderHistoryHandler()
+	r.handlers[constants.CmdImportOrders] = r.importOrdersHandler()
+	r.handlers[constants.CmdScrollOrders] = r.scrollOrdersHandler()
 }
 
-func (c *Router) helpHandler() batchHandler {
+func (r *Router) helpHandler() batchHandler {
 	return func(ctx context.Context, _ []string) {
-		if err := c.facadeHandler.HandleHelp(); err != nil {
-			apperrors.Handle(err)
+		fmt.Println("Доступные команды:")
+		for _, cmd := range AllCommands {
+			fmt.Printf("  %-15s %s\n      Usage: %s\n", cmd.Name, cmd.Description, cmd.Usage)
 		}
 	}
 }
 
-func (c *Router) acceptOrderHandler() batchHandler {
+func (r *Router) acceptOrderHandler() batchHandler {
 	return func(ctx context.Context, args []string) {
 		p := NewArgsParser(args)
 		params, err := p.AcceptOrderParams()
@@ -152,19 +152,25 @@ func (c *Router) acceptOrderHandler() batchHandler {
 			apperrors.Handle(err)
 			return
 		}
-		req, err := c.facadeMapper.MapAcceptOrderParams(params)
+		req, err := r.facadeMapper.MapAcceptOrderParams(params)
 		if err != nil {
 			apperrors.Handle(err)
 			return
 		}
-		_, err = c.facadeHandler.HandleAcceptOrder(ctx, req, silentAcceptOrderOutput)
+		resp, err := r.facadeHandler.HandleAcceptOrder(ctx, req)
 		if err != nil {
 			apperrors.Handle(err)
 		}
+		fmt.Printf(
+			"ORDER_ACCEPTED: %d\nPACKAGE: %s\nTOTAL_PRICE: %.*f\n",
+			resp.OrderID,
+			resp.Package,
+			constants.PriceFractionDigit, resp.Price,
+		)
 	}
 }
 
-func (c *Router) returnOrderHandler() batchHandler {
+func (r *Router) returnOrderHandler() batchHandler {
 	return func(ctx context.Context, args []string) {
 		p := NewArgsParser(args)
 		params, err := p.ReturnOrderParams()
@@ -172,19 +178,20 @@ func (c *Router) returnOrderHandler() batchHandler {
 			apperrors.Handle(err)
 			return
 		}
-		req, err := c.facadeMapper.MapReturnOrderParams(params)
+		req, err := r.facadeMapper.MapReturnOrderParams(params)
 		if err != nil {
 			apperrors.Handle(err)
 			return
 		}
-		_, err = c.facadeHandler.HandleReturnOrder(ctx, req)
+		res, err := r.facadeHandler.HandleReturnOrder(ctx, req)
 		if err != nil {
 			apperrors.Handle(err)
 		}
+		fmt.Printf("ORDER_RETURNED: %d\n", res.OrderID)
 	}
 }
 
-func (c *Router) processOrdersHandler() batchHandler {
+func (r *Router) processOrdersHandler() batchHandler {
 	return func(ctx context.Context, args []string) {
 		p := NewArgsParser(args)
 		params, err := p.ProcessOrdersParams()
@@ -192,19 +199,30 @@ func (c *Router) processOrdersHandler() batchHandler {
 			apperrors.Handle(err)
 			return
 		}
-		req, err := c.facadeMapper.MapProcessOrdersParams(params)
+
+		req, err := r.facadeMapper.MapProcessOrdersParams(params)
 		if err != nil {
 			apperrors.Handle(err)
 			return
 		}
-		_, err = c.facadeHandler.HandleProcessOrders(ctx, req)
+
+		resp, err := r.facadeHandler.HandleProcessOrders(ctx, req)
 		if err != nil {
 			apperrors.Handle(err)
+			return
+		}
+
+		for _, id := range resp.Processed {
+			fmt.Printf("PROCESSED: %d\n", id)
+		}
+
+		for _, report := range resp.Failed {
+			apperrors.Handle(report.Error)
 		}
 	}
 }
 
-func (c *Router) listOrdersHandler() batchHandler {
+func (r *Router) listOrdersHandler() batchHandler {
 	return func(ctx context.Context, args []string) {
 		p := NewArgsParser(args)
 		params, err := p.ListOrdersParams()
@@ -212,48 +230,79 @@ func (c *Router) listOrdersHandler() batchHandler {
 			apperrors.Handle(err)
 			return
 		}
-		req, err := c.facadeMapper.MapListOrdersParams(params)
+		req, err := r.facadeMapper.MapListOrdersParams(params)
 		if err != nil {
 			apperrors.Handle(err)
 			return
 		}
-		_, err = c.facadeHandler.HandleListOrders(ctx, req)
+		res, err := r.facadeHandler.HandleListOrders(ctx, req)
 		if err != nil {
 			apperrors.Handle(err)
+		}
+
+		for _, o := range res.Orders {
+			fmt.Printf(
+				"ORDER: %d %d %s %s %s %.*f %.*f\n",
+				o.OrderID, o.UserID, o.Status,
+				o.ExpiresAt.Format(constants.TimeLayout),
+				o.Package,
+				constants.WeightFractionDigit, o.Weight,
+				constants.PriceFractionDigit, o.Price,
+			)
+		}
+		if res.Total != nil {
+			fmt.Printf("TOTAL: %d\n", *res.Total)
 		}
 	}
 }
 
-func (c *Router) listReturnsHandler() batchHandler {
+func (r *Router) listReturnsHandler() batchHandler {
 	return func(ctx context.Context, args []string) {
-		p := NewArgsParser(args)
-		params, err := p.ListReturnsParams()
+		params, err := NewArgsParser(args).ListReturnsParams()
 		if err != nil {
 			apperrors.Handle(err)
 			return
 		}
-		req, err := c.facadeMapper.MapListReturnsParams(params)
+
+		req, err := r.facadeMapper.MapListReturnsParams(params)
 		if err != nil {
 			apperrors.Handle(err)
 			return
 		}
-		_, err = c.facadeHandler.HandleListReturns(ctx, req)
+		res, err := r.facadeHandler.HandleListOrders(ctx, req)
 		if err != nil {
 			apperrors.Handle(err)
+			return
 		}
+		for _, o := range res.Orders {
+			fmt.Printf(
+				"ORDER: %d %s %s %.*f\n",
+				o.OrderID, o.Status, o.Package,
+				constants.PriceFractionDigit, o.Price,
+			)
+		}
+		fmt.Printf("PAGE: %d LIMIT: %d\n", *req.Page, *req.Limit)
+
 	}
 }
 
-func (c *Router) orderHistoryHandler() batchHandler {
+func (r *Router) orderHistoryHandler() batchHandler {
 	return func(ctx context.Context, _ []string) {
-		_, err := c.facadeHandler.HandleOrderHistory(ctx)
+		res, err := r.facadeHandler.HandleOrderHistory(ctx)
 		if err != nil {
 			apperrors.Handle(err)
+		}
+		for _, e := range res.History {
+			fmt.Printf("HISTORY: %d %s %s\n",
+				e.OrderID,
+				e.Event,
+				e.Timestamp,
+			)
 		}
 	}
 }
 
-func (c *Router) importOrdersHandler() batchHandler {
+func (r *Router) importOrdersHandler() batchHandler {
 	return func(ctx context.Context, args []string) {
 		p := NewArgsParser(args)
 		params, err := p.ImportOrdersParams()
@@ -261,33 +310,113 @@ func (c *Router) importOrdersHandler() batchHandler {
 			apperrors.Handle(err)
 			return
 		}
-		req, err := c.facadeMapper.MapImportOrdersParams(params)
+		req, err := r.facadeMapper.MapImportOrdersParams(params)
+		if err != nil {
+			apperrors.Handle(err)
+		}
+
+		res, err := r.facadeHandler.HandleImportOrders(ctx, req)
 		if err != nil {
 			apperrors.Handle(err)
 			return
 		}
-		_, err = c.facadeHandler.HandleImportOrders(ctx, req)
+
+		for _, status := range res.Statuses {
+			if status.Error != nil {
+				apperrors.Handle(status.Error)
+			}
+		}
+
+		fmt.Printf("IMPORTED: %d\n", res.Imported)
+	}
+}
+
+func (r *Router) scrollOrdersHandler() batchHandler {
+	return func(ctx context.Context, args []string) {
+		cliParams, err := NewArgsParser(args).ScrollOrdersParams()
 		if err != nil {
 			apperrors.Handle(err)
+			return
+		}
+
+		req, err := r.facadeMapper.MapScrollOrdersParams(cliParams)
+		if err != nil {
+			apperrors.Handle(err)
+			return
+		}
+
+		scanner := bufio.NewScanner(os.Stdin)
+		r.runScrollLoop(ctx, req, scanner)
+	}
+}
+
+func (r *Router) runScrollLoop(ctx context.Context, req requests.OrdersFilterRequest, scanner *bufio.Scanner) {
+	for {
+		resp, err := r.facadeHandler.HandleListOrders(ctx, req)
+		if err != nil {
+			apperrors.Handle(err)
+			return
+		}
+
+		for _, o := range resp.Orders {
+			fmt.Printf("ORDER: %d %d %s %s %s %.*f %.*f\n",
+				o.OrderID, o.UserID, o.Status,
+				o.ExpiresAt.Format(constants.TimeLayout),
+				o.Package,
+				constants.WeightFractionDigit, o.Weight,
+				constants.PriceFractionDigit, o.Price,
+			)
+		}
+
+		if resp.NextID == nil || *resp.NextID == 0 {
+			fmt.Println("NEXT: -")
+			r.waitForExit(ctx, scanner)
+			return
+		}
+
+		fmt.Printf("NEXT: %d\n", *resp.NextID)
+		req.LastID = resp.NextID
+
+		if !promptNext(scanner) {
+			return
 		}
 	}
 }
 
-func (c *Router) scrollOrdersHandler() batchHandler {
-	return func(ctx context.Context, args []string) {
-		p := NewArgsParser(args)
-		params, err := p.ScrollOrdersParams()
-		if err != nil {
-			apperrors.Handle(err)
+func promptNext(scanner *bufio.Scanner) bool {
+	fmt.Print("> ")
+	if !scanner.Scan() {
+		return false
+	}
+	cmd := strings.TrimSpace(scanner.Text())
+	switch cmd {
+	case constants.CmdNext:
+		return true
+	case constants.CmdExit:
+		return false
+	default:
+		fmt.Println("Type 'next' to continue or 'exit' to quit.")
+		return promptNext(scanner)
+	}
+}
+
+func (r *Router) waitForExit(ctx context.Context, scanner *bufio.Scanner) {
+	for {
+		select {
+		case <-ctx.Done():
+			fmt.Println("Shutting down...")
+			return
+		default:
+		}
+
+		fmt.Println("No more orders. Type 'exit' to quit.")
+		fmt.Print("> ")
+
+		if !scanner.Scan() {
 			return
 		}
-		req, err := c.facadeMapper.MapScrollOrdersParams(params)
-		if err != nil {
-			apperrors.Handle(err)
+		if strings.TrimSpace(scanner.Text()) == constants.CmdExit {
 			return
-		}
-		if err := c.facadeHandler.HandleScrollOrders(req); err != nil {
-			apperrors.Handle(err)
 		}
 	}
 }

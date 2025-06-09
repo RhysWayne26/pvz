@@ -20,8 +20,8 @@ type AcceptOrderRequest struct {
 	OrderID   uint64
 	UserID    uint64
 	ExpiresAt time.Time
-	Weight    float64
-	Price     float64
+	Weight    float32
+	Price     float32
 	Package   models.PackageType
 }
 
@@ -49,22 +49,6 @@ type ClientReturnsRequest struct {
 	UserID   uint64
 }
 
-// ListOrdersRequest contains filtering and pagination parameters for listing orders
-type ListOrdersRequest struct {
-	UserID uint64
-	InPvz  *bool
-	LastID *uint64
-	Page   *int
-	Limit  *int
-	Last   *int
-}
-
-// ListReturnsRequest contains pagination parameters for listing returns
-type ListReturnsRequest struct {
-	Page  int
-	Limit int
-}
-
 // ScrollOrdersRequest contains parameters for infinite scroll orders listing
 type ScrollOrdersRequest struct {
 	UserID uint64
@@ -74,5 +58,12 @@ type ScrollOrdersRequest struct {
 
 // ImportOrdersRequest contains a list of accept order request to be performed.
 type ImportOrdersRequest struct {
-	Orders []AcceptOrderRequest
+	Statuses []ImportOrderStatus
+}
+
+// ImportOrderStatus represents one item in import batch for request
+type ImportOrderStatus struct {
+	ItemNumber int
+	Request    *AcceptOrderRequest
+	Error      error
 }

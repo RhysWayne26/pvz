@@ -78,22 +78,37 @@ func (r *SnapshotOrderRepository) Delete(id uint64) error {
 }
 
 // List retrieves filtered and paginated list of orders
-func (r *SnapshotOrderRepository) List(filter requests.ListOrdersRequest) ([]models.Order, int, error) {
+func (r *SnapshotOrderRepository) List(filter requests.OrdersFilterRequest) ([]models.Order, int, error) {
 	snap, err := r.storage.Load()
 	if err != nil {
 		return nil, 0, err
 	}
-	orders := sortByCreatedAt(snap.Orders)
-	var lastCreatedAt time.Time
+
+	var orders []models.Order
+	if filter.Status == nil {
+		orders = sortByCreatedAt(snap.Orders)
+	} else {
+		orders = sortByUpdatedAt(snap.Orders)
+	}
+
 	var filters []orderFilter
-	filters = append(filters, filterByUser(filter.UserID))
+	if filter.UserID != nil {
+		filters = append(filters, filterByUser(*filter.UserID))
+	}
+
 	if filter.LastID != nil {
-		lastCreatedAt = findLastCreatedAt(orders, *filter.LastID)
+		lastCreatedAt := findLastCreatedAt(orders, *filter.LastID)
 		filters = append(filters, filterByLastID(lastCreatedAt))
 	}
+
 	if filter.InPvz != nil {
 		filters = append(filters, filterByInPvz(filter.InPvz))
 	}
+
+	if filter.Status != nil {
+		filters = append(filters, filterByStatus(*filter.Status))
+	}
+
 	filtered := applyFilters(orders, filters...)
 	total := len(filtered)
 	page := constants.DefaultPage
@@ -105,6 +120,7 @@ func (r *SnapshotOrderRepository) List(filter requests.ListOrdersRequest) ([]mod
 		limit = *filter.Limit
 	}
 	paged := paginate(filtered, page, limit)
+
 	return paged, total, nil
 }
 
@@ -113,6 +129,15 @@ func sortByCreatedAt(orders []models.Order) []models.Order {
 		return orders[i].CreatedAt.Before(orders[j].CreatedAt)
 	})
 	return orders
+}
+
+func sortByUpdatedAt(src []models.Order) []models.Order {
+	sorted := make([]models.Order, len(src))
+	copy(sorted, src)
+	sort.Slice(sorted, func(i, j int) bool {
+		return sorted[i].UpdatedStatusAt.Before(sorted[j].UpdatedStatusAt)
+	})
+	return sorted
 }
 
 func findLastCreatedAt(orders []models.Order, lastID uint64) time.Time {
@@ -144,6 +169,12 @@ func filterByInPvz(inPvz *bool) orderFilter {
 			return false
 		}
 		return true
+	}
+}
+
+func filterByStatus(status models.OrderStatus) orderFilter {
+	return func(o models.Order) bool {
+		return o.Status == status
 	}
 }
 

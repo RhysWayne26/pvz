@@ -51,8 +51,9 @@ func (f *DefaultCLIFacadeMapper) MapAcceptOrderParams(p params.AcceptOrderParams
 	}, nil
 }
 
-func parseFloat(name, raw string, maxDigits int) (float64, error) {
-	val, err := strconv.ParseFloat(strings.TrimSpace(raw), 64)
+func parseFloat(name, raw string, maxDigits int) (float32, error) {
+	val64, err := strconv.ParseFloat(strings.TrimSpace(raw), 32)
+	val := float32(val64)
 	if err != nil {
 		return 0, apperrors.Newf(apperrors.ValidationFailed, "invalid %s format", name)
 	}

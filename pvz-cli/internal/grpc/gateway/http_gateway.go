@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 	"net/http"
-	"pvz-cli/internal/common/apperrors"
 	"time"
 
 	"google.golang.org/protobuf/encoding/protojson"
@@ -23,7 +22,7 @@ func RunHTTPGateway(grpcAddr string, httpAddr string) error {
 	defer cancel()
 
 	mux := runtime.NewServeMux(
-		runtime.WithErrorHandler(apperrors.GatewayErrorHandler),
+		runtime.WithErrorHandler(GRPCGatewayErrorHandler),
 		runtime.WithMarshalerOption(runtime.MIMEWildcard, &runtime.JSONPb{
 			MarshalOptions: protojson.MarshalOptions{
 				UseProtoNames:   true,

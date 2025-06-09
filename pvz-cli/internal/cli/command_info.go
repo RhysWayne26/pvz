@@ -1,4 +1,4 @@
-package handlers
+package cli
 
 // CommandInfo contains information about a CLI command
 type CommandInfo struct {

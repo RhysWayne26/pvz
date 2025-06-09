@@ -63,10 +63,8 @@ func (v *DefaultOrderValidator) ValidateClientReturn(orders []models.Order, req 
 		if o.Status != models.Issued {
 			return apperrors.Newf(apperrors.ValidationFailed, "order %d status is %s, not ISSUED", o.OrderID, o.Status)
 		}
-		if o.IssuedAt == nil {
-			return apperrors.Newf(apperrors.InternalError, "order %d missing issued_at", o.OrderID)
-		}
-		if now.Sub(*o.IssuedAt) > constants.ReturnWindow {
+
+		if now.Sub(o.UpdatedStatusAt) > constants.ReturnWindow {
 			return apperrors.Newf(apperrors.ValidationFailed, "return window expired for order %d", o.OrderID)
 		}
 	}

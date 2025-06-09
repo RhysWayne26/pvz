@@ -34,9 +34,12 @@ func (r *GRPCRouter) AcceptOrder(
 	ctx context.Context,
 	req *pb.AcceptOrderRequest,
 ) (*pb.OrderResponse, error) {
-	dto := r.facadeMapper.FromPbAcceptOrderRequest(req)
+	dto, err := r.facadeMapper.FromPbAcceptOrderRequest(req)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
 
-	res, err := r.facadeHandler.HandleAcceptOrder(ctx, dto, false)
+	res, err := r.facadeHandler.HandleAcceptOrder(ctx, dto)
 	if err != nil {
 		return nil, toGRPCError(err)
 	}
@@ -96,7 +99,7 @@ func (r *GRPCRouter) ListReturns(
 ) (*pb.ReturnsList, error) {
 	dto := r.facadeMapper.FromPbListReturnsRequest(req)
 
-	resp, err := r.facadeHandler.HandleListReturns(ctx, dto)
+	resp, err := r.facadeHandler.HandleListOrders(ctx, dto)
 	if err != nil {
 		return nil, toGRPCError(err)
 	}

@@ -20,7 +20,7 @@ func (f *DefaultCLIFacadeMapper) MapProcessOrdersParams(p params.ProcessOrdersPa
 		return requests.ProcessOrdersRequest{}, apperrors.Newf(apperrors.ValidationFailed, "no order IDs provided")
 	}
 
-	var parsedIDs []uint64
+	parsedIDs := make([]uint64, 0, len(rawIDs))
 	for i, raw := range rawIDs {
 		raw = strings.TrimSpace(raw)
 		if raw == "" {

@@ -10,5 +10,5 @@ type OrderRepository interface {
 	Save(order models.Order) error
 	Load(id uint64) (models.Order, error)
 	Delete(uint64) error
-	List(filter requests.ListOrdersRequest) ([]models.Order, int, error)
+	List(filter requests.OrdersFilterRequest) ([]models.Order, int, error)
 }

@@ -1,5 +1,11 @@
 package apperrors
 
+import (
+	"errors"
+
+	"google.golang.org/grpc/status"
+)
+
 // ErrorCode represents specific application error codes
 type ErrorCode string
 
@@ -12,4 +18,18 @@ const (
 	InternalError      ErrorCode = "INTERNAL_ERROR"
 	InvalidPackage     ErrorCode = "INVALID_PACKAGE"
 	WeightTooHeavy     ErrorCode = "WEIGHT_TOO_HEAVY"
+	InvalidBatchEntry  ErrorCode = "INVALID_BATCH_ENTRY"
 )
+
+// CodeFromError helps to extract code from application error common struct
+func CodeFromError(err error) string {
+	var appErr *AppError
+	if errors.As(err, &appErr) {
+		return string(appErr.Code)
+	}
+
+	if st, ok := status.FromError(err); ok {
+		return st.Code().String()
+	}
+	return string(InternalError)
+}

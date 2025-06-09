@@ -14,7 +14,7 @@ func NewDefaultPackageValidator() *DefaultPackageValidator {
 }
 
 // Validate checks if package type is valid and supports given weight
-func (v *DefaultPackageValidator) Validate(pkg models.PackageType, weight float64) error {
+func (v *DefaultPackageValidator) Validate(pkg models.PackageType, weight float32) error {
 	if !v.isValidPackageType(pkg) {
 		return apperrors.Newf(apperrors.InvalidPackage, "package type is not valid")
 	}

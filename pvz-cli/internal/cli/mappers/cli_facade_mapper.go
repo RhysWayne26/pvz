@@ -11,10 +11,10 @@ type CLIFacadeMapper interface {
 	MapAcceptOrderParams(params.AcceptOrderParams) (requests.AcceptOrderRequest, error)
 
 	// MapScrollOrdersParams maps scroll-orders CLI parameters to a scroll request.
-	MapScrollOrdersParams(params.ScrollOrdersParams) (requests.ScrollOrdersRequest, error)
+	MapScrollOrdersParams(params.ScrollOrdersParams) (requests.OrdersFilterRequest, error)
 
 	// MapListOrdersParams maps list-orders CLI parameters to a filtering request.
-	MapListOrdersParams(params.ListOrdersParams) (requests.ListOrdersRequest, error)
+	MapListOrdersParams(params.ListOrdersParams) (requests.OrdersFilterRequest, error)
 
 	// MapProcessOrdersParams maps process-orders CLI parameters to a process request.
 	MapProcessOrdersParams(params.ProcessOrdersParams) (requests.ProcessOrdersRequest, error)
@@ -23,7 +23,7 @@ type CLIFacadeMapper interface {
 	MapImportOrdersParams(params.ImportOrdersParams) (requests.ImportOrdersRequest, error)
 
 	// MapListReturnsParams maps list-returns CLI parameters to a returns request.
-	MapListReturnsParams(params.ListReturnsParams) (requests.ListReturnsRequest, error)
+	MapListReturnsParams(params.ListReturnsParams) (requests.OrdersFilterRequest, error)
 
 	// MapReturnOrderParams maps return-order CLI parameters to a return request.
 	MapReturnOrderParams(params.ReturnOrderParams) (requests.ReturnOrderRequest, error)

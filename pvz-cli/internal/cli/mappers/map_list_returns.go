@@ -2,32 +2,31 @@ package mappers
 
 import (
 	"pvz-cli/internal/cli/params"
-	"pvz-cli/internal/common/constants"
 	"pvz-cli/internal/common/utils"
+	"pvz-cli/internal/models"
 	"pvz-cli/internal/usecases/requests"
 )
 
 // MapListReturnsParams converts CLI params for list returns command into internal request model
-func (f *DefaultCLIFacadeMapper) MapListReturnsParams(p params.ListReturnsParams) (requests.ListReturnsRequest, error) {
+func (f *DefaultCLIFacadeMapper) MapListReturnsParams(p params.ListReturnsParams) (requests.OrdersFilterRequest, error) {
 	if err := utils.ValidatePositiveInt("page", p.Page); err != nil {
-		return requests.ListReturnsRequest{}, err
+		return requests.OrdersFilterRequest{}, err
 	}
 	if err := utils.ValidatePositiveInt("limit", p.Limit); err != nil {
-		return requests.ListReturnsRequest{}, err
+		return requests.OrdersFilterRequest{}, err
 	}
 
-	page := constants.DefaultPage
-	limit := constants.DefaultLimit
+	status := models.Returned
+	var opts []requests.FilterOption
+	opts = append(opts, requests.WithStatus(status))
 
 	if p.Page != nil {
-		page = *p.Page
+		opts = append(opts, requests.WithPage(*p.Page))
 	}
 	if p.Limit != nil {
-		limit = *p.Limit
+		opts = append(opts, requests.WithLimit(*p.Limit))
 	}
 
-	return requests.ListReturnsRequest{
-		Page:  page,
-		Limit: limit,
-	}, nil
+	filter := requests.NewOrdersFilter(opts...)
+	return filter, nil
 }

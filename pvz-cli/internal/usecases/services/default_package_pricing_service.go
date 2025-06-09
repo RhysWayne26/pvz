@@ -22,7 +22,7 @@ func NewDefaultPackagePricingService(v validators.PackageValidator, s strategies
 }
 
 // Evaluate calculates package surcharge and validates weight constraints for given package type
-func (s *DefaultPackagePricingService) Evaluate(pkg models.PackageType, weight float64, price float64) (float64, error) {
+func (s *DefaultPackagePricingService) Evaluate(pkg models.PackageType, weight float32, price float32) (float32, error) {
 	if weight <= 0 {
 		return 0, apperrors.Newf(apperrors.ValidationFailed, "weight must be > 0")
 	}

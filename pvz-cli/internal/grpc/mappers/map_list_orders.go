@@ -6,10 +6,10 @@ import (
 	"pvz-cli/internal/usecases/responses"
 )
 
-// FromPbListOrdersRequest maps a gRPC ListOrdersRequest to the internal request model.
-func (f *DefaultGRPCFacadeMapper) FromPbListOrdersRequest(in *pb.ListOrdersRequest) requests.ListOrdersRequest {
-	req := requests.ListOrdersRequest{
-		UserID: in.UserId,
+// FromPbListOrdersRequest maps a gRPC OrdersFilterRequest to the internal request model.
+func (f *DefaultGRPCFacadeMapper) FromPbListOrdersRequest(in *pb.ListOrdersRequest) requests.OrdersFilterRequest {
+	req := requests.OrdersFilterRequest{
+		UserID: &in.UserId,
 		InPvz:  &in.InPvz,
 	}
 
@@ -30,12 +30,19 @@ func (f *DefaultGRPCFacadeMapper) FromPbListOrdersRequest(in *pb.ListOrdersReque
 
 // ToPbOrdersList maps the internal ListOrdersResponse to a gRPC OrdersList response.
 func (f *DefaultGRPCFacadeMapper) ToPbOrdersList(res responses.ListOrdersResponse) *pb.OrdersList {
-	pbOrders := make([]*pb.Order, 0, len(res.Orders))
-	for _, o := range res.Orders {
+	orders := res.Orders
+	pbOrders := make([]*pb.Order, 0, len(orders))
+	for _, o := range orders {
 		pbOrders = append(pbOrders, toPbOrder(o))
 	}
+
+	var totalValue int32
+	if res.Total != nil {
+		totalValue = int32(*res.Total)
+	}
+
 	return &pb.OrdersList{
 		Orders: pbOrders,
-		Total:  res.Total,
+		Total:  totalValue,
 	}
 }

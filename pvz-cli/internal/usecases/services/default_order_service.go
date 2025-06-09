@@ -7,14 +7,12 @@ import (
 	"pvz-cli/internal/models"
 	"pvz-cli/internal/usecases/requests"
 	"pvz-cli/internal/usecases/services/validators"
-	"sort"
 	"time"
 )
 
 // DefaultOrderService is a default implementation of OrderService interface
 type DefaultOrderService struct {
 	orderRepo         repositories.OrderRepository
-	returnRepo        repositories.ReturnRepository
 	packagePricingSvc PackagePricingService
 	historySvc        HistoryService
 	validator         validators.OrderValidator
@@ -23,13 +21,11 @@ type DefaultOrderService struct {
 // NewDefaultOrderService creates a new instance of DefaultOrderService
 func NewDefaultOrderService(
 	orderRepo repositories.OrderRepository,
-	returnRepo repositories.ReturnRepository,
 	packagePricingService PackagePricingService,
 	historyService HistoryService,
 	validator validators.OrderValidator) *DefaultOrderService {
 	return &DefaultOrderService{
 		orderRepo:         orderRepo,
-		returnRepo:        returnRepo,
 		packagePricingSvc: packagePricingService,
 		historySvc:        historyService,
 		validator:         validator,
@@ -52,15 +48,18 @@ func (s *DefaultOrderService) AcceptOrder(req requests.AcceptOrderRequest) (mode
 		return models.Order{}, err
 	}
 
+	now := time.Now()
+
 	order := models.Order{
-		OrderID:   req.OrderID,
-		UserID:    req.UserID,
-		CreatedAt: time.Now(),
-		Status:    models.Accepted,
-		ExpiresAt: req.ExpiresAt,
-		Weight:    req.Weight,
-		Price:     totalPrice,
-		Package:   req.Package,
+		OrderID:         req.OrderID,
+		UserID:          req.UserID,
+		CreatedAt:       now,
+		UpdatedStatusAt: now,
+		Status:          models.Accepted,
+		ExpiresAt:       req.ExpiresAt,
+		Weight:          req.Weight,
+		Price:           totalPrice,
+		Package:         req.Package,
 	}
 	if err := s.orderRepo.Save(order); err != nil {
 		return models.Order{}, apperrors.Newf(apperrors.InternalError, "failed to save order: %v", err)
@@ -69,7 +68,7 @@ func (s *DefaultOrderService) AcceptOrder(req requests.AcceptOrderRequest) (mode
 	entry := models.HistoryEntry{
 		OrderID:   order.OrderID,
 		Event:     models.EventAccepted,
-		Timestamp: time.Now(),
+		Timestamp: now,
 	}
 	if err := s.historySvc.Record(entry); err != nil {
 		return models.Order{}, apperrors.Newf(apperrors.InternalError, "failed to record history: %v", err)
@@ -100,7 +99,7 @@ func (s *DefaultOrderService) IssueOrders(req requests.IssueOrdersRequest) []Pro
 		}
 
 		order.Status = models.Issued
-		order.IssuedAt = &now
+		order.UpdatedStatusAt = now
 
 		if err := s.orderRepo.Save(order); err != nil {
 			res.Error = apperrors.Newf(apperrors.InternalError, "failed to save order %d: %v", id, err)
@@ -126,7 +125,7 @@ func (s *DefaultOrderService) IssueOrders(req requests.IssueOrdersRequest) []Pro
 }
 
 // ListOrders retrieves filtered and paginated list of orders
-func (s *DefaultOrderService) ListOrders(filter requests.ListOrdersRequest) ([]models.Order, uint64, int, error) {
+func (s *DefaultOrderService) ListOrders(filter requests.OrdersFilterRequest) ([]models.Order, uint64, int, error) {
 	result, total, err := s.orderRepo.List(filter)
 	if err != nil {
 		return nil, 0, 0, apperrors.Newf(apperrors.InternalError, "failed to list orders: %v", err)
@@ -170,21 +169,10 @@ func (s *DefaultOrderService) CreateClientReturns(req requests.ClientReturnsRequ
 		}
 
 		order.Status = models.Returned
-		order.ReturnedAt = &now
+		order.UpdatedStatusAt = now
 
 		if err := s.orderRepo.Save(order); err != nil {
 			res.Error = apperrors.Newf(apperrors.InternalError, "failed to save order %d: %v", order.OrderID, err)
-			results = append(results, res)
-			continue
-		}
-
-		ret := models.ReturnEntry{
-			OrderID:    order.OrderID,
-			UserID:     order.UserID,
-			ReturnedAt: now,
-		}
-		if err := s.returnRepo.Save(ret); err != nil {
-			res.Error = apperrors.Newf(apperrors.InternalError, "failed to save return entry for order %d: %v", order.OrderID, err)
 			results = append(results, res)
 			continue
 		}
@@ -234,23 +222,11 @@ func (s *DefaultOrderService) ReturnToCourier(req requests.ReturnOrderRequest) e
 }
 
 // ListReturns retrieves paginated list of return entries sorted by return date
-func (s *DefaultOrderService) ListReturns(page, limit int) ([]models.ReturnEntry, error) {
-	rets, err := s.returnRepo.List(page, limit)
+func (s *DefaultOrderService) ListReturns(filter requests.OrdersFilterRequest) ([]models.Order, error) {
+	orders, _, err := s.orderRepo.List(filter)
 	if err != nil {
 		return nil, apperrors.Newf(apperrors.InternalError, "failed to list returns: %v", err)
 	}
 
-	entries := make([]models.ReturnEntry, len(rets))
-	for i, r := range rets {
-		entries[i] = models.ReturnEntry{
-			OrderID:    r.OrderID,
-			UserID:     r.UserID,
-			ReturnedAt: r.ReturnedAt,
-		}
-	}
-	sort.Slice(entries, func(i, j int) bool {
-		return entries[i].ReturnedAt.Before(entries[j].ReturnedAt)
-	})
-
-	return entries, nil
+	return orders, nil
 }

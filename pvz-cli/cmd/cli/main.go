@@ -34,7 +34,6 @@ func main() {
 	store := storage.NewJSONStorage(cfg.Path)
 
 	orderRepo := repositories.NewSnapshotOrderRepository(store)
-	returnRepo := repositories.NewSnapshotReturnRepository(store)
 	historyRepo := repositories.NewSnapshotHistoryRepository(store)
 
 	orderValidator := validators.NewDefaultOrderValidator()
@@ -44,7 +43,7 @@ func main() {
 
 	historySvc := services.NewDefaultHistoryService(historyRepo)
 	packagePricingSvc := services.NewDefaultPackagePricingService(packageValidator, pricingStrategy)
-	orderSvc := services.NewDefaultOrderService(orderRepo, returnRepo, packagePricingSvc, historySvc, orderValidator)
+	orderSvc := services.NewDefaultOrderService(orderRepo, packagePricingSvc, historySvc, orderValidator)
 
 	facadeHandler := handlers.NewDefaultFacadeHandler(orderSvc, historySvc)
 	facadeMapper := mappers.NewDefaultFacadeMapper()

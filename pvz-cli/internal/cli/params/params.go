@@ -42,6 +42,7 @@ type ListReturnsParams struct {
 type ScrollOrdersParams struct {
 	UserID string `json:"user_id"`
 	Limit  *int   `json:"limit,omitempty"`
+	LastID string `json:"last_id,omitempty"`
 }
 
 // ImportOrdersParams contains parameters for import-orders command

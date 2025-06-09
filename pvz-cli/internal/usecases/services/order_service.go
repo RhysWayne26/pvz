@@ -9,8 +9,8 @@ import (
 type OrderService interface {
 	AcceptOrder(req requests.AcceptOrderRequest) (models.Order, error)
 	IssueOrders(req requests.IssueOrdersRequest) []ProcessResult
-	ListOrders(filter requests.ListOrdersRequest) ([]models.Order, uint64, int, error)
+	ListOrders(filter requests.OrdersFilterRequest) ([]models.Order, uint64, int, error)
 	CreateClientReturns(req requests.ClientReturnsRequest) []ProcessResult
 	ReturnToCourier(req requests.ReturnOrderRequest) error
-	ListReturns(page, limit int) ([]models.ReturnEntry, error)
+	ListReturns(filter requests.OrdersFilterRequest) ([]models.Order, error)
 }
