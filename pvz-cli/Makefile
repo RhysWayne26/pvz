@@ -80,6 +80,3 @@ docs-generate:
 	  go doc -all $$pkg > docs/dev/$$file; \
 	done
 	@echo "done: docs/dev/*.md"
-
-.PHONY: proto
-proto: proto/init

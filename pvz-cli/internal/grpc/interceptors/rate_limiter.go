@@ -1,7 +1,8 @@
-package interceptor
+package interceptors
 
 import (
 	"context"
+	"pvz-cli/internal/common/constants"
 	"sync"
 	"time"
 
@@ -16,10 +17,10 @@ var (
 	limiter *rate.Limiter
 )
 
-// RateLimitInterceptor returns a UnaryServerInterceptor that allows up to 5 RPS.
+// RateLimitInterceptor returns a UnaryServerInterceptor that allows up to default RPS.
 func RateLimitInterceptor() grpc.UnaryServerInterceptor {
 	once.Do(func() {
-		limiter = rate.NewLimiter(rate.Every(time.Second/5), 1)
+		limiter = rate.NewLimiter(rate.Every(time.Second/constants.DefaultRPS), constants.DefaultBurst)
 	})
 
 	return func(

@@ -15,10 +15,12 @@ func (f *DefaultGRPCFacadeMapper) FromPbImportOrdersRequest(
 
 	for i, o := range in.Orders {
 		itemNumber := i + 1
+		orderID := o.OrderId
 
 		req, err := f.FromPbAcceptOrderRequest(o)
 		statuses = append(statuses, requests.ImportOrderStatus{
 			ItemNumber: itemNumber,
+			OrderID:    orderID,
 			Request:    &req,
 			Error:      err,
 		})
@@ -31,13 +33,13 @@ func (f *DefaultGRPCFacadeMapper) FromPbImportOrdersRequest(
 
 // ToPbImportResult maps internal ImportOrdersResponse to protobuf ImportResult.
 func (f *DefaultGRPCFacadeMapper) ToPbImportResult(res responses.ImportOrdersResponse) *pb.ImportResult {
-	fails := make([]*pb.FailedImport, 0, len(res.Statuses))
+	fails := make([]*pb.FailedBatchedOrder, 0, len(res.Statuses))
 	for _, status := range res.Statuses {
 		if status.Error != nil {
-			fails = append(fails, &pb.FailedImport{
-				OrderId: status.Request.OrderID,
+			fails = append(fails, &pb.FailedBatchedOrder{
+				OrderId: status.OrderID,
 				Code:    apperrors.CodeFromError(status.Error),
-				Reason:  status.Error.Error(),
+				Reason:  apperrors.MessageFromError(status.Error),
 			})
 		}
 	}

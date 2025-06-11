@@ -64,6 +64,7 @@ type ImportOrdersRequest struct {
 // ImportOrderStatus represents one item in import batch for request
 type ImportOrderStatus struct {
 	ItemNumber int
+	OrderID    uint64
 	Request    *AcceptOrderRequest
 	Error      error
 }

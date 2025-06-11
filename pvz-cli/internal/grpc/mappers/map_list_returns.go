@@ -2,6 +2,7 @@ package mappers
 
 import (
 	pb "pvz-cli/internal/gen/orders"
+	"pvz-cli/internal/models"
 	"pvz-cli/internal/usecases/requests"
 	"pvz-cli/internal/usecases/responses"
 )
@@ -12,8 +13,10 @@ func (f *DefaultGRPCFacadeMapper) FromPbListReturnsRequest(in *pb.ListReturnsReq
 	if in.Pagination != nil {
 		page := int(in.Pagination.Page)
 		limit := int(in.Pagination.CountOnPage)
+		status := models.Returned
 		req.Page = &page
 		req.Limit = &limit
+		req.Status = &status
 	}
 
 	return req

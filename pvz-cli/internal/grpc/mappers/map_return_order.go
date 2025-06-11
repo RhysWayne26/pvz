@@ -7,10 +7,14 @@ import (
 )
 
 // FromPbReturnOrderRequest maps a gRPC OrderIdRequest to the internal ReturnOrderRequest.
-func (f *DefaultGRPCFacadeMapper) FromPbReturnOrderRequest(in *pb.OrderIdRequest) requests.ReturnOrderRequest {
+func (f *DefaultGRPCFacadeMapper) FromPbReturnOrderRequest(in *pb.OrderIdRequest) (requests.ReturnOrderRequest, error) {
+	if err := providedOrderIDCheck(in.OrderId); err != nil {
+		return requests.ReturnOrderRequest{}, err
+	}
+
 	return requests.ReturnOrderRequest{
 		OrderID: in.OrderId,
-	}
+	}, nil
 }
 
 // ToPbReturnOrderResponse maps the internal ReturnOrderResponse to a gRPC OrderResponse.

@@ -2,6 +2,8 @@ package gateway
 
 import (
 	"context"
+	"errors"
+	"pvz-cli/internal/common/apperrors"
 
 	pb "pvz-cli/internal/gen/orders"
 	"pvz-cli/internal/grpc/mappers"
@@ -36,7 +38,7 @@ func (r *GRPCRouter) AcceptOrder(
 ) (*pb.OrderResponse, error) {
 	dto, err := r.facadeMapper.FromPbAcceptOrderRequest(req)
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, err.Error())
+		return nil, toGRPCError(err)
 	}
 
 	res, err := r.facadeHandler.HandleAcceptOrder(ctx, dto)
@@ -52,7 +54,10 @@ func (r *GRPCRouter) ReturnOrder(
 	ctx context.Context,
 	req *pb.OrderIdRequest,
 ) (*pb.OrderResponse, error) {
-	dto := r.facadeMapper.FromPbReturnOrderRequest(req)
+	dto, err := r.facadeMapper.FromPbReturnOrderRequest(req)
+	if err != nil {
+		return nil, toGRPCError(err)
+	}
 
 	res, err := r.facadeHandler.HandleReturnOrder(ctx, dto)
 	if err != nil {
@@ -67,7 +72,10 @@ func (r *GRPCRouter) ProcessOrders(
 	ctx context.Context,
 	req *pb.ProcessOrdersRequest,
 ) (*pb.ProcessResult, error) {
-	dto := r.facadeMapper.FromPbProcessOrdersRequest(req)
+	dto, err := r.facadeMapper.FromPbProcessOrdersRequest(req)
+	if err != nil {
+		return nil, toGRPCError(err)
+	}
 
 	resp, err := r.facadeHandler.HandleProcessOrders(ctx, dto)
 	if err != nil {
@@ -82,7 +90,10 @@ func (r *GRPCRouter) ListOrders(
 	ctx context.Context,
 	req *pb.ListOrdersRequest,
 ) (*pb.OrdersList, error) {
-	dto := r.facadeMapper.FromPbListOrdersRequest(req)
+	dto, err := r.facadeMapper.FromPbListOrdersRequest(req)
+	if err != nil {
+		return nil, toGRPCError(err)
+	}
 
 	resp, err := r.facadeHandler.HandleListOrders(ctx, dto)
 	if err != nil {
@@ -136,8 +147,19 @@ func (r *GRPCRouter) ImportOrders(
 }
 
 func toGRPCError(err error) error {
-	if s, ok := status.FromError(err); ok && s.Code() != codes.Unknown {
+	if _, ok := status.FromError(err); ok {
 		return err
 	}
-	return status.Errorf(codes.InvalidArgument, err.Error())
+	var appErr *apperrors.AppError
+	if errors.As(err, &appErr) {
+		switch appErr.Code {
+		case apperrors.OrderAlreadyExists:
+			return status.Error(codes.AlreadyExists, appErr.Message)
+		case apperrors.OrderNotFound:
+			return status.Error(codes.NotFound, appErr.Message)
+		default:
+			return status.Error(codes.InvalidArgument, appErr.Message)
+		}
+	}
+	return status.Error(codes.Internal, err.Error())
 }

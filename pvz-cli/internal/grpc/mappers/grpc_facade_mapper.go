@@ -12,13 +12,13 @@ type GRPCFacadeMapper interface {
 	FromPbAcceptOrderRequest(*pb.AcceptOrderRequest) (requests.AcceptOrderRequest, error)
 
 	// FromPbReturnOrderRequest maps protobuf OrderIdRequest to internal ReturnOrderRequest.
-	FromPbReturnOrderRequest(*pb.OrderIdRequest) requests.ReturnOrderRequest
+	FromPbReturnOrderRequest(*pb.OrderIdRequest) (requests.ReturnOrderRequest, error)
 
 	// FromPbProcessOrdersRequest maps protobuf ProcessOrdersRequest to internal ProcessOrdersRequest.
-	FromPbProcessOrdersRequest(*pb.ProcessOrdersRequest) requests.ProcessOrdersRequest
+	FromPbProcessOrdersRequest(*pb.ProcessOrdersRequest) (requests.ProcessOrdersRequest, error)
 
 	// FromPbListOrdersRequest maps protobuf OrdersFilterRequest to internal OrdersFilterRequest.
-	FromPbListOrdersRequest(*pb.ListOrdersRequest) requests.OrdersFilterRequest
+	FromPbListOrdersRequest(*pb.ListOrdersRequest) (requests.OrdersFilterRequest, error)
 
 	// FromPbListReturnsRequest maps protobuf ListReturnsRequest to internal ListReturnsRequest.
 	FromPbListReturnsRequest(*pb.ListReturnsRequest) requests.OrdersFilterRequest

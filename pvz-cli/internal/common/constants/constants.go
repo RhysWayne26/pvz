@@ -29,4 +29,7 @@ const (
 
 	WeightFractionDigit = 3
 	PriceFractionDigit  = 2
+
+	DefaultRPS   = 5
+	DefaultBurst = 1
 )

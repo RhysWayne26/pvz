@@ -7,7 +7,10 @@ import (
 )
 
 // FromPbListOrdersRequest maps a gRPC OrdersFilterRequest to the internal request model.
-func (f *DefaultGRPCFacadeMapper) FromPbListOrdersRequest(in *pb.ListOrdersRequest) requests.OrdersFilterRequest {
+func (f *DefaultGRPCFacadeMapper) FromPbListOrdersRequest(in *pb.ListOrdersRequest) (requests.OrdersFilterRequest, error) {
+	if err := providedUserIDCheck(in.UserId); err != nil {
+		return requests.OrdersFilterRequest{}, err
+	}
 	req := requests.OrdersFilterRequest{
 		UserID: &in.UserId,
 		InPvz:  &in.InPvz,
@@ -25,7 +28,7 @@ func (f *DefaultGRPCFacadeMapper) FromPbListOrdersRequest(in *pb.ListOrdersReque
 		req.Limit = &limit
 	}
 
-	return req
+	return req, nil
 }
 
 // ToPbOrdersList maps the internal ListOrdersResponse to a gRPC OrdersList response.

@@ -2,9 +2,8 @@ package gateway
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"net/http"
-	"time"
 
 	"google.golang.org/protobuf/encoding/protojson"
 
@@ -17,9 +16,14 @@ import (
 
 // RunHTTPGateway starts the HTTP reverse-proxy server for gRPC.
 // It connects to the running gRPC server at grpcAddr and exposes the HTTP API at httpAddr.
-func RunHTTPGateway(grpcAddr string, httpAddr string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+func RunHTTPGateway(grpcAddr, httpAddr string) error {
+	conn, err := grpc.NewClient(
+		grpcAddr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create gRPC client: %w", err)
+	}
 
 	mux := runtime.NewServeMux(
 		runtime.WithErrorHandler(GRPCGatewayErrorHandler),
@@ -31,15 +35,14 @@ func RunHTTPGateway(grpcAddr string, httpAddr string) error {
 			},
 		}),
 	)
-	opts := []grpc.DialOption{
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
+
+	if err := pb.RegisterOrdersServiceHandler(
+		context.Background(),
+		mux,
+		conn,
+	); err != nil {
+		return fmt.Errorf("failed to register gateway handler: %w", err)
 	}
 
-	err := pb.RegisterOrdersServiceHandlerFromEndpoint(ctx, mux, grpcAddr, opts)
-	if err != nil {
-		return err
-	}
-
-	log.Printf("HTTP gateway started on %s", httpAddr)
 	return http.ListenAndServe(httpAddr, mux)
 }

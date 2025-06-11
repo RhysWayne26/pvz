@@ -2,6 +2,7 @@ PROTO_DIR := api/grpc
 PROTO_FILE := $(PROTO_DIR)/orders.proto
 THIRD_PARTY_DIR := third_party
 SWAGGER_OUT := docs/swagger
+PROTO_OUT := internal/gen/orders
 
 TOOLS_BIN := tools/bin
 
@@ -101,11 +102,12 @@ proto/generate: tools/proto tools/protoc proto/setup-third-party $(PROTO_OUT) $(
 	  -I../../$(THIRD_PARTY_DIR) \
 	  -I../../$(THIRD_PARTY_DIR)/validate \
 	  -I../../$(PROTOC_DIR)/include \
-	  --go_out=../../$(PROTO_OUT) --go_opt=paths=import \
-	  --go-grpc_out=../../$(PROTO_OUT) --go-grpc_opt=paths=import \
-	  --grpc-gateway_out=../../$(PROTO_OUT) --grpc-gateway_opt=paths=import \
+      --go_out=../../$(PROTO_OUT) --go_opt=paths=source_relative \
+      --go-grpc_out=../../$(PROTO_OUT) --go-grpc_opt=paths=source_relative \
+      --grpc-gateway_out=../../$(PROTO_OUT) --grpc-gateway_opt=paths=source_relative \
 	  --openapiv2_out=../../$(SWAGGER_OUT) \
-	  --validate_out="lang=go:../../$(PROTO_OUT)" \
+      --openapiv2_opt logtostderr=true,json_names_for_fields=false \
+	  --validate_out="lang=go,paths=source_relative:../../$(PROTO_OUT)" \
 	  --plugin=protoc-gen-validate=$(abspath $(TOOLS_BIN))/protoc-gen-validate \
 	  --plugin=protoc-gen-go=$(abspath $(TOOLS_BIN))/protoc-gen-go \
 	  --plugin=protoc-gen-go-grpc=$(abspath $(TOOLS_BIN))/protoc-gen-go-grpc \

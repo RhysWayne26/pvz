@@ -62,7 +62,12 @@ message AcceptOrderRequest {
   uint64 order_id = 1 [(validate.rules).uint64.gt = 0];
   uint64 user_id = 2 [(validate.rules).uint64.gt = 0];
   google.protobuf.Timestamp expires_at = 3 [(validate.rules).timestamp.required = true];
-  optional PackageType package = 4;
+  optional PackageType package = 4 [
+    (validate.rules).enum = {
+      defined_only: true,
+      not_in: [0]
+    }
+  ];
   float weight = 5 [(validate.rules).float.gt = 0];
   float price = 6 [(validate.rules).float.gt = 0];
 }
@@ -73,7 +78,12 @@ message OrderIdRequest {
 
 message ProcessOrdersRequest {
   uint64 user_id = 1 [(validate.rules).uint64.gt = 0];
-  ActionType action = 2 [(validate.rules).enum.defined_only = true];
+  ActionType action = 2 [
+    (validate.rules).enum = {
+      defined_only: true,
+      not_in: [0]
+    }
+  ];
   repeated uint64 order_ids = 3 [(validate.rules).repeated.min_items = 1];
 }
 
@@ -87,13 +97,13 @@ enum ActionType {
 message ListOrdersRequest {
   uint64 user_id = 1 [(validate.rules).uint64.gt = 0];
   bool in_pvz = 2;
-  optional uint32 last_n = 3 [(validate.rules).uint32.gt = 0];
+  optional uint32 last_n = 3 [(validate.rules).uint32.gte = 1];
   optional Pagination pagination = 4;
 }
 
 message Pagination {
-  uint32 page = 1 [(validate.rules).uint32.gt = 0];
-  uint32 count_on_page = 2 [(validate.rules).uint32.gt = 0];
+  uint32 page = 1 [(validate.rules).uint32.gte = 1];
+  uint32 count_on_page = 2 [(validate.rules).uint32.gte = 1];
 }
 
 message ListReturnsRequest {
@@ -114,7 +124,7 @@ message OrderResponse {
 
 message ProcessResult {
   repeated uint64 processed = 1;
-  repeated uint64 errors = 2;
+  repeated FailedBatchedOrder errors = 2;
 }
 
 message OrdersList {
@@ -132,10 +142,10 @@ message OrderHistoryList {
 
 message ImportResult {
   int32 imported = 1;
-  repeated FailedImport errors = 2;
+  repeated FailedBatchedOrder errors = 2;
 }
 
-message FailedImport {
+message FailedBatchedOrder {
   uint64 order_id = 1;
   string code = 2;
   string reason = 3;
@@ -174,11 +184,6 @@ enum EventType {
   EVENT_ISSUED = 2;
   EVENT_RETURNED_FROM_CLIENT = 3;
   EVENT_RETURNED_TO_WAREHOUSE = 4;
-}
-
-message ReturnEntry{
-  uint64 order_id = 1;
-
 }
 
 message OrderHistory {

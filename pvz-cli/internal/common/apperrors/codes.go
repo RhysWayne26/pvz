@@ -19,6 +19,7 @@ const (
 	InvalidPackage     ErrorCode = "INVALID_PACKAGE"
 	WeightTooHeavy     ErrorCode = "WEIGHT_TOO_HEAVY"
 	InvalidBatchEntry  ErrorCode = "INVALID_BATCH_ENTRY"
+	InvalidID          ErrorCode = "INVALID_ID"
 )
 
 // CodeFromError helps to extract code from application error common struct

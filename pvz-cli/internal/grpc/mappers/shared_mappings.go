@@ -1,6 +1,7 @@
 package mappers
 
 import (
+	"pvz-cli/internal/common/apperrors"
 	pb "pvz-cli/internal/gen/orders"
 	"pvz-cli/internal/models"
 
@@ -26,7 +27,7 @@ func toPbOrderStatus(s models.OrderStatus) pb.OrderStatus {
 	case models.Accepted:
 		return pb.OrderStatus_ORDER_STATUS_ACCEPTED
 	case models.Returned:
-		return pb.OrderStatus_ORDER_STATUS_RETURNED
+		return pb.OrderStatus_ORDER_STATUS_RETURNED_BY_CLIENT
 	case models.Issued:
 		return pb.OrderStatus_ORDER_STATUS_ISSUED
 	default:
@@ -91,4 +92,25 @@ func fromPbPackageType(p pb.PackageType) models.PackageType {
 	default:
 		return unknownPackage
 	}
+}
+
+func fromPbPackageTypePtr(p *pb.PackageType) models.PackageType {
+	if p == nil {
+		return models.PackageNone
+	}
+	return fromPbPackageType(*p)
+}
+
+func providedOrderIDCheck(id uint64) error {
+	if id == 0 {
+		return apperrors.Newf(apperrors.InvalidID, "invalid OrderIdRequest.order_id: value must be greater than or equal to 1")
+	}
+	return nil
+}
+
+func providedUserIDCheck(id uint64) error {
+	if id == 0 {
+		return apperrors.Newf(apperrors.InvalidID, "invalid UserIdRequest.user_id: value must be greater than or equal to 1")
+	}
+	return nil
 }

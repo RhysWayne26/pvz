@@ -14,12 +14,8 @@ import (
 
 // GRPCGatewayErrorHandler maps gRPC and internal errors to consistent HTTP JSON error responses.
 func GRPCGatewayErrorHandler(
-	ctx context.Context,
-	mux *runtime.ServeMux,
-	marshaler runtime.Marshaler,
-	w http.ResponseWriter,
-	r *http.Request,
-	err error,
+	_ context.Context, _ *runtime.ServeMux, _ runtime.Marshaler,
+	w http.ResponseWriter, _ *http.Request, err error,
 ) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -36,7 +32,18 @@ func GRPCGatewayErrorHandler(
 	} else if appErr := new(apperrors.AppError); errors.As(err, &appErr) {
 		code = string(appErr.Code)
 		message = appErr.Message
-		httpStatus = http.StatusBadRequest
+		switch appErr.Code {
+		case apperrors.OrderAlreadyExists:
+			httpStatus = http.StatusConflict
+		case apperrors.OrderNotFound:
+			httpStatus = http.StatusNotFound
+		case apperrors.StorageExpired,
+			apperrors.WeightTooHeavy:
+			httpStatus = http.StatusPreconditionFailed
+		default:
+			httpStatus = http.StatusBadRequest
+		}
+
 	} else {
 		st, _ := status.FromError(err)
 		code = st.Code().String()
@@ -59,6 +66,8 @@ func grpcCodeToHTTPStatus(code codes.Code) int {
 		return http.StatusNotFound
 	case codes.AlreadyExists:
 		return http.StatusConflict
+	case codes.ResourceExhausted:
+		return http.StatusTooManyRequests
 	case codes.PermissionDenied:
 		return http.StatusForbidden
 	case codes.Unauthenticated:

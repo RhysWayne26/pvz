@@ -37,3 +37,12 @@ func Handle(err error) {
 		fmt.Printf("ERROR: INTERNAL_ERROR: %v\n", err)
 	}
 }
+
+// MessageFromError helps to extract message field from application error common struct
+func MessageFromError(err error) string {
+	var appErr *AppError
+	if errors.As(err, &appErr) {
+		return appErr.Message
+	}
+	return "no message provided"
+}
