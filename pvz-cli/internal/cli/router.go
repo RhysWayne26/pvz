@@ -307,7 +307,7 @@ func (r *Router) orderHistoryHandler() batchHandler {
 			fmt.Printf("HISTORY: %d %s %s\n",
 				e.OrderID,
 				e.Event,
-				e.Timestamp,
+				e.Timestamp.Format(constants.HistoryTimeLayout),
 			)
 		}
 	}
