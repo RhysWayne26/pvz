@@ -1,11 +1,12 @@
 package storage
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
-	"pvz-cli/internal/common/shutdown"
 	"pvz-cli/internal/data"
 	"sync"
 )
@@ -22,9 +23,9 @@ func NewJSONStorage(path string) *JSONStorage {
 }
 
 // Save persists snapshot to JSON file with atomic write operation
-func (s *JSONStorage) Save(snapshot *data.Snapshot) error {
-	if shutdown.IsShuttingDown() {
-		return fmt.Errorf("save aborted: shutting down")
+func (s *JSONStorage) Save(ctx context.Context, snapshot *data.Snapshot) error {
+	if ctx.Err() != nil {
+		return ctx.Err()
 	}
 
 	s.mutex.Lock()
@@ -82,7 +83,10 @@ func (s *JSONStorage) Save(snapshot *data.Snapshot) error {
 }
 
 // Load reads snapshot from JSON file or returns empty snapshot if file doesn't exist
-func (s *JSONStorage) Load() (*data.Snapshot, error) {
+func (s *JSONStorage) Load(ctx context.Context) (*data.Snapshot, error) {
+	if ctx.Err() != nil {
+		return nil, ctx.Err()
+	}
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	file, err := os.Open(s.path)
@@ -93,9 +97,8 @@ func (s *JSONStorage) Load() (*data.Snapshot, error) {
 		return nil, fmt.Errorf("open storage file: %w", err)
 	}
 	defer func() {
-		err := file.Close()
-		if err != nil {
-			panic(err)
+		if err := file.Close(); err != nil {
+			log.Printf("failed to close file: %v", err)
 		}
 	}()
 

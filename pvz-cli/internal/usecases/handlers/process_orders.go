@@ -14,30 +14,35 @@ func (f *DefaultFacadeHandler) HandleProcessOrders(
 	ctx context.Context,
 	req requests.ProcessOrdersRequest,
 ) (responses.ProcessOrdersResponse, error) {
-	select {
-	case <-ctx.Done():
+	if ctx.Err() != nil {
 		return responses.ProcessOrdersResponse{}, ctx.Err()
-	default:
 	}
 
 	var results []services.ProcessResult
+	var err error
 
 	switch req.Action {
 	case constants.ActionIssue:
-		results = f.orderService.IssueOrders(requests.IssueOrdersRequest{
-			UserID:   req.UserID,
-			OrderIDs: req.OrderIDs,
-		})
+		results, err = f.orderService.IssueOrders(ctx,
+			requests.IssueOrdersRequest{
+				UserID:   req.UserID,
+				OrderIDs: req.OrderIDs,
+			})
 
 	case constants.ActionReturn:
-		results = f.orderService.CreateClientReturns(requests.ClientReturnsRequest{
-			UserID:   req.UserID,
-			OrderIDs: req.OrderIDs,
-		})
+		results, err = f.orderService.CreateClientReturns(ctx,
+			requests.ClientReturnsRequest{
+				UserID:   req.UserID,
+				OrderIDs: req.OrderIDs,
+			})
 
 	default:
 		return responses.ProcessOrdersResponse{},
 			apperrors.Newf(apperrors.ValidationFailed, "unknown action %q", req.Action)
+	}
+
+	if err != nil {
+		return responses.ProcessOrdersResponse{}, err
 	}
 
 	return buildProcessOrdersResponse(results), nil

@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"context"
 	"errors"
 	"pvz-cli/internal/common/constants"
 	"sort"
@@ -22,8 +23,11 @@ func NewSnapshotOrderRepository(s storage.Storage) *SnapshotOrderRepository {
 }
 
 // Save stores or updates an order in the repository
-func (r *SnapshotOrderRepository) Save(order models.Order) error {
-	snap, err := r.storage.Load()
+func (r *SnapshotOrderRepository) Save(ctx context.Context, order models.Order) error {
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+	snap, err := r.storage.Load(ctx)
 	if err != nil {
 		return err
 	}
@@ -41,12 +45,15 @@ func (r *SnapshotOrderRepository) Save(order models.Order) error {
 		snap.Orders = append(snap.Orders, order)
 	}
 
-	return r.storage.Save(snap)
+	return r.storage.Save(ctx, snap)
 }
 
 // Load retrieves an order by its ID
-func (r *SnapshotOrderRepository) Load(id uint64) (models.Order, error) {
-	snap, err := r.storage.Load()
+func (r *SnapshotOrderRepository) Load(ctx context.Context, id uint64) (models.Order, error) {
+	if ctx.Err() != nil {
+		return models.Order{}, ctx.Err()
+	}
+	snap, err := r.storage.Load(ctx)
 	if err != nil {
 		return models.Order{}, err
 	}
@@ -60,8 +67,11 @@ func (r *SnapshotOrderRepository) Load(id uint64) (models.Order, error) {
 }
 
 // Delete removes an order from the repository
-func (r *SnapshotOrderRepository) Delete(id uint64) error {
-	snap, err := r.storage.Load()
+func (r *SnapshotOrderRepository) Delete(ctx context.Context, id uint64) error {
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+	snap, err := r.storage.Load(ctx)
 	if err != nil {
 		return err
 	}
@@ -74,12 +84,15 @@ func (r *SnapshotOrderRepository) Delete(id uint64) error {
 	}
 	snap.Orders = filtered
 
-	return r.storage.Save(snap)
+	return r.storage.Save(ctx, snap)
 }
 
 // List retrieves filtered and paginated list of orders
-func (r *SnapshotOrderRepository) List(filter requests.OrdersFilterRequest) ([]models.Order, int, error) {
-	snap, err := r.storage.Load()
+func (r *SnapshotOrderRepository) List(ctx context.Context, filter requests.OrdersFilterRequest) ([]models.Order, int, error) {
+	if ctx.Err() != nil {
+		return nil, 0, ctx.Err()
+	}
+	snap, err := r.storage.Load(ctx)
 	if err != nil {
 		return nil, 0, err
 	}

@@ -32,7 +32,7 @@ var AllCommands = []CommandInfo{
 	{
 		Name:        "list-orders",
 		Description: "Получить список заказов.",
-		Usage:       "list-orders --user-id <id> [--in-pvz] [--last-id <id>] [--last <N>] [--page <N> --limit <M>]",
+		Usage:       "list-orders --user-id <id> [--in-pvz-cli] [--last-id <id>] [--last <N>] [--page <N> --limit <M>]",
 	},
 	{
 		Name:        "list-returns",

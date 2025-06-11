@@ -8,13 +8,11 @@ import (
 
 // HandleAcceptOrder processes accept-order command with package pricing validation, optionally suppressing output for batch import
 func (f *DefaultFacadeHandler) HandleAcceptOrder(ctx context.Context, req requests.AcceptOrderRequest) (responses.AcceptOrderResponse, error) {
-	select {
-	case <-ctx.Done():
+	if ctx.Err() != nil {
 		return responses.AcceptOrderResponse{}, ctx.Err()
-	default:
 	}
 
-	order, err := f.orderService.AcceptOrder(req)
+	order, err := f.orderService.AcceptOrder(ctx, req)
 	if err != nil {
 		return responses.AcceptOrderResponse{}, err
 	}

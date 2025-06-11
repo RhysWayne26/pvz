@@ -47,6 +47,10 @@ func (r *Router) Run(ctx context.Context) {
 }
 
 func (r *Router) runBatch(ctx context.Context, cmd string, args []string) {
+	if ctx.Err() != nil {
+		fmt.Println("Operation cancelled")
+		return
+	}
 	if h, ok := r.handlers[cmd]; ok {
 		h(ctx, args)
 	} else {
@@ -146,8 +150,7 @@ func (r *Router) helpHandler() batchHandler {
 
 func (r *Router) acceptOrderHandler() batchHandler {
 	return func(ctx context.Context, args []string) {
-		p := NewArgsParser(args)
-		params, err := p.AcceptOrderParams()
+		params, err := NewArgsParser(args).AcceptOrderParams()
 		if err != nil {
 			apperrors.Handle(err)
 			return
@@ -172,8 +175,7 @@ func (r *Router) acceptOrderHandler() batchHandler {
 
 func (r *Router) returnOrderHandler() batchHandler {
 	return func(ctx context.Context, args []string) {
-		p := NewArgsParser(args)
-		params, err := p.ReturnOrderParams()
+		params, err := NewArgsParser(args).ReturnOrderParams()
 		if err != nil {
 			apperrors.Handle(err)
 			return
@@ -193,8 +195,7 @@ func (r *Router) returnOrderHandler() batchHandler {
 
 func (r *Router) processOrdersHandler() batchHandler {
 	return func(ctx context.Context, args []string) {
-		p := NewArgsParser(args)
-		params, err := p.ProcessOrdersParams()
+		params, err := NewArgsParser(args).ProcessOrdersParams()
 		if err != nil {
 			apperrors.Handle(err)
 			return
@@ -224,8 +225,7 @@ func (r *Router) processOrdersHandler() batchHandler {
 
 func (r *Router) listOrdersHandler() batchHandler {
 	return func(ctx context.Context, args []string) {
-		p := NewArgsParser(args)
-		params, err := p.ListOrdersParams()
+		params, err := NewArgsParser(args).ListOrdersParams()
 		if err != nil {
 			apperrors.Handle(err)
 			return
@@ -288,8 +288,7 @@ func (r *Router) listReturnsHandler() batchHandler {
 
 func (r *Router) orderHistoryHandler() batchHandler {
 	return func(ctx context.Context, args []string) {
-		p := NewArgsParser(args)
-		params, err := p.OrderHistoryParams()
+		params, err := NewArgsParser(args).OrderHistoryParams()
 		if err != nil {
 			apperrors.Handle(err)
 			return
@@ -315,8 +314,7 @@ func (r *Router) orderHistoryHandler() batchHandler {
 
 func (r *Router) importOrdersHandler() batchHandler {
 	return func(ctx context.Context, args []string) {
-		p := NewArgsParser(args)
-		params, err := p.ImportOrdersParams()
+		params, err := NewArgsParser(args).ImportOrdersParams()
 		if err != nil {
 			apperrors.Handle(err)
 			return

@@ -1,6 +1,7 @@
 package gateway
 
 import (
+	"context"
 	"log"
 	"net"
 
@@ -10,7 +11,7 @@ import (
 )
 
 // RunGRPCServer starts the gRPC server on the given address. The provided impl must implement the pb.OrdersServiceServer interface.
-func RunGRPCServer(grpcAddr string, svc pb.OrdersServiceServer, opts ...grpc.ServerOption) error {
+func RunGRPCServer(ctx context.Context, grpcAddr string, svc pb.OrdersServiceServer, opts ...grpc.ServerOption) error {
 	lis, err := net.Listen("tcp", grpcAddr)
 	if err != nil {
 		return err
@@ -18,5 +19,9 @@ func RunGRPCServer(grpcAddr string, svc pb.OrdersServiceServer, opts ...grpc.Ser
 	srv := grpc.NewServer(opts...)
 	pb.RegisterOrdersServiceServer(srv, svc)
 	log.Printf("gRPC server started on %s", grpcAddr)
+	go func() {
+		<-ctx.Done()
+		srv.GracefulStop()
+	}()
 	return srv.Serve(lis)
 }

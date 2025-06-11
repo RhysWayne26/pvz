@@ -9,13 +9,11 @@ import (
 
 // HandleListOrders processes the list-orders request and returns the result.
 func (f *DefaultFacadeHandler) HandleListOrders(ctx context.Context, req requests.OrdersFilterRequest) (responses.ListOrdersResponse, error) {
-	select {
-	case <-ctx.Done():
+	if ctx.Err() != nil {
 		return responses.ListOrdersResponse{}, ctx.Err()
-	default:
 	}
 
-	orders, nextID, total, err := f.orderService.ListOrders(req)
+	orders, nextID, total, err := f.orderService.ListOrders(ctx, req)
 	if err != nil {
 		return responses.ListOrdersResponse{}, err
 	}

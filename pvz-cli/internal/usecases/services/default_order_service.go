@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"fmt"
 	"pvz-cli/internal/common/apperrors"
 	"pvz-cli/internal/data/repositories"
@@ -33,8 +34,11 @@ func NewDefaultOrderService(
 }
 
 // AcceptOrder accepts an order with package pricing calculation and validation
-func (s *DefaultOrderService) AcceptOrder(req requests.AcceptOrderRequest) (models.Order, error) {
-	existing, err := s.orderRepo.Load(req.OrderID)
+func (s *DefaultOrderService) AcceptOrder(ctx context.Context, req requests.AcceptOrderRequest) (models.Order, error) {
+	if ctx.Err() != nil {
+		return models.Order{}, ctx.Err()
+	}
+	existing, err := s.orderRepo.Load(ctx, req.OrderID)
 	if err != nil {
 		existing = models.Order{}
 	}
@@ -61,7 +65,7 @@ func (s *DefaultOrderService) AcceptOrder(req requests.AcceptOrderRequest) (mode
 		Price:           totalPrice,
 		Package:         req.Package,
 	}
-	if err := s.orderRepo.Save(order); err != nil {
+	if err := s.orderRepo.Save(ctx, order); err != nil {
 		return models.Order{}, apperrors.Newf(apperrors.InternalError, "failed to save order: %v", err)
 	}
 
@@ -70,7 +74,7 @@ func (s *DefaultOrderService) AcceptOrder(req requests.AcceptOrderRequest) (mode
 		Event:     models.EventAccepted,
 		Timestamp: now,
 	}
-	if err := s.historySvc.Record(entry); err != nil {
+	if err := s.historySvc.Record(ctx, entry); err != nil {
 		return models.Order{}, apperrors.Newf(apperrors.InternalError, "failed to record history: %v", err)
 	}
 
@@ -78,14 +82,17 @@ func (s *DefaultOrderService) AcceptOrder(req requests.AcceptOrderRequest) (mode
 }
 
 // IssueOrders processes multiple orders for issuance to clients
-func (s *DefaultOrderService) IssueOrders(req requests.IssueOrdersRequest) []ProcessResult {
+func (s *DefaultOrderService) IssueOrders(ctx context.Context, req requests.IssueOrdersRequest) ([]ProcessResult, error) {
+	if ctx.Err() != nil {
+		return nil, ctx.Err()
+	}
 	results := make([]ProcessResult, 0, len(req.OrderIDs))
 	now := time.Now()
 
 	for _, id := range req.OrderIDs {
 		res := ProcessResult{OrderID: id}
 
-		order, err := s.orderRepo.Load(id)
+		order, err := s.orderRepo.Load(ctx, id)
 		if err != nil {
 			res.Error = apperrors.Newf(apperrors.OrderNotFound, "order %d not found", id)
 			results = append(results, res)
@@ -101,7 +108,7 @@ func (s *DefaultOrderService) IssueOrders(req requests.IssueOrdersRequest) []Pro
 		order.Status = models.Issued
 		order.UpdatedStatusAt = now
 
-		if err := s.orderRepo.Save(order); err != nil {
+		if err := s.orderRepo.Save(ctx, order); err != nil {
 			res.Error = apperrors.Newf(apperrors.InternalError, "failed to save order %d: %v", id, err)
 			results = append(results, res)
 			continue
@@ -113,7 +120,7 @@ func (s *DefaultOrderService) IssueOrders(req requests.IssueOrdersRequest) []Pro
 			Timestamp: now,
 		}
 
-		if err := s.historySvc.Record(entry); err != nil {
+		if err := s.historySvc.Record(ctx, entry); err != nil {
 			fmt.Printf("WARNING: failed to record history for order %d: %v\n", id, err)
 		}
 
@@ -121,12 +128,12 @@ func (s *DefaultOrderService) IssueOrders(req requests.IssueOrdersRequest) []Pro
 		results = append(results, res)
 	}
 
-	return results
+	return results, nil
 }
 
 // ListOrders retrieves filtered and paginated list of orders
-func (s *DefaultOrderService) ListOrders(filter requests.OrdersFilterRequest) ([]models.Order, uint64, int, error) {
-	result, total, err := s.orderRepo.List(filter)
+func (s *DefaultOrderService) ListOrders(ctx context.Context, filter requests.OrdersFilterRequest) ([]models.Order, uint64, int, error) {
+	result, total, err := s.orderRepo.List(ctx, filter)
 	if err != nil {
 		return nil, 0, 0, apperrors.Newf(apperrors.InternalError, "failed to list orders: %v", err)
 	}
@@ -148,14 +155,17 @@ func (s *DefaultOrderService) ListOrders(filter requests.OrdersFilterRequest) ([
 }
 
 // CreateClientReturns processes multiple client return requests
-func (s *DefaultOrderService) CreateClientReturns(req requests.ClientReturnsRequest) []ProcessResult {
+func (s *DefaultOrderService) CreateClientReturns(ctx context.Context, req requests.ClientReturnsRequest) ([]ProcessResult, error) {
+	if ctx.Err() != nil {
+		return nil, ctx.Err()
+	}
 	results := make([]ProcessResult, 0, len(req.OrderIDs))
 	now := time.Now()
 
 	for _, id := range req.OrderIDs {
 		res := ProcessResult{OrderID: id}
 
-		order, err := s.orderRepo.Load(id)
+		order, err := s.orderRepo.Load(ctx, id)
 		if err != nil {
 			res.Error = apperrors.Newf(apperrors.OrderNotFound, "order %d not found", id)
 			results = append(results, res)
@@ -171,7 +181,7 @@ func (s *DefaultOrderService) CreateClientReturns(req requests.ClientReturnsRequ
 		order.Status = models.Returned
 		order.UpdatedStatusAt = now
 
-		if err := s.orderRepo.Save(order); err != nil {
+		if err := s.orderRepo.Save(ctx, order); err != nil {
 			res.Error = apperrors.Newf(apperrors.InternalError, "failed to save order %d: %v", order.OrderID, err)
 			results = append(results, res)
 			continue
@@ -182,7 +192,7 @@ func (s *DefaultOrderService) CreateClientReturns(req requests.ClientReturnsRequ
 			Event:     models.EventReturnedFromClient,
 			Timestamp: now,
 		}
-		if err := s.historySvc.Record(entry); err != nil {
+		if err := s.historySvc.Record(ctx, entry); err != nil {
 			fmt.Printf("WARNING: failed to record history for order %d: %v\n", order.OrderID, err)
 		}
 
@@ -190,13 +200,13 @@ func (s *DefaultOrderService) CreateClientReturns(req requests.ClientReturnsRequ
 		results = append(results, res)
 	}
 
-	return results
+	return results, nil
 }
 
 // ReturnToCourier processes return of order back to courier/warehouse
-func (s *DefaultOrderService) ReturnToCourier(req requests.ReturnOrderRequest) error {
+func (s *DefaultOrderService) ReturnToCourier(ctx context.Context, req requests.ReturnOrderRequest) error {
 	orderID := req.OrderID
-	o, err := s.orderRepo.Load(orderID)
+	o, err := s.orderRepo.Load(ctx, orderID)
 	if err != nil {
 		return apperrors.Newf(apperrors.OrderNotFound, "order %d not found", orderID)
 	}
@@ -205,7 +215,7 @@ func (s *DefaultOrderService) ReturnToCourier(req requests.ReturnOrderRequest) e
 		return err
 	}
 
-	if err := s.orderRepo.Delete(orderID); err != nil {
+	if err := s.orderRepo.Delete(ctx, orderID); err != nil {
 		return apperrors.Newf(apperrors.InternalError, "failed to delete order %d: %v", orderID, err)
 	}
 
@@ -214,7 +224,7 @@ func (s *DefaultOrderService) ReturnToCourier(req requests.ReturnOrderRequest) e
 		Event:     models.EventReturnedToWarehouse,
 		Timestamp: time.Now(),
 	}
-	if err := s.historySvc.Record(entry); err != nil {
+	if err := s.historySvc.Record(ctx, entry); err != nil {
 		return apperrors.Newf(apperrors.InternalError, "failed to record history for order %d: %v", orderID, err)
 	}
 
@@ -222,8 +232,8 @@ func (s *DefaultOrderService) ReturnToCourier(req requests.ReturnOrderRequest) e
 }
 
 // ListReturns retrieves paginated list of return entries sorted by return date
-func (s *DefaultOrderService) ListReturns(filter requests.OrdersFilterRequest) ([]models.Order, error) {
-	orders, _, err := s.orderRepo.List(filter)
+func (s *DefaultOrderService) ListReturns(ctx context.Context, filter requests.OrdersFilterRequest) ([]models.Order, error) {
+	orders, _, err := s.orderRepo.List(ctx, filter)
 	if err != nil {
 		return nil, apperrors.Newf(apperrors.InternalError, "failed to list returns: %v", err)
 	}

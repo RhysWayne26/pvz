@@ -8,13 +8,11 @@ import (
 
 // HandleReturnOrder processes return-order command to return order to courier
 func (f *DefaultFacadeHandler) HandleReturnOrder(ctx context.Context, req requests.ReturnOrderRequest) (responses.ReturnOrderResponse, error) {
-	select {
-	case <-ctx.Done():
+	if ctx.Err() != nil {
 		return responses.ReturnOrderResponse{}, ctx.Err()
-	default:
 	}
 
-	if err := f.orderService.ReturnToCourier(req); err != nil {
+	if err := f.orderService.ReturnToCourier(ctx, req); err != nil {
 		return responses.ReturnOrderResponse{}, err
 	}
 

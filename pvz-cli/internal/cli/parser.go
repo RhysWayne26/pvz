@@ -102,7 +102,7 @@ func (p *ArgsParser) ProcessOrdersParams() (params.ProcessOrdersParams, error) {
 func (p *ArgsParser) ListOrdersParams() (params.ListOrdersParams, error) {
 	m := p.asMap()
 	allowed := map[string]struct{}{
-		"--user-id": {}, "--in-pvz": {}, "--last": {},
+		"--user-id": {}, "--in-pvz-cli": {}, "--last": {},
 		"--page": {}, "--limit": {}, "--last-id": {},
 	}
 	for key := range m {
@@ -116,7 +116,7 @@ func (p *ArgsParser) ListOrdersParams() (params.ListOrdersParams, error) {
 			apperrors.Newf(apperrors.ValidationFailed, "user-id is required")
 	}
 
-	inPvz, err := parseOptionalBool(m, "--in-pvz")
+	inPvz, err := parseOptionalBool(m, "--in-pvz-cli")
 	if err != nil {
 		return params.ListOrdersParams{}, err
 	}

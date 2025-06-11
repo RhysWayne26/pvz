@@ -12,10 +12,8 @@ func (f *DefaultFacadeHandler) HandleImportOrders(
 	ctx context.Context,
 	req requests.ImportOrdersRequest,
 ) (responses.ImportOrdersResponse, error) {
-	select {
-	case <-ctx.Done():
+	if ctx.Err() != nil {
 		return responses.ImportOrdersResponse{}, ctx.Err()
-	default:
 	}
 
 	var importedCount int
