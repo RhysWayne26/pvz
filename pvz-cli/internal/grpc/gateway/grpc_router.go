@@ -123,7 +123,8 @@ func (r *GRPCRouter) GetHistory(
 	ctx context.Context,
 	req *pb.GetHistoryRequest,
 ) (*pb.OrderHistoryList, error) {
-	resp, err := r.facadeHandler.HandleOrderHistory(ctx)
+	dto := r.facadeMapper.FromPbOrderHistoryRequest(req)
+	resp, err := r.facadeHandler.HandleOrderHistory(ctx, dto)
 	if err != nil {
 		return nil, toGRPCError(err)
 	}

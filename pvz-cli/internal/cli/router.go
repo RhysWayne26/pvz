@@ -287,8 +287,19 @@ func (r *Router) listReturnsHandler() batchHandler {
 }
 
 func (r *Router) orderHistoryHandler() batchHandler {
-	return func(ctx context.Context, _ []string) {
-		res, err := r.facadeHandler.HandleOrderHistory(ctx)
+	return func(ctx context.Context, args []string) {
+		p := NewArgsParser(args)
+		params, err := p.OrderHistoryParams()
+		if err != nil {
+			apperrors.Handle(err)
+			return
+		}
+		req, err := r.facadeMapper.MapOrderHistoryParams(params)
+		if err != nil {
+			apperrors.Handle(err)
+			return
+		}
+		res, err := r.facadeHandler.HandleOrderHistory(ctx, req)
 		if err != nil {
 			apperrors.Handle(err)
 		}

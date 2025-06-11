@@ -49,3 +49,9 @@ type ScrollOrdersParams struct {
 type ImportOrdersParams struct {
 	File string `json:"file"`
 }
+
+// OrderHistoryParams contains parameters for order-history command
+type OrderHistoryParams struct {
+	Page  *int `json:"page,omitempty"`
+	Limit *int `json:"limit,omitempty"`
+}

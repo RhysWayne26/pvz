@@ -23,6 +23,9 @@ type GRPCFacadeMapper interface {
 	// FromPbListReturnsRequest maps protobuf ListReturnsRequest to internal ListReturnsRequest.
 	FromPbListReturnsRequest(*pb.ListReturnsRequest) requests.OrdersFilterRequest
 
+	// FromPbOrderHistoryRequest maps protobuf GetHistoryRequest to internal OrderHistoryRequest.
+	FromPbOrderHistoryRequest(in *pb.GetHistoryRequest) requests.OrderHistoryRequest
+
 	// FromPbImportOrdersRequest maps protobuf ImportOrdersRequest to internal ImportOrdersRequest.
 	FromPbImportOrdersRequest(*pb.ImportOrdersRequest) requests.ImportOrdersRequest
 

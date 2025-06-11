@@ -27,4 +27,7 @@ type CLIFacadeMapper interface {
 
 	// MapReturnOrderParams maps return-order CLI parameters to a return request.
 	MapReturnOrderParams(params.ReturnOrderParams) (requests.ReturnOrderRequest, error)
+
+	// MapOrderHistoryParams maps list-orders CLI parameters to a filtering request.
+	MapOrderHistoryParams(params.OrderHistoryParams) (requests.OrderHistoryRequest, error)
 }

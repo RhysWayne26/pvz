@@ -195,6 +195,25 @@ func (p *ArgsParser) ScrollOrdersParams() (params.ScrollOrdersParams, error) {
 	}, nil
 }
 
+// OrderHistoryParams parses and validates parameters for order-history command
+func (p *ArgsParser) OrderHistoryParams() (params.OrderHistoryParams, error) {
+	m := p.asMap()
+
+	page, err := parseOptionalInt(m, "--page")
+	if err != nil {
+		return params.OrderHistoryParams{}, err
+	}
+	limit, err := parseOptionalInt(m, "--limit")
+	if err != nil {
+		return params.OrderHistoryParams{}, err
+	}
+
+	return params.OrderHistoryParams{
+		Page:  page,
+		Limit: limit,
+	}, nil
+}
+
 func parseOptionalInt(m map[string]string, key string) (*int, error) {
 	s, ok := m[key]
 	if !ok || s == "" {

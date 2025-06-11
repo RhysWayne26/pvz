@@ -2,17 +2,13 @@ package mappers
 
 import (
 	"pvz-cli/internal/cli/params"
-	"pvz-cli/internal/common/utils"
 	"pvz-cli/internal/models"
 	"pvz-cli/internal/usecases/requests"
 )
 
 // MapListReturnsParams converts CLI params for list returns command into internal request model
 func (f *DefaultCLIFacadeMapper) MapListReturnsParams(p params.ListReturnsParams) (requests.OrdersFilterRequest, error) {
-	if err := utils.ValidatePositiveInt("page", p.Page); err != nil {
-		return requests.OrdersFilterRequest{}, err
-	}
-	if err := utils.ValidatePositiveInt("limit", p.Limit); err != nil {
+	if err := validatePaginationInfo(p.Page, p.Limit); err != nil {
 		return requests.OrdersFilterRequest{}, err
 	}
 

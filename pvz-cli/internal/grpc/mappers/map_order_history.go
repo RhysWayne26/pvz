@@ -1,11 +1,28 @@
 package mappers
 
 import (
+	"pvz-cli/internal/common/constants"
 	pb "pvz-cli/internal/gen/orders"
+	"pvz-cli/internal/usecases/requests"
 	"pvz-cli/internal/usecases/responses"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
+
+// FromPbOrderHistoryRequest maps a gRPC GetHistoryRequest to the internal request model.
+func (f *DefaultGRPCFacadeMapper) FromPbOrderHistoryRequest(in *pb.GetHistoryRequest) requests.OrderHistoryRequest {
+	req := requests.OrderHistoryRequest{
+		Page:  constants.DefaultHistoryPage,
+		Limit: constants.DefaultHistoryLimit,
+	}
+	if in.Pagination != nil {
+		page := int(in.Pagination.Page)
+		limit := int(in.Pagination.CountOnPage)
+		req.Page = page
+		req.Limit = limit
+	}
+	return req
+}
 
 // ToPbOrderHistoryList maps internal OrderHistoryResponse to protobuf OrderHistoryList.
 func (f *DefaultGRPCFacadeMapper) ToPbOrderHistoryList(res responses.OrderHistoryResponse) *pb.OrderHistoryList {

@@ -68,3 +68,9 @@ type ImportOrderStatus struct {
 	Request    *AcceptOrderRequest
 	Error      error
 }
+
+// OrderHistoryRequest contains optional pagination parameter for getting order history entries
+type OrderHistoryRequest struct {
+	Page  int
+	Limit int
+}
