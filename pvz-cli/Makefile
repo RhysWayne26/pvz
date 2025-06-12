@@ -78,7 +78,10 @@ update:
 	go mod tidy
 
 build:
-	go build -o pvz$(EXT) cmd/main.go
+	go build -o pvz$(EXT) cmd/cli/main.go
+
+build-server:
+	go build -o pvz-server$(EXT) cmd/server/main.go
 
 start:
 	./pvz$(EXT)
@@ -103,10 +106,6 @@ docs-generate:
 
 .PHONY: proto
 proto: proto/generate
-
-.PHONY: build-server
-build-server:
-	go build -o pvz-server$(EXT) cmd/server/main.go
 
 .PHONY: build-all
 build-all: build build-server
