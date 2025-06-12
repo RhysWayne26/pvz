@@ -61,7 +61,7 @@ security:
 
 build:
   stage: build
-  needs: [lint, security]
+  needs: [lint, security, proto-generate]
   only:
     - merge_requests
     - master
