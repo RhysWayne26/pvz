@@ -16,10 +16,12 @@ func (f *DefaultGRPCFacadeMapper) FromPbOrderHistoryRequest(in *pb.GetHistoryReq
 		Limit: constants.DefaultHistoryLimit,
 	}
 	if in.Pagination != nil {
-		page := int(in.Pagination.Page)
-		limit := int(in.Pagination.CountOnPage)
-		req.Page = page
-		req.Limit = limit
+		if page := int(in.Pagination.Page); page > 0 {
+			req.Page = page
+		}
+		if limit := int(in.Pagination.CountOnPage); limit > 0 {
+			req.Limit = limit
+		}
 	}
 	return req
 }

@@ -9,17 +9,11 @@ import (
 
 // FromPbListReturnsRequest maps a gRPC ListReturnsRequest to the internal request model.
 func (f *DefaultGRPCFacadeMapper) FromPbListReturnsRequest(in *pb.ListReturnsRequest) requests.OrdersFilterRequest {
-	var req requests.OrdersFilterRequest
-	if in.Pagination != nil {
-		page := int(in.Pagination.Page)
-		limit := int(in.Pagination.CountOnPage)
-		status := models.Returned
-		req.Page = &page
-		req.Limit = &limit
-		req.Status = &status
+	opts := []requests.FilterOption{
+		requests.WithStatus(models.Returned),
 	}
-
-	return req
+	opts = append(opts, collectPaginationOptions(in.Pagination)...)
+	return requests.NewOrdersFilter(opts...)
 }
 
 // ToPbReturnsList maps the internal ListReturnsResponse to a gRPC ReturnsList response.

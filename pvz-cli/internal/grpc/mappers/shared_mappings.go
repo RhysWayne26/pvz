@@ -4,6 +4,7 @@ import (
 	"pvz-cli/internal/common/apperrors"
 	pb "pvz-cli/internal/gen/orders"
 	"pvz-cli/internal/models"
+	"pvz-cli/internal/usecases/requests"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -113,4 +114,19 @@ func providedUserIDCheck(id uint64) error {
 		return apperrors.Newf(apperrors.InvalidID, "invalid UserIdRequest.user_id: value must be greater than or equal to 1")
 	}
 	return nil
+}
+
+func collectPaginationOptions(pagination *pb.Pagination) []requests.FilterOption {
+	if pagination == nil {
+		return nil
+	}
+
+	var opts []requests.FilterOption
+	if page := int(pagination.Page); page > 0 {
+		opts = append(opts, requests.WithPage(page))
+	}
+	if limit := int(pagination.CountOnPage); limit > 0 {
+		opts = append(opts, requests.WithLimit(limit))
+	}
+	return opts
 }

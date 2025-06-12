@@ -11,24 +11,16 @@ func (f *DefaultGRPCFacadeMapper) FromPbListOrdersRequest(in *pb.ListOrdersReque
 	if err := providedUserIDCheck(in.UserId); err != nil {
 		return requests.OrdersFilterRequest{}, err
 	}
-	req := requests.OrdersFilterRequest{
-		UserID: &in.UserId,
-		InPvz:  &in.InPvz,
+	opts := []requests.FilterOption{
+		requests.WithUserID(in.UserId),
+		requests.WithInPvz(in.InPvz),
 	}
-
 	if in.LastN != nil {
-		last := int(*in.LastN)
-		req.Last = &last
+		opts = append(opts, requests.WithLast(int(*in.LastN)))
 	}
 
-	if in.Pagination != nil {
-		page := int(in.Pagination.Page)
-		limit := int(in.Pagination.CountOnPage)
-		req.Page = &page
-		req.Limit = &limit
-	}
-
-	return req, nil
+	opts = append(opts, collectPaginationOptions(in.Pagination)...)
+	return requests.NewOrdersFilter(opts...), nil
 }
 
 // ToPbOrdersList maps the internal ListOrdersResponse to a gRPC OrdersList response.
