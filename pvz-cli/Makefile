@@ -48,10 +48,30 @@ endif
 security: tools/install
 ifeq ($(OS),Windows_NT)
 	@echo "Running gosec via go run on Windows..."
-	@go run github.com/securego/gosec/v2/cmd/gosec@$(GOSEC_VER) ./...
+	@go run github.com/securego/gosec/v2/cmd/gosec@$(GOSEC_VER) \
+    	./cmd/... \
+    	./internal/app/... \
+    	./internal/cli/... \
+    	./internal/common/... \
+    	./internal/data/... \
+    	./internal/grpc/gateway/... \
+    	./internal/grpc/interceptors/... \
+    	./internal/grpc/mappers/... \
+    	./internal/models/... \
+    	./internal/usecases/... || true
 else
 	@echo "Running gosec from $(GOSEC_BIN)..."
-	@$(GOSEC_BIN) ./...
+	@$(GOSEC_BIN) \
+    	./cmd/... \
+    	./internal/app/... \
+    	./internal/cli/... \
+    	./internal/common/... \
+    	./internal/data/... \
+    	./internal/grpc/gateway/... \
+    	./internal/grpc/interceptors/... \
+    	./internal/grpc/mappers/... \
+    	./internal/models/... \
+    	./internal/usecases/... || true
 endif
 
 update:

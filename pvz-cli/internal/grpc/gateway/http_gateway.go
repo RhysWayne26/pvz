@@ -54,8 +54,11 @@ func RunHTTPGateway(ctx context.Context, grpcAddr, httpAddr string) error {
 	}).Handler(mux)
 
 	srv := &http.Server{
-		Addr:    httpAddr,
-		Handler: handler,
+		Addr:              httpAddr,
+		Handler:           handler,
+		ReadHeaderTimeout: 10 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
 
 	go func() {

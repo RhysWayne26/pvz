@@ -1,6 +1,7 @@
 package mappers
 
 import (
+	"math"
 	"pvz-cli/internal/common/apperrors"
 	pb "pvz-cli/internal/gen/orders"
 	"pvz-cli/internal/usecases/requests"
@@ -43,8 +44,14 @@ func (f *DefaultGRPCFacadeMapper) ToPbImportResult(res responses.ImportOrdersRes
 			})
 		}
 	}
+	var imported int32
+	if res.Imported > math.MaxInt32 {
+		imported = math.MaxInt32
+	} else {
+		imported = int32(res.Imported) // #nosec G115
+	}
 	return &pb.ImportResult{
-		Imported: int32(res.Imported),
+		Imported: imported,
 		Errors:   fails,
 	}
 }

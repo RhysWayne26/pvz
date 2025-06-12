@@ -1,6 +1,7 @@
 package mappers
 
 import (
+	"math"
 	pb "pvz-cli/internal/gen/orders"
 	"pvz-cli/internal/usecases/requests"
 	"pvz-cli/internal/usecases/responses"
@@ -33,7 +34,11 @@ func (f *DefaultGRPCFacadeMapper) ToPbOrdersList(res responses.ListOrdersRespons
 
 	var totalValue int32
 	if res.Total != nil {
-		totalValue = int32(*res.Total)
+		if *res.Total > math.MaxInt32 {
+			totalValue = math.MaxInt32
+		} else {
+			totalValue = int32(*res.Total) // #nosec G115
+		}
 	}
 
 	return &pb.OrdersList{

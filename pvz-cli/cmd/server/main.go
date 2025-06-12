@@ -60,7 +60,13 @@ func main() {
 		defer wg.Done()
 		mux := http.NewServeMux()
 		mux.Handle("/", http.FileServer(http.Dir("docs/swagger")))
-		srv := &http.Server{Addr: ":8082", Handler: mux}
+		srv := &http.Server{
+			Addr:              ":8082",
+			Handler:           mux,
+			ReadHeaderTimeout: 10 * time.Second,
+			WriteTimeout:      30 * time.Second,
+			IdleTimeout:       60 * time.Second,
+		}
 		go func() {
 			<-application.Ctx.Done()
 			shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
