@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"github.com/rs/cors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -45,7 +46,18 @@ func RunHTTPGateway(ctx context.Context, grpcAddr, httpAddr string) error {
 	); err != nil {
 		return fmt.Errorf("failed to register grpc gateway handler: %w", err)
 	}
-	srv := &http.Server{Addr: httpAddr, Handler: mux}
+	handler := cors.New(cors.Options{
+		AllowedOrigins:   []string{"*"},
+		AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
+		AllowedHeaders:   []string{"*"},
+		AllowCredentials: true,
+	}).Handler(mux)
+
+	srv := &http.Server{
+		Addr:    httpAddr,
+		Handler: handler,
+	}
+
 	go func() {
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

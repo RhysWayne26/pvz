@@ -12,4 +12,4 @@ pvz-cli/tools
 pvz-cli/third_party
 
 pvz-cli/internal/gen/
-pvz-cli/docs/swagger
+pvz-cli/docs/swagger/orders.swagger.json
