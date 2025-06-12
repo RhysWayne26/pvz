@@ -24,6 +24,9 @@ before_script:
 
 proto-generate:
   stage: proto-generate
+  only:
+    - merge_requests
+    - master
   script:
     - make proto/generate
   artifacts:
