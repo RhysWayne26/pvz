@@ -41,6 +41,7 @@ func init() {
 	log.SetOutput(logFile)
 }
 
+// GetLogger returns zap logger pointer
 func GetLogger() *zap.Logger {
 	return logger
 }
@@ -79,6 +80,7 @@ func LoggingInterceptor() grpc.UnaryServerInterceptor {
 	}
 }
 
+// CloseLogFile for safely closing log file
 func CloseLogFile() error {
 	if logFile != nil {
 		err := logFile.Close()
