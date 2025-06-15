@@ -86,12 +86,15 @@ build-server:
 start:
 	./pvz$(EXT)
 
+start-server:
+	./pvz-server$(EXT)
+
 setup:
 	mkdir -p ../.git/hooks
 	cp ../.hooks/pre-commit ../.git/hooks/pre-commit
 	chmod +x ../.git/hooks/pre-commit
 
-run: setup update lint security build start
+run: setup update lint security build-all start-server
 
 .PHONY: docs-generate
 docs-generate:
@@ -111,4 +114,4 @@ proto: proto/generate
 build-all: build build-server
 
 .PHONY: dev
-dev: proto build-all start
+dev: proto build-all start-server

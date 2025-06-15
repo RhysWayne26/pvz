@@ -32,22 +32,19 @@ service OrdersService {
 
   rpc ListOrders (ListOrdersRequest) returns (OrdersList) {
     option (google.api.http) = {
-      post: "/v1/orders/list_orders"
-      body: "*"
+      get: "/v1/orders/list_orders"
     };
   }
 
   rpc ListReturns (ListReturnsRequest) returns (ReturnsList) {
     option (google.api.http) = {
-      post: "/v1/orders/list_returns"
-      body: "*"
+      get: "/v1/orders/list_returns"
     };
   }
 
   rpc GetHistory (GetHistoryRequest) returns (OrderHistoryList) {
     option (google.api.http) = {
-      post: "/v1/orders/history"
-      body: "*"
+      get: "/v1/orders/history"
     };
   }
 

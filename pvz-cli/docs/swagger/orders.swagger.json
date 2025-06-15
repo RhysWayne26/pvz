@@ -49,7 +49,7 @@
       }
     },
     "/v1/orders/history": {
-      "post": {
+      "get": {
         "operationId": "OrdersService_GetHistory",
         "responses": {
           "200": {
@@ -67,12 +67,18 @@
         },
         "parameters": [
           {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/ordersGetHistoryRequest"
-            }
+            "name": "pagination.page",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "pagination.count_on_page",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
           }
         ],
         "tags": [
@@ -113,7 +119,7 @@
       }
     },
     "/v1/orders/list_orders": {
-      "post": {
+      "get": {
         "operationId": "OrdersService_ListOrders",
         "responses": {
           "200": {
@@ -131,12 +137,38 @@
         },
         "parameters": [
           {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/ordersListOrdersRequest"
-            }
+            "name": "user_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "uint64"
+          },
+          {
+            "name": "in_pvz",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "last_n",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "pagination.page",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "pagination.count_on_page",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
           }
         ],
         "tags": [
@@ -145,7 +177,7 @@
       }
     },
     "/v1/orders/list_returns": {
-      "post": {
+      "get": {
         "operationId": "OrdersService_ListReturns",
         "responses": {
           "200": {
@@ -163,12 +195,18 @@
         },
         "parameters": [
           {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/ordersListReturnsRequest"
-            }
+            "name": "pagination.page",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "pagination.count_on_page",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
           }
         ],
         "tags": [
@@ -305,14 +343,6 @@
         }
       }
     },
-    "ordersGetHistoryRequest": {
-      "type": "object",
-      "properties": {
-        "pagination": {
-          "$ref": "#/definitions/ordersPagination"
-        }
-      }
-    },
     "ordersImportOrdersRequest": {
       "type": "object",
       "properties": {
@@ -338,33 +368,6 @@
             "type": "object",
             "$ref": "#/definitions/ordersFailedBatchedOrder"
           }
-        }
-      }
-    },
-    "ordersListOrdersRequest": {
-      "type": "object",
-      "properties": {
-        "user_id": {
-          "type": "string",
-          "format": "uint64"
-        },
-        "in_pvz": {
-          "type": "boolean"
-        },
-        "last_n": {
-          "type": "integer",
-          "format": "int64"
-        },
-        "pagination": {
-          "$ref": "#/definitions/ordersPagination"
-        }
-      }
-    },
-    "ordersListReturnsRequest": {
-      "type": "object",
-      "properties": {
-        "pagination": {
-          "$ref": "#/definitions/ordersPagination"
         }
       }
     },
