@@ -51,9 +51,8 @@ build:
     - merge_requests
     - master
   script:
-    - make build-all
+    - make build
   artifacts:
     paths:
       - pvz-cli/pvz
-      - pvz-cli/pvz-server
     expire_in: 1 day

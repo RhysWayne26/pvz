@@ -13,8 +13,6 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-var tracer = otel.Tracer("orders-grpc-server")
-
 // TracingInterceptor is a gRPC unary interceptor that starts an OpenTelemetry span for each incoming request.
 func TracingInterceptor() grpc.UnaryServerInterceptor {
 	return func(
@@ -26,7 +24,7 @@ func TracingInterceptor() grpc.UnaryServerInterceptor {
 		if md, ok := metadata.FromIncomingContext(ctx); ok {
 			ctx = otel.GetTextMapPropagator().Extract(ctx, propagation.HeaderCarrier(md))
 		}
-
+		tracer := otel.Tracer("orders-grpc-server")
 		ctx, span := tracer.Start(ctx, info.FullMethod, trace.WithSpanKind(trace.SpanKindServer))
 		defer span.End()
 		span.SetAttributes(attribute.String("rpc.method", info.FullMethod))

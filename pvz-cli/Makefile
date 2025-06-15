@@ -78,23 +78,17 @@ update:
 	go mod tidy
 
 build:
-	go build -o pvz$(EXT) cmd/cli/main.go
-
-build-server:
-	go build -o pvz-server$(EXT) cmd/server/main.go
+	go build -o pvz$(EXT) cmd/main.go
 
 start:
 	./pvz$(EXT)
-
-start-server:
-	./pvz-server$(EXT)
 
 setup:
 	mkdir -p ../.git/hooks
 	cp ../.hooks/pre-commit ../.git/hooks/pre-commit
 	chmod +x ../.git/hooks/pre-commit
 
-run: setup update lint security build-all start-server
+run: setup update lint security build start
 
 .PHONY: docs-generate
 docs-generate:
@@ -110,8 +104,5 @@ docs-generate:
 .PHONY: proto
 proto: proto/generate
 
-.PHONY: build-all
-build-all: build build-server
-
 .PHONY: dev
-dev: proto build-all start-server
+dev: proto build start

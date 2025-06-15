@@ -10,3 +10,5 @@ pvz-cli/.golangci-report.env
 
 pvz-cli/tools
 pvz-cli/third_party
+
+pvz-cli/logs

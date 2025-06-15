@@ -24,7 +24,7 @@ func ParseOrdersFromFile(filePath string) ([]params.AcceptOrderParams, error) {
 	defer func() {
 		err := f.Close()
 		if err != nil {
-			panic(err)
+			apperrors.Handle(apperrors.Newf(apperrors.InternalError, "cannot close file %q: %v", filePath, err))
 		}
 	}()
 

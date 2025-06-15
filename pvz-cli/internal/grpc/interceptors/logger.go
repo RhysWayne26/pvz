@@ -2,6 +2,9 @@ package interceptors
 
 import (
 	"context"
+	"log"
+	"os"
+	"pvz-cli/internal/common/apperrors"
 	"time"
 
 	"go.opentelemetry.io/otel/trace"
@@ -11,20 +14,35 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-var logger *zap.Logger
+var (
+	logger  *zap.Logger
+	logFile *os.File
+)
 
 func init() {
-	cfg := zap.NewProductionConfig()
-	cfg.OutputPaths = []string{"stdout"}
-	cfg.ErrorOutputPaths = []string{"stdout"}
-	cfg.EncoderConfig.TimeKey = "ts"
-	cfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
-
-	var err error
-	logger, err = cfg.Build()
+	err := os.MkdirAll("logs", 0750)
 	if err != nil {
-		panic(err)
+		apperrors.Handle(apperrors.Newf(apperrors.InternalError, "failed to create log directory: %v", err))
 	}
+
+	logFile, err := os.OpenFile("logs/server.log", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
+	if err != nil {
+		apperrors.Handle(apperrors.Newf(apperrors.InternalError, "failed to create log file: %v", err))
+	}
+
+	encoderCfg := zap.NewProductionEncoderConfig()
+	encoderCfg.EncodeTime = zapcore.ISO8601TimeEncoder
+	core := zapcore.NewCore(
+		zapcore.NewJSONEncoder(encoderCfg),
+		zapcore.AddSync(logFile),
+		zap.InfoLevel,
+	)
+	logger = zap.New(core, zap.AddCaller())
+	log.SetOutput(logFile)
+}
+
+func GetLogger() *zap.Logger {
+	return logger
 }
 
 // LoggingInterceptor returns a grpc.UnaryServerInterceptor that logs each gRPC call.
@@ -59,4 +77,14 @@ func LoggingInterceptor() grpc.UnaryServerInterceptor {
 		)
 		return resp, err
 	}
+}
+
+func CloseLogFile() error {
+	if logFile != nil {
+		err := logFile.Close()
+		if err != nil {
+			return apperrors.Newf(apperrors.InternalError, "failed to close log file: %v", err)
+		}
+	}
+	return nil
 }
