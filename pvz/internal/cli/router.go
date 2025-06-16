@@ -38,14 +38,13 @@ func NewRouter(
 }
 
 // Run accepts a context to allow graceful shutdown during interactive mode
-func (r *Router) Run(ctx context.Context) {
+func (r *Router) Run(ctx context.Context, onExit func()) {
 	if len(os.Args) > 1 {
 		r.runBatch(ctx, os.Args[1], os.Args[2:])
 	} else {
-		r.runInteractive(ctx)
+		r.runInteractive(ctx, onExit)
 	}
 }
-
 func (r *Router) runBatch(ctx context.Context, cmd string, args []string) {
 	if ctx.Err() != nil {
 		fmt.Println("Operation cancelled")
@@ -86,7 +85,7 @@ func parseInteractiveLine(
 	return cmd, args, nil
 }
 
-func (r *Router) runInteractive(ctx context.Context) {
+func (r *Router) runInteractive(ctx context.Context, onExit func()) {
 	reader := bufio.NewReader(os.Stdin)
 	var lastScrollArgs []string
 
@@ -114,6 +113,9 @@ func (r *Router) runInteractive(ctx context.Context) {
 		}
 		if cmd == constants.CmdExit {
 			fmt.Println("Exiting...")
+			if onExit != nil {
+				onExit()
+			}
 			return
 		}
 		r.runBatch(ctx, cmd, args)

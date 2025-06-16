@@ -107,6 +107,6 @@ func StartCLI(app *Application, wg *sync.WaitGroup) {
 	log.Println("CLI started")
 	mapper := climappers.NewDefaultFacadeMapper()
 	router := cli.NewRouter(app.Container.FacadeHandler, mapper)
-	router.Run(app.Ctx)
+	router.Run(app.Ctx, app.Shutdown)
 	log.Println("CLI finished")
 }
