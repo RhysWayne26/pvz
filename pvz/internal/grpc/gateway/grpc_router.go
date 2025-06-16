@@ -1,0 +1,166 @@
+package gateway
+
+import (
+	"context"
+	"errors"
+	"pvz-cli/internal/common/apperrors"
+
+	pb "pvz-cli/internal/gen/orders"
+	"pvz-cli/internal/grpc/mappers"
+	"pvz-cli/internal/usecases/handlers"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+)
+
+// GRPCRouter implements the gRPC OrdersService server. It maps gRPC requests to internal handlers and converts responses back to protobuf format.
+type GRPCRouter struct {
+	pb.UnimplementedOrdersServiceServer
+	facadeHandler handlers.FacadeHandler
+	facadeMapper  mappers.GRPCFacadeMapper
+}
+
+// NewGRPCRouter returns a new instance of GRPCRouter
+func NewGRPCRouter(
+	m mappers.GRPCFacadeMapper,
+	facade handlers.FacadeHandler,
+) *GRPCRouter {
+	return &GRPCRouter{
+		facadeMapper:  m,
+		facadeHandler: facade,
+	}
+}
+
+// AcceptOrder handles the AcceptOrder gRPC request and delegates to the facade handler.
+func (r *GRPCRouter) AcceptOrder(
+	ctx context.Context,
+	req *pb.AcceptOrderRequest,
+) (*pb.OrderResponse, error) {
+	dto, err := r.facadeMapper.FromPbAcceptOrderRequest(req)
+	if err != nil {
+		return nil, toGRPCError(err)
+	}
+
+	res, err := r.facadeHandler.HandleAcceptOrder(ctx, dto)
+	if err != nil {
+		return nil, toGRPCError(err)
+	}
+
+	return r.facadeMapper.ToPbAcceptOrderResponse(res), nil
+}
+
+// ReturnOrder handles the ReturnOrder gRPC request and delegates to the facade handler.
+func (r *GRPCRouter) ReturnOrder(
+	ctx context.Context,
+	req *pb.OrderIdRequest,
+) (*pb.OrderResponse, error) {
+	dto, err := r.facadeMapper.FromPbReturnOrderRequest(req)
+	if err != nil {
+		return nil, toGRPCError(err)
+	}
+
+	res, err := r.facadeHandler.HandleReturnOrder(ctx, dto)
+	if err != nil {
+		return nil, toGRPCError(err)
+	}
+
+	return r.facadeMapper.ToPbReturnOrderResponse(res), nil
+}
+
+// ProcessOrders handles the ProcessOrders gRPC request and delegates to the facade handler.
+func (r *GRPCRouter) ProcessOrders(
+	ctx context.Context,
+	req *pb.ProcessOrdersRequest,
+) (*pb.ProcessResult, error) {
+	dto, err := r.facadeMapper.FromPbProcessOrdersRequest(req)
+	if err != nil {
+		return nil, toGRPCError(err)
+	}
+
+	resp, err := r.facadeHandler.HandleProcessOrders(ctx, dto)
+	if err != nil {
+		return nil, toGRPCError(err)
+	}
+
+	return r.facadeMapper.ToPbProcessResult(resp), nil
+}
+
+// ListOrders handles the ListOrders gRPC request and delegates to the facade handler.
+func (r *GRPCRouter) ListOrders(
+	ctx context.Context,
+	req *pb.ListOrdersRequest,
+) (*pb.OrdersList, error) {
+	dto, err := r.facadeMapper.FromPbListOrdersRequest(req)
+	if err != nil {
+		return nil, toGRPCError(err)
+	}
+
+	resp, err := r.facadeHandler.HandleListOrders(ctx, dto)
+	if err != nil {
+		return nil, toGRPCError(err)
+	}
+
+	return r.facadeMapper.ToPbOrdersList(resp), nil
+}
+
+// ListReturns handles the ListReturns gRPC request and delegates to the facade handler.
+func (r *GRPCRouter) ListReturns(
+	ctx context.Context,
+	req *pb.ListReturnsRequest,
+) (*pb.ReturnsList, error) {
+	dto := r.facadeMapper.FromPbListReturnsRequest(req)
+
+	resp, err := r.facadeHandler.HandleListOrders(ctx, dto)
+	if err != nil {
+		return nil, toGRPCError(err)
+	}
+
+	return r.facadeMapper.ToPbReturnsList(resp), nil
+}
+
+// GetHistory handles the GetHistory gRPC request and delegates to the facade handler.
+func (r *GRPCRouter) GetHistory(
+	ctx context.Context,
+	req *pb.GetHistoryRequest,
+) (*pb.OrderHistoryList, error) {
+	dto := r.facadeMapper.FromPbOrderHistoryRequest(req)
+	resp, err := r.facadeHandler.HandleOrderHistory(ctx, dto)
+	if err != nil {
+		return nil, toGRPCError(err)
+	}
+
+	return r.facadeMapper.ToPbOrderHistoryList(resp), nil
+}
+
+// ImportOrders handles the ImportOrders gRPC request and delegates to the facade handler.
+func (r *GRPCRouter) ImportOrders(
+	ctx context.Context,
+	req *pb.ImportOrdersRequest,
+) (*pb.ImportResult, error) {
+	dto := r.facadeMapper.FromPbImportOrdersRequest(req)
+
+	resp, err := r.facadeHandler.HandleImportOrders(ctx, dto)
+	if err != nil {
+		return nil, toGRPCError(err)
+	}
+
+	return r.facadeMapper.ToPbImportResult(resp), nil
+}
+
+func toGRPCError(err error) error {
+	if _, ok := status.FromError(err); ok {
+		return err
+	}
+	var appErr *apperrors.AppError
+	if errors.As(err, &appErr) {
+		switch appErr.Code {
+		case apperrors.OrderAlreadyExists:
+			return status.Error(codes.AlreadyExists, appErr.Message)
+		case apperrors.OrderNotFound:
+			return status.Error(codes.NotFound, appErr.Message)
+		default:
+			return status.Error(codes.InvalidArgument, appErr.Message)
+		}
+	}
+	return status.Error(codes.Internal, err.Error())
+}
