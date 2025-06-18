@@ -1,5 +1,7 @@
 package mappers
 
+var _ CLIFacadeMapper = (*DefaultCLIFacadeMapper)(nil)
+
 // DefaultCLIFacadeMapper is a default implementation of CLIFacadeMapper
 type DefaultCLIFacadeMapper struct{}
 

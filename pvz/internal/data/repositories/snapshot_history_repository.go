@@ -6,6 +6,8 @@ import (
 	"pvz-cli/internal/models"
 )
 
+var _ HistoryRepository = (*SnapshotHistoryRepository)(nil)
+
 // SnapshotHistoryRepository is an implementation of the HistoryRepository interface that uses snapshot storage.
 type SnapshotHistoryRepository struct {
 	storage storage.Storage

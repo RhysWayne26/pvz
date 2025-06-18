@@ -5,6 +5,8 @@ import (
 	"pvz-cli/internal/models"
 )
 
+var _ PackageValidator = (*DefaultPackageValidator)(nil)
+
 // DefaultPackageValidator is a default implementation of the PackageValidator interface.
 type DefaultPackageValidator struct{}
 

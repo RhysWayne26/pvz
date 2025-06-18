@@ -9,6 +9,8 @@ import (
 	"pvz-cli/internal/usecases/requests"
 )
 
+var _ OrderValidator = (*DefaultOrderValidator)(nil)
+
 // DefaultOrderValidator is a default implementation of the OrderValidator interface.
 type DefaultOrderValidator struct{}
 

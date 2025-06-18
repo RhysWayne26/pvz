@@ -11,7 +11,9 @@ import (
 	"time"
 )
 
-// DefaultOrderService is a default implementation of OrderService interface
+var _ OrderService = (*DefaultOrderService)(nil)
+
+// DefaultOrderService is a default implementation of the OrderService interface
 type DefaultOrderService struct {
 	orderRepo         repositories.OrderRepository
 	packagePricingSvc PackagePricingService

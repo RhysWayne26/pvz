@@ -8,7 +8,9 @@ import (
 	"sort"
 )
 
-// DefaultHistoryService is a default implementation of HistoryService interface
+var _ HistoryService = (*DefaultHistoryService)(nil)
+
+// DefaultHistoryService is a default implementation of the HistoryService interface
 type DefaultHistoryService struct {
 	historyRepo repositories.HistoryRepository
 }

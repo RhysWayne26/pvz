@@ -12,6 +12,8 @@ import (
 	"pvz-cli/internal/usecases/requests"
 )
 
+var _ OrderRepository = (*SnapshotOrderRepository)(nil)
+
 // SnapshotOrderRepository is an implementation of the OrderRepository interface that uses snapshot storage.
 type SnapshotOrderRepository struct {
 	storage storage.Storage
