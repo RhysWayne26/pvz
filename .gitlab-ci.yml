@@ -72,15 +72,6 @@ migrate-test:
   before_script:
     - apk add --no-cache make curl unzip bash
     - cd pvz
-    - |
-      if [ -z "$ENV_FILE" ]; then
-        echo "ERROR: ENV_FILE variable is not set"
-        exit 1
-      fi
-      echo "$ENV_FILE" > .env
-      set -a
-      bash -c "source .env"
-      set +a
   script:
     - docker compose up -d postgres
     - |
