@@ -65,7 +65,9 @@ migrate-test:
     - merge_requests
     - master
   services:
-    - docker:dind
+    - name: docker:dind
+      alias: docker
+
   variables:
     DOCKER_HOST: tcp://docker:2375
     DOCKER_TLS_CERTDIR: ""
