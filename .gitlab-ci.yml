@@ -4,6 +4,7 @@ stages:
   - lint
   - security
   - build
+  - test
 
 variables:
   GO111MODULE: "on"
@@ -56,3 +57,44 @@ build:
     paths:
       - pvz/pvz
     expire_in: 1 day
+
+migrate-test:
+  stage: test
+  image: docker:24.0.7-cli
+  services:
+    - docker:dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  before_script:
+    - apk add --no-cache make curl unzip
+    - cd pvz
+    - |
+      if [ -z "$ENV_FILE" ]; then
+        echo "ERROR: ENV_FILE variable is not set"
+        exit 1
+      fi
+    - echo "$ENV_FILE" > .env
+    - export $(grep -v '^#' .env | xargs)
+  script:
+    - docker compose up -d postgres
+    - |
+      timeout=30
+      while [ $timeout -gt 0 ]; do
+        if docker compose exec -T postgres pg_isready -U "${POSTGRES_USER}" -d "${POSTGRES_DB}"; then
+          echo "Postgres is ready!"
+          break
+        fi
+        echo "Waiting for Postgres… ($timeout seconds left)"
+        sleep 1
+        timeout=$((timeout - 1))
+      done
+      if [ $timeout -eq 0 ]; then
+        echo "ERROR: Postgres was not ready in time."
+        exit 1
+      fi
+    - make tools/install
+    - make migrate-up
+    - make migrate-status
+  after_script:
+    - docker compose down
