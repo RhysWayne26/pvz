@@ -77,8 +77,10 @@ migrate-test:
         echo "ERROR: ENV_FILE variable is not set"
         exit 1
       fi
-    - echo "$ENV_FILE" > .env
-    - export $(grep -v '^#' .env | xargs)
+      echo "$ENV_FILE" > .env
+      set -a
+      source .env
+      set +a
   script:
     - docker compose up -d postgres
     - |
