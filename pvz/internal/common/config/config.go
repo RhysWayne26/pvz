@@ -21,7 +21,8 @@ type FileConfig struct {
 
 // DBConfig holds the configuration for connecting to the database.
 type DBConfig struct {
-	DSN string
+	WriteDSN string
+	ReadDSN  string
 }
 
 // Config represents the application configuration, supporting both file-based and database-based configurations.
@@ -36,8 +37,9 @@ func Load() *Config {
 	mode := strings.TrimSpace(os.Getenv("STORAGE_MODE"))
 	switch mode {
 	case dbMode:
-		dsn := strings.TrimSpace(os.Getenv("DB_DSN"))
-		if dsn == "" {
+		writeDSN := strings.TrimSpace(os.Getenv("DB_WRITE_DSN"))
+		readDSN := strings.TrimSpace(os.Getenv("DB_READ_DSN"))
+		if writeDSN == "" {
 			user := strings.TrimSpace(os.Getenv("POSTGRES_USER"))
 			pass := strings.TrimSpace(os.Getenv("POSTGRES_PASSWORD"))
 			host := strings.TrimSpace(os.Getenv("POSTGRES_HOST"))
@@ -53,9 +55,15 @@ func Load() *Config {
 				slog.Error("Missing required DB environment variables", "required", "POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB")
 				os.Exit(1)
 			}
-			dsn = fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", user, pass, host, port, db)
+			writeDSN = fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", user, pass, host, port, db)
 		}
-		return &Config{DB: &DBConfig{DSN: dsn}}
+		if readDSN == "" {
+			readDSN = writeDSN
+		}
+		return &Config{DB: &DBConfig{
+			WriteDSN: writeDSN,
+			ReadDSN:  readDSN,
+		}}
 	case fileMode:
 		path := strings.TrimSpace(os.Getenv("FILE_STORAGE_PATH"))
 		if path == "" {

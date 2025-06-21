@@ -67,32 +67,37 @@ migrate-test:
   services:
     - name: docker:dind
       alias: docker
-
+  privileged: true
   variables:
     DOCKER_HOST: tcp://docker:2375
     DOCKER_TLS_CERTDIR: ""
   before_script:
     - apk add --no-cache make curl unzip bash
     - cd pvz
-  script:
-    - docker compose up -d postgres
+    - echo "STORAGE_MODE=db" > .env
+    - echo "POSTGRES_DB=${POSTGRES_DB}" >> .env
+    - echo "POSTGRES_USER=${POSTGRES_USER}" >> .env
+    - echo "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}" >> .env
+    - echo "REPLICATION_USER=${REPLICATION_USER}" >> .env
+    - echo "REPLICATION_PASSWORD=${REPLICATION_PASSWORD}" >> .env
+    - echo "DB_WRITE_DSN=${DB_WRITE_DSN}" >> .env
+    - echo "DB_READ_DSN=${DB_READ_DSN}" >> .env
+
+    - docker compose up -d postgres-master postgres-slave
     - |
       timeout=30
-      while [ $timeout -gt 0 ]; do
-        if docker compose exec -T postgres pg_isready -U "${POSTGRES_USER}" -d "${POSTGRES_DB}"; then
-          echo "Postgres is ready!"
-          break
-        fi
-        echo "Waiting for Postgres… ($timeout seconds left)"
+      until docker compose exec -T postgres-master \
+            pg_isready -U "${POSTGRES_USER}" -d "${POSTGRES_DB}"; do
+        echo "Waiting for master… ($timeout)s left"
         sleep 1
-        timeout=$((timeout - 1))
+        timeout=$((timeout-1))
+        [ $timeout -le 0 ] && { echo "Timeout waiting for master"; exit 1; }
       done
-      if [ $timeout -eq 0 ]; then
-        echo "ERROR: Postgres was not ready in time."
-        exit 1
-      fi
+
+  script:
     - make tools/install
     - make migrate-up
     - make migrate-status
+
   after_script:
-    - docker compose down
+    - docker compose down -v
