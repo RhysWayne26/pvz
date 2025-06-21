@@ -31,4 +31,8 @@ const (
 
 	DefaultRPS   = 5
 	DefaultBurst = 1
+
+	DefaultFileStoragePath = "./storage.json"
+	DefaultPGHost          = "localhost"
+	DefaultPGPort          = "5433"
 )

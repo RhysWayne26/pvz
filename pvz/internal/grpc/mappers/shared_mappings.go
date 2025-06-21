@@ -31,6 +31,8 @@ func toPbOrderStatus(s models.OrderStatus) pb.OrderStatus {
 		return pb.OrderStatus_ORDER_STATUS_RETURNED_BY_CLIENT
 	case models.Issued:
 		return pb.OrderStatus_ORDER_STATUS_ISSUED
+	case models.Warehoused:
+		return pb.OrderStatus_ORDER_STATUS_RETURNED_TO_WAREHOUSE
 	default:
 		return pb.OrderStatus_ORDER_STATUS_UNSPECIFIED
 	}

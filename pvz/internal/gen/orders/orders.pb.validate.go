@@ -1071,6 +1071,17 @@ func (m *GetHistoryRequest) validate(all bool) error {
 
 	var errors []error
 
+	if m.GetOrderId() < 0 {
+		err := GetHistoryRequestValidationError{
+			field:  "OrderId",
+			reason: "value must be greater than or equal to 0",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
 	if m.Pagination != nil {
 
 		if all {

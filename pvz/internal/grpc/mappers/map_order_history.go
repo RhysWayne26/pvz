@@ -10,11 +10,13 @@ import (
 )
 
 // FromPbOrderHistoryRequest maps a gRPC GetHistoryRequest to the internal request model.
-func (f *DefaultGRPCFacadeMapper) FromPbOrderHistoryRequest(in *pb.GetHistoryRequest) requests.OrderHistoryRequest {
-	req := requests.OrderHistoryRequest{
-		Page:  constants.DefaultHistoryPage,
-		Limit: constants.DefaultHistoryLimit,
+func (f *DefaultGRPCFacadeMapper) FromPbOrderHistoryRequest(in *pb.GetHistoryRequest) requests.OrderHistoryFilter {
+	var req requests.OrderHistoryFilter
+	if in.OrderId != 0 {
+		req.OrderID = &in.OrderId
 	}
+	req.Page = constants.DefaultHistoryPage
+	req.Limit = constants.DefaultHistoryLimit
 	if in.Pagination != nil {
 		if page := int(in.Pagination.Page); page > 0 {
 			req.Page = page

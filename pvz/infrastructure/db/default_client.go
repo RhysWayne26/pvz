@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	_ "github.com/lib/pq"
 	"log/slog"
 	"time"
 )
@@ -12,7 +13,6 @@ import (
 type Mode string
 
 const (
-
 	// ReadMode specifies the operational mode for read-only database queries or commands.
 	ReadMode Mode = "read"
 	// WriteMode specifies the operational mode for write-only database queries or commands.

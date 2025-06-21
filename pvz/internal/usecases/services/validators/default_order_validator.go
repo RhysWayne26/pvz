@@ -79,7 +79,7 @@ func (v *DefaultOrderValidator) ValidateReturnToCourier(o models.Order) error {
 		return nil
 	}
 	now := time.Now()
-	if o.Status == models.Issued {
+	if o.Status == models.Issued || o.Status == models.Warehoused {
 		return apperrors.Newf(apperrors.OrderNotFound, "order %d not found", o.OrderID)
 	}
 	if o.ExpiresAt.After(now) {

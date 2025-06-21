@@ -22,9 +22,10 @@ type OrderStatus string
 
 // Available order statuses throughout the order lifecycle
 const (
-	Accepted OrderStatus = "ACCEPTED"
-	Returned OrderStatus = "RETURNED"
-	Issued   OrderStatus = "ISSUED"
+	Accepted   OrderStatus = "ACCEPTED"
+	Returned   OrderStatus = "RETURNED"
+	Issued     OrderStatus = "ISSUED"
+	Warehoused OrderStatus = "WAREHOUSED"
 )
 
 // PackageType represents different types of packaging available for orders

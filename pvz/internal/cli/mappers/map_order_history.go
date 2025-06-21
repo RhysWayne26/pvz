@@ -7,11 +7,11 @@ import (
 )
 
 // MapOrderHistoryParams converts CLI params for order-history command into internal request model
-func (f *DefaultCLIFacadeMapper) MapOrderHistoryParams(p params.OrderHistoryParams) (requests.OrderHistoryRequest, error) {
+func (f *DefaultCLIFacadeMapper) MapOrderHistoryParams(p params.OrderHistoryParams) (requests.OrderHistoryFilter, error) {
 	if err := validatePaginationInfo(p.Page, p.Limit); err != nil {
-		return requests.OrderHistoryRequest{}, err
+		return requests.OrderHistoryFilter{}, err
 	}
-	req := requests.OrderHistoryRequest{
+	req := requests.OrderHistoryFilter{
 		Page:  constants.DefaultHistoryPage,
 		Limit: constants.DefaultHistoryLimit,
 	}
