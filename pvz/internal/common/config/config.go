@@ -3,6 +3,7 @@ package config
 import (
 	"flag"
 	"fmt"
+	"github.com/joho/godotenv"
 	"log/slog"
 	"os"
 	"pvz-cli/internal/common/constants"
@@ -33,6 +34,9 @@ type Config struct {
 
 // Load initializes and returns the application configuration based on environment variables and flags.
 func Load() *Config {
+	if err := godotenv.Load(); err != nil {
+		slog.Warn("failed to load .env, falling back to real environment", "error", err)
+	}
 	flag.Parse()
 	mode := strings.TrimSpace(os.Getenv("STORAGE_MODE"))
 	switch mode {
@@ -41,7 +45,7 @@ func Load() *Config {
 	case fileMode:
 		return &Config{File: loadFileConfig()}
 	default:
-		fmt.Println("Invalid storage mode")
+		slog.Error("invalid storage mode", "mode", mode)
 		os.Exit(1)
 		return nil
 	}
