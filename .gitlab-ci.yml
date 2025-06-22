@@ -65,6 +65,7 @@ migrate-test:
     - master
   services:
     - name: postgres:15-alpine
+      alias: postgres-master
   variables:
     POSTGRES_DB: $POSTGRES_DB
     POSTGRES_USER: $POSTGRES_USER
