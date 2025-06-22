@@ -65,6 +65,11 @@ migrate-test:
     - master
   services:
     - name: postgres:15-alpine
+  variables:
+    POSTGRES_DB: $POSTGRES_DB
+    POSTGRES_USER: $POSTGRES_USER
+    POSTGRES_PASSWORD: $POSTGRES_PASSWORD
+    DB_WRITE_DSN: $DB_WRITE_DSN
   before_script:
     - apt-get update && apt-get install -y bash make curl unzip postgresql-client
     - cd pvz
@@ -72,7 +77,7 @@ migrate-test:
     - echo "POSTGRES_DB=${POSTGRES_DB}" >> .env
     - echo "POSTGRES_USER=${POSTGRES_USER}" >> .env
     - echo "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}" >> .env
-    - echo "DB_WRITE_DSN=${DB_DSN}" >> .env
+    - echo "DB_WRITE_DSN=${DB_WRITE_DSN}" >> .env
     - |
       echo "waiting for Postgres..."
       timeout=30
