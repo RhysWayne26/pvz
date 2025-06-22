@@ -37,42 +37,50 @@ func Load() *Config {
 	mode := strings.TrimSpace(os.Getenv("STORAGE_MODE"))
 	switch mode {
 	case dbMode:
-		writeDSN := strings.TrimSpace(os.Getenv("DB_WRITE_DSN"))
-		readDSN := strings.TrimSpace(os.Getenv("DB_READ_DSN"))
-		if writeDSN == "" {
-			user := strings.TrimSpace(os.Getenv("POSTGRES_USER"))
-			pass := strings.TrimSpace(os.Getenv("POSTGRES_PASSWORD"))
-			host := strings.TrimSpace(os.Getenv("POSTGRES_HOST"))
-			port := strings.TrimSpace(os.Getenv("POSTGRES_PORT"))
-			db := strings.TrimSpace(os.Getenv("POSTGRES_DB"))
-			if host == "" {
-				host = constants.DefaultPGHost
-			}
-			if port == "" {
-				port = constants.DefaultPGPort
-			}
-			if user == "" || pass == "" || db == "" {
-				slog.Error("Missing required DB environment variables", "required", "POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB")
-				os.Exit(1)
-			}
-			writeDSN = fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", user, pass, host, port, db)
-		}
-		if readDSN == "" {
-			readDSN = writeDSN
-		}
-		return &Config{DB: &DBConfig{
-			WriteDSN: writeDSN,
-			ReadDSN:  readDSN,
-		}}
+		return &Config{DB: loadDBConfig()}
 	case fileMode:
-		path := strings.TrimSpace(os.Getenv("FILE_STORAGE_PATH"))
-		if path == "" {
-			path = constants.DefaultFileStoragePath
-		}
-		return &Config{File: &FileConfig{Path: path}}
+		return &Config{File: loadFileConfig()}
 	default:
 		fmt.Println("Invalid storage mode")
 		os.Exit(1)
 		return nil
 	}
+}
+
+func loadDBConfig() *DBConfig {
+	writeDSN := strings.TrimSpace(os.Getenv("DB_WRITE_DSN"))
+	readDSN := strings.TrimSpace(os.Getenv("DB_READ_DSN"))
+	if writeDSN == "" {
+		user := strings.TrimSpace(os.Getenv("POSTGRES_USER"))
+		pass := strings.TrimSpace(os.Getenv("POSTGRES_PASSWORD"))
+		host := strings.TrimSpace(os.Getenv("POSTGRES_HOST"))
+		port := strings.TrimSpace(os.Getenv("POSTGRES_PORT"))
+		db := strings.TrimSpace(os.Getenv("POSTGRES_DB"))
+		if host == "" {
+			host = constants.DefaultPGHost
+		}
+		if port == "" {
+			port = constants.DefaultPGPort
+		}
+		if user == "" || pass == "" || db == "" {
+			slog.Error("Missing required DB environment variables", "required", "POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB")
+			os.Exit(1)
+		}
+		writeDSN = fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", user, pass, host, port, db)
+	}
+	if readDSN == "" {
+		readDSN = writeDSN
+	}
+	return &DBConfig{
+		WriteDSN: writeDSN,
+		ReadDSN:  readDSN,
+	}
+}
+
+func loadFileConfig() *FileConfig {
+	path := strings.TrimSpace(os.Getenv("FILE_STORAGE_PATH"))
+	if path == "" {
+		path = constants.DefaultFileStoragePath
+	}
+	return &FileConfig{Path: path}
 }

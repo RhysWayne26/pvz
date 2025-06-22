@@ -1,6 +1,8 @@
 include proto.mk
 include db.mk
 
+SHELL := /bin/bash
+
 -include .env
 export $(shell sed 's/=.*//' .env)
 

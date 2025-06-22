@@ -4,6 +4,7 @@ GOOSE_BIN := $(TOOLS_BIN)/goose$(EXT)
 GOOSE_VER := v3.16.0
 GOOSE_DRIVER=postgres
 GOOSE_DBSTRING := $(DB_DSN)
+DB_DSN ?= $(DB_WRITE_DSN)
 
 $(GOOSE_BIN): | $(TOOLS_BIN)
 	@echo "Installing goose@$(GOOSE_VER) into $(TOOLS_BIN)"
