@@ -66,7 +66,7 @@ migrate-test:
   services:
     - name: postgres:15-alpine
   before_script:
-    - apk add --no-cache bash make curl unzip postgresql-client
+    - apt-get update && apt-get install -y bash make curl unzip postgresql-client
     - cd pvz
     - echo "STORAGE_MODE=db" > .env
     - echo "POSTGRES_DB=${POSTGRES_DB}" >> .env
