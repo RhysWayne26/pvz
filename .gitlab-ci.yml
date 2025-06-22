@@ -60,43 +60,29 @@ build:
 
 migrate-test:
   stage: test
-  image: docker:24.0.7-cli
   only:
     - merge_requests
     - master
   services:
-    - name: docker:dind
-      alias: docker
-  variables:
-    DOCKER_HOST: tcp://docker:2375
-    DOCKER_TLS_CERTDIR: ""
+    - name: postgres:15-alpine
   before_script:
-    - apk add --no-cache make curl unzip bash
+    - apk add --no-cache bash make curl unzip postgresql-client
     - cd pvz
     - echo "STORAGE_MODE=db" > .env
     - echo "POSTGRES_DB=${POSTGRES_DB}" >> .env
     - echo "POSTGRES_USER=${POSTGRES_USER}" >> .env
     - echo "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}" >> .env
-    - echo "REPLICATION_USER=${REPLICATION_USER}" >> .env
-    - echo "REPLICATION_PASSWORD=${REPLICATION_PASSWORD}" >> .env
-    - echo "DB_WRITE_DSN=${DB_WRITE_DSN}" >> .env
-    - echo "DB_READ_DSN=${DB_READ_DSN}" >> .env
-
-    - docker compose up -d postgres-master postgres-slave
+    - echo "DB_WRITE_DSN=${DB_DSN}" >> .env
     - |
+      echo "waiting for Postgres..."
       timeout=30
-      until docker compose exec -T postgres-master \
-            pg_isready -U "${POSTGRES_USER}" -d "${POSTGRES_DB}"; do
-        echo "Waiting for master… ($timeout)s left"
+      until pg_isready -h postgres -U "$POSTGRES_USER" -d "$POSTGRES_DB"; do
+        echo "  still waiting… ($timeout)"
         sleep 1
         timeout=$((timeout-1))
         [ $timeout -le 0 ] && { echo "Timeout waiting for master"; exit 1; }
       done
-
   script:
     - make tools/install
     - make migrate-up
     - make migrate-status
-
-  after_script:
-    - docker compose down -v
