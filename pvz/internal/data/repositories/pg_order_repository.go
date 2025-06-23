@@ -8,7 +8,6 @@ import (
 	"log/slog"
 	"pvz-cli/infrastructure/db"
 	"pvz-cli/internal/data/queries"
-	"pvz-cli/internal/data/queries/order"
 	"pvz-cli/internal/models"
 	"pvz-cli/internal/usecases/requests"
 )
@@ -108,7 +107,7 @@ func (r *PGOrderRepository) List(
 	ctx context.Context,
 	filter requests.OrdersFilterRequest,
 ) ([]models.Order, int, error) {
-	sqlStr, args := order.BuildFilterOrdersQuery(filter)
+	sqlStr, args := queries.BuildFilterOrdersQuery(filter)
 	rows, err := r.db.QueryCtx(
 		ctx, db.ReadMode,
 		sqlStr,
@@ -146,7 +145,7 @@ func (r *PGOrderRepository) List(
 		return nil, 0, err
 	}
 
-	countSQL, countArgs := order.BuildCountOrdersQuery(filter)
+	countSQL, countArgs := queries.BuildCountOrdersQuery(filter)
 	var total int
 	if err := r.db.
 		QueryRowCtx(

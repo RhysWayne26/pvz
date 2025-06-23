@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"pvz-cli/infrastructure/db"
 	"pvz-cli/internal/data/queries"
-	"pvz-cli/internal/data/queries/history"
 	"pvz-cli/internal/models"
 	"pvz-cli/internal/usecases/requests"
 )
@@ -40,13 +39,13 @@ func (r *PGHistoryRepository) Save(ctx context.Context, e models.HistoryEntry) e
 
 // List retrieves a paginated list of all history entries from the database based on the specified page and limit.
 func (r *PGHistoryRepository) List(ctx context.Context, filter requests.OrderHistoryFilter) ([]models.HistoryEntry, int, error) {
-	countQuery, countArgs := history.BuildCountHistoryQuery(filter)
+	countQuery, countArgs := queries.BuildCountHistoryQuery(filter)
 	var count int
 	err := r.db.QueryRowCtx(ctx, db.ReadMode, countQuery, countArgs...).Scan(&count)
 	if err != nil {
 		return nil, 0, err
 	}
-	query, args := history.BuildFilterHistoryQuery(filter)
+	query, args := queries.BuildFilterHistoryQuery(filter)
 	rows, err := r.db.QueryCtx(ctx, db.ReadMode, query, args...)
 	if err != nil {
 		return nil, 0, err
