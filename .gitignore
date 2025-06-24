@@ -12,3 +12,5 @@ pvz/tools
 pvz/third_party
 
 pvz/logs
+
+pvz/.env

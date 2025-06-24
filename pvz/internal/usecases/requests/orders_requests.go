@@ -69,8 +69,9 @@ type ImportOrderStatus struct {
 	Error      error
 }
 
-// OrderHistoryRequest contains optional pagination parameter for getting order history entries
-type OrderHistoryRequest struct {
-	Page  int
-	Limit int
+// OrderHistoryFilter contains optional pagination parameter for getting order history entries
+type OrderHistoryFilter struct {
+	OrderID *uint64
+	Page    int
+	Limit   int
 }

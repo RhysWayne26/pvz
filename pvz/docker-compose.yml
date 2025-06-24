@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  postgres-master:
+    build:
+      context: ./docker/master
+      dockerfile: Dockerfile
+    container_name: pvz-db-master
+    env_file:
+      - .env
+    ports:
+      - "5433:5432"
+    volumes:
+      - master_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL","pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 5
+
+  postgres-slave:
+    build:
+      context: ./docker/slave
+      dockerfile: Dockerfile
+    container_name: pvz-db-slave
+    env_file:
+      - .env
+    depends_on:
+      - postgres-master
+    ports:
+      - "5434:5432"
+    volumes:
+      - slave_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL","pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 5
+
+volumes:
+  master_data:
+  slave_data:

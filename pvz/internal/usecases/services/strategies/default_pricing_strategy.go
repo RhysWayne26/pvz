@@ -2,6 +2,8 @@ package strategies
 
 import "pvz-cli/internal/models"
 
+var _ PricingStrategy = (*DefaultPricingStrategy)(nil)
+
 // DefaultPricingStrategy is a default implementation of the PricingStrategy interface.
 type DefaultPricingStrategy struct{}
 

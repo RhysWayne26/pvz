@@ -1,4 +1,10 @@
 include proto.mk
+include db.mk
+
+SHELL := /bin/bash
+
+-include .env
+export $(shell sed 's/=.*//' .env)
 
 .PHONY: tools/install tools/clean docs-generate setup update lint security build start run
 TOOLS_BIN := $(shell pwd)/tools/bin

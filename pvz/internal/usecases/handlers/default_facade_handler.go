@@ -4,6 +4,8 @@ import (
 	"pvz-cli/internal/usecases/services"
 )
 
+var _ FacadeHandler = (*DefaultFacadeHandler)(nil)
+
 // DefaultFacadeHandler is the default implementation of the FacadeHandler interface.
 type DefaultFacadeHandler struct {
 	orderService   services.OrderService

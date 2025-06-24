@@ -12,6 +12,6 @@ type FacadeHandler interface {
 	HandleReturnOrder(ctx context.Context, req requests.ReturnOrderRequest) (responses.ReturnOrderResponse, error)
 	HandleProcessOrders(ctx context.Context, req requests.ProcessOrdersRequest) (responses.ProcessOrdersResponse, error)
 	HandleListOrders(ctx context.Context, req requests.OrdersFilterRequest) (responses.ListOrdersResponse, error)
-	HandleOrderHistory(ctx context.Context, req requests.OrderHistoryRequest) (responses.OrderHistoryResponse, error)
+	HandleOrderHistory(ctx context.Context, req requests.OrderHistoryFilter) (responses.OrderHistoryResponse, error)
 	HandleImportOrders(ctx context.Context, req requests.ImportOrdersRequest) (responses.ImportOrdersResponse, error)
 }

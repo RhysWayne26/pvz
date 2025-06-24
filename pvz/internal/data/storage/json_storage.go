@@ -11,7 +11,9 @@ import (
 	"sync"
 )
 
-// JSONStorage implements storage interface using JSON files
+var _ Storage = (*JSONStorage)(nil)
+
+// JSONStorage implements the storage interface using JSON files
 type JSONStorage struct {
 	path  string
 	mutex sync.Mutex

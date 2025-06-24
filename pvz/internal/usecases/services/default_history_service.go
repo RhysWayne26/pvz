@@ -5,10 +5,12 @@ import (
 	"pvz-cli/internal/common/apperrors"
 	"pvz-cli/internal/data/repositories"
 	"pvz-cli/internal/models"
-	"sort"
+	"pvz-cli/internal/usecases/requests"
 )
 
-// DefaultHistoryService is a default implementation of HistoryService interface
+var _ HistoryService = (*DefaultHistoryService)(nil)
+
+// DefaultHistoryService is a default implementation of the HistoryService interface
 type DefaultHistoryService struct {
 	historyRepo repositories.HistoryRepository
 }
@@ -29,37 +31,18 @@ func (s *DefaultHistoryService) Record(ctx context.Context, e models.HistoryEntr
 	return nil
 }
 
-// GetByOrder retrieves all history entries for a specific order, sorted by timestamp
-func (s *DefaultHistoryService) GetByOrder(ctx context.Context, orderID uint64) ([]models.HistoryEntry, error) {
+// List retrieves a list of history entries matching the specified filter, sorted by timestamp in ascending order.
+func (s *DefaultHistoryService) List(ctx context.Context, filter requests.OrderHistoryFilter) ([]models.HistoryEntry, error) {
 	if ctx.Err() != nil {
 		return nil, ctx.Err()
 	}
-	entries, err := s.historyRepo.LoadByOrder(ctx, orderID)
-	if err != nil {
-		return nil, apperrors.Newf(apperrors.InternalError, "failed to load history for order %d: %v", orderID, err)
 
-	}
-
-	sort.Slice(entries, func(i, j int) bool {
-		return entries[i].Timestamp.Before(entries[j].Timestamp)
-	})
-
-	return entries, nil
-}
-
-// ListAll retrieves paginated list of all history entries, sorted by timestamp
-func (s *DefaultHistoryService) ListAll(ctx context.Context, page, limit int) ([]models.HistoryEntry, error) {
-	if ctx.Err() != nil {
-		return nil, ctx.Err()
-	}
-	entries, err := s.historyRepo.LoadAll(ctx, page, limit)
+	entries, count, err := s.historyRepo.List(ctx, filter)
 	if err != nil {
 		return nil, apperrors.Newf(apperrors.InternalError, "failed to load history list: %v", err)
 	}
-
-	sort.Slice(entries, func(i, j int) bool {
-		return entries[i].Timestamp.Before(entries[j].Timestamp)
-	})
-
+	if count == 0 && filter.OrderID != nil {
+		return nil, apperrors.Newf(apperrors.OrderNotFound, "order %d not found", *filter.OrderID)
+	}
 	return entries, nil
 }

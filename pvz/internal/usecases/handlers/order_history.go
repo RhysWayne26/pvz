@@ -7,12 +7,12 @@ import (
 )
 
 // HandleOrderHistory returns all order history entries in a response model.
-func (f *DefaultFacadeHandler) HandleOrderHistory(ctx context.Context, req requests.OrderHistoryRequest) (responses.OrderHistoryResponse, error) {
+func (f *DefaultFacadeHandler) HandleOrderHistory(ctx context.Context, req requests.OrderHistoryFilter) (responses.OrderHistoryResponse, error) {
 	if ctx.Err() != nil {
 		return responses.OrderHistoryResponse{}, ctx.Err()
 	}
 
-	entries, err := f.historyService.ListAll(ctx, req.Page, req.Limit)
+	entries, err := f.historyService.List(ctx, req)
 	if err != nil {
 		return responses.OrderHistoryResponse{}, err
 	}

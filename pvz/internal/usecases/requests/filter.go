@@ -4,17 +4,19 @@ import (
 	"pvz-cli/internal/common/constants"
 	"pvz-cli/internal/common/utils"
 	"pvz-cli/internal/models"
+	"time"
 )
 
 // OrdersFilterRequest defines a flexible filter used by both ListOrders and ListReturns handlers.
 type OrdersFilterRequest struct {
-	UserID *uint64
-	InPvz  *bool
-	LastID *uint64
-	Page   *int
-	Limit  *int
-	Last   *int
-	Status *models.OrderStatus
+	UserID        *uint64
+	InPvz         *bool
+	LastID        *uint64
+	Page          *int
+	Limit         *int
+	Last          *int
+	Status        *models.OrderStatus
+	LastCreatedAt *time.Time
 }
 
 // NewOrdersFilter creates a new OrdersFilterRequest with default pagination values. Optional modifiers can be applied via functional options.

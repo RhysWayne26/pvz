@@ -9,7 +9,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-const unknownPackage = "unknown"
+const unknownPackage = -1
 
 func toPbOrder(o models.Order) *pb.Order {
 	return &pb.Order{
@@ -67,7 +67,7 @@ func toPbEventType(e models.EventType) pb.EventType {
 		return pb.EventType_EVENT_ACCEPTED
 	case models.EventIssued:
 		return pb.EventType_EVENT_ISSUED
-	case models.EventReturnedFromClient:
+	case models.EventReturnedByClient:
 		return pb.EventType_EVENT_RETURNED_FROM_CLIENT
 	case models.EventReturnedToWarehouse:
 		return pb.EventType_EVENT_RETURNED_TO_WAREHOUSE

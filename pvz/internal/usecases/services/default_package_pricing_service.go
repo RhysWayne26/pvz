@@ -7,7 +7,9 @@ import (
 	"pvz-cli/internal/usecases/services/validators"
 )
 
-// DefaultPackagePricingService is a default implementation of PackagePricingService interface.
+var _ PackagePricingService = (*DefaultPackagePricingService)(nil)
+
+// DefaultPackagePricingService is a default implementation of the PackagePricingService interface.
 type DefaultPackagePricingService struct {
 	validator validators.PackageValidator
 	strategy  strategies.PricingStrategy

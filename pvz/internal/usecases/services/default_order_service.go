@@ -11,7 +11,9 @@ import (
 	"time"
 )
 
-// DefaultOrderService is a default implementation of OrderService interface
+var _ OrderService = (*DefaultOrderService)(nil)
+
+// DefaultOrderService is a default implementation of the OrderService interface
 type DefaultOrderService struct {
 	orderRepo         repositories.OrderRepository
 	packagePricingSvc PackagePricingService
@@ -189,7 +191,7 @@ func (s *DefaultOrderService) CreateClientReturns(ctx context.Context, req reque
 
 		entry := models.HistoryEntry{
 			OrderID:   order.OrderID,
-			Event:     models.EventReturnedFromClient,
+			Event:     models.EventReturnedByClient,
 			Timestamp: now,
 		}
 		if err := s.historySvc.Record(ctx, entry); err != nil {
