@@ -39,7 +39,10 @@ func (f *DefaultCLIFacadeMapper) MapAcceptOrderParams(p params.AcceptOrderParams
 		return requests.AcceptOrderRequest{}, err
 	}
 
-	pkg := parsePackageType(p.Package)
+	pkg, err := parsePackageType(p.Package)
+	if err != nil {
+		return requests.AcceptOrderRequest{}, err
+	}
 
 	return requests.AcceptOrderRequest{
 		OrderID:   orderID,
@@ -66,10 +69,25 @@ func parseFloat(name, raw string, maxDigits int) (float32, error) {
 	return val, nil
 }
 
-func parsePackageType(raw string) models.PackageType {
+func parsePackageType(raw string) (models.PackageType, error) {
 	normalized := strings.Trim(strings.TrimSpace(raw), `"`)
 	if normalized == "" || strings.EqualFold(normalized, "null") {
-		return models.PackageNone
+		return models.PackageNone, nil
 	}
-	return models.PackageType(normalized)
+	switch strings.ToLower(normalized) {
+	case "none":
+		return models.PackageNone, nil
+	case "bag":
+		return models.PackageBag, nil
+	case "box":
+		return models.PackageBox, nil
+	case "film", "tape":
+		return models.PackageFilm, nil
+	case "bag+film", "bag_film", "bagfilm":
+		return models.PackageBagFilm, nil
+	case "box+film", "box_film", "boxfilm":
+		return models.PackageBoxFilm, nil
+	default:
+		return models.PackageNone, apperrors.Newf(apperrors.ValidationFailed, "invalid package type: %s", normalized)
+	}
 }

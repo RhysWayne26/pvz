@@ -191,7 +191,7 @@ func (s *DefaultOrderService) CreateClientReturns(ctx context.Context, req reque
 
 		entry := models.HistoryEntry{
 			OrderID:   order.OrderID,
-			Event:     models.EventReturnedFromClient,
+			Event:     models.EventReturnedByClient,
 			Timestamp: now,
 		}
 		if err := s.historySvc.Record(ctx, entry); err != nil {

@@ -3,7 +3,7 @@ package repositories
 import (
 	"context"
 	_ "embed"
-	"log/slog"
+	"github.com/georgysavva/scany/v2/pgxscan"
 	"pvz-cli/infrastructure/db"
 	"pvz-cli/internal/data/queries"
 	"pvz-cli/internal/models"
@@ -14,11 +14,11 @@ var _ HistoryRepository = (*PGHistoryRepository)(nil)
 
 // PGHistoryRepository provides PostgreSQL-based persistence for HistoryRepository.
 type PGHistoryRepository struct {
-	db db.Client
+	db db.PGXClient
 }
 
 // NewPGHistoryRepository initializes and returns a new instance of PGHistoryRepository with the provided database client.
-func NewPGHistoryRepository(db db.Client) *PGHistoryRepository {
+func NewPGHistoryRepository(db db.PGXClient) *PGHistoryRepository {
 	return &PGHistoryRepository{
 		db: db,
 	}
@@ -41,32 +41,14 @@ func (r *PGHistoryRepository) Save(ctx context.Context, e models.HistoryEntry) e
 func (r *PGHistoryRepository) List(ctx context.Context, filter requests.OrderHistoryFilter) ([]models.HistoryEntry, int, error) {
 	countQuery, countArgs := queries.BuildCountHistoryQuery(filter)
 	var count int
-	err := r.db.QueryRowCtx(ctx, db.ReadMode, countQuery, countArgs...).Scan(&count)
+	err := pgxscan.Get(ctx, r.db, &count, countQuery, countArgs...)
 	if err != nil {
 		return nil, 0, err
 	}
 	query, args := queries.BuildFilterHistoryQuery(filter)
-	rows, err := r.db.QueryCtx(ctx, db.ReadMode, query, args...)
-	if err != nil {
-		return nil, 0, err
-	}
-	defer func() {
-		if cerr := rows.Close(); cerr != nil {
-			slog.WarnContext(ctx, "rows close", "err", cerr)
-		}
-	}()
-
 	var out []models.HistoryEntry
-	for rows.Next() {
-		var h models.HistoryEntry
-		var ev string
-		if err := rows.Scan(&h.OrderID, &ev, &h.Timestamp); err != nil {
-			return nil, 0, err
-		}
-		h.Event = models.EventType(ev)
-		out = append(out, h)
-	}
-	if err := rows.Err(); err != nil {
+	err = pgxscan.Select(ctx, r.db, &out, query, args...)
+	if err != nil {
 		return nil, 0, err
 	}
 	return out, count, nil

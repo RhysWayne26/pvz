@@ -2,10 +2,10 @@ package repositories
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
-	"log/slog"
+	"github.com/georgysavva/scany/v2/pgxscan"
+	"github.com/jackc/pgx/v5"
 	"pvz-cli/infrastructure/db"
 	"pvz-cli/internal/data/queries"
 	"pvz-cli/internal/models"
@@ -21,11 +21,11 @@ var (
 
 // PGOrderRepository provides PostgreSQL-based persistence for OrderRepository.
 type PGOrderRepository struct {
-	db db.Client
+	db db.PGXClient
 }
 
 // NewPGOrderRepository initializes and returns a new instance of PGOrderRepository with the provided database client.
-func NewPGOrderRepository(db db.Client) *PGOrderRepository {
+func NewPGOrderRepository(db db.PGXClient) *PGOrderRepository {
 	return &PGOrderRepository{
 		db: db,
 	}
@@ -52,34 +52,15 @@ func (r *PGOrderRepository) Save(ctx context.Context, order models.Order) error 
 
 // Load retrieves an order from the database by the given ID.
 func (r *PGOrderRepository) Load(ctx context.Context, id uint64) (models.Order, error) {
-	row := r.db.QueryRowCtx(
-		ctx,
-		db.ReadMode,
-		queries.LoadOrderSQL,
-		id,
-	)
-	var o models.Order
-	var status, packageType string
-	err := row.Scan(
-		&o.OrderID,
-		&o.UserID,
-		&status,
-		&o.CreatedAt,
-		&o.ExpiresAt,
-		&o.UpdatedStatusAt,
-		&packageType,
-		&o.Weight,
-		&o.Price,
-	)
+	var order models.Order
+	err := pgxscan.Get(ctx, r.db, &order, queries.LoadOrderSQL, id)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return models.Order{}, ErrOrderNotFound
 		}
 		return models.Order{}, err
 	}
-	o.Status = models.OrderStatus(status)
-	o.Package = models.PackageType(packageType)
-	return o, nil
+	return order, nil
 }
 
 // Delete removes an order from the database identified by its ID.
@@ -92,71 +73,26 @@ func (r *PGOrderRepository) Delete(ctx context.Context, id uint64) error {
 	if err != nil {
 		return err
 	}
-	affected, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
+	affected := res.RowsAffected()
 	if affected == 0 {
 		return ErrOrderNotFound
 	}
 	return nil
 }
 
-// List retrieves a list of orders and the total count based on the provided filter criteria.
-func (r *PGOrderRepository) List(
-	ctx context.Context,
-	filter requests.OrdersFilterRequest,
-) ([]models.Order, int, error) {
+// List retrieves a filtered list of orders and their total count from the database based on the specified filter criteria.
+func (r *PGOrderRepository) List(ctx context.Context, filter requests.OrdersFilterRequest) ([]models.Order, int, error) {
 	sqlStr, args := queries.BuildFilterOrdersQuery(filter)
-	rows, err := r.db.QueryCtx(
-		ctx, db.ReadMode,
-		sqlStr,
-		args...,
-	)
+	var orders []models.Order
+	err := pgxscan.Select(ctx, r.db, &orders, sqlStr, args...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list orders: %w", err)
 	}
-	defer func() {
-		if cerr := rows.Close(); cerr != nil {
-			slog.WarnContext(ctx, "rows close", "err", cerr)
-		}
-	}()
-
-	var orders []models.Order
-	for rows.Next() {
-		var o models.Order
-		var st, pkg string
-		if err := rows.Scan(
-			&o.OrderID,
-			&o.UserID,
-			&st,
-			&o.ExpiresAt,
-			&o.Weight,
-			&o.Price,
-			&pkg,
-		); err != nil {
-			return nil, 0, err
-		}
-		o.Status = models.OrderStatus(st)
-		o.Package = models.PackageType(pkg)
-		orders = append(orders, o)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, 0, err
-	}
-
 	countSQL, countArgs := queries.BuildCountOrdersQuery(filter)
 	var total int
-	if err := r.db.
-		QueryRowCtx(
-			ctx,
-			db.ReadMode,
-			countSQL,
-			countArgs...,
-		).
-		Scan(&total); err != nil {
+	err = pgxscan.Get(ctx, r.db, &total, countSQL, countArgs...)
+	if err != nil {
 		return nil, 0, fmt.Errorf("count orders: %w", err)
 	}
-
 	return orders, total, nil
 }

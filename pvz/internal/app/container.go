@@ -30,7 +30,7 @@ func NewContainer() *Container {
 
 	switch {
 	case cfg.DB != nil && cfg.DB.WriteDSN != "":
-		client, err := db.NewClient(cfg.DB.ReadDSN, cfg.DB.WriteDSN)
+		client, err := db.NewDefaultPGXClient(cfg.DB.ReadDSN, cfg.DB.WriteDSN)
 		if err != nil {
 			slog.Error("failed to init DB client", "error", err)
 			os.Exit(1)
