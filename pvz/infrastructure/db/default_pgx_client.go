@@ -15,8 +15,8 @@ var _ PGXClient = (*DefaultPGXClient)(nil)
 // DefaultPGXClient provides a default implementation of the PGXClient interface for interacting with a PostgreSQL database.
 // It manages separate connection pools for read and write operations.
 type DefaultPGXClient struct {
-	readPool  *pgxpool.Pool
-	writePool *pgxpool.Pool
+	ReadPool  *pgxpool.Pool
+	WritePool *pgxpool.Pool
 }
 
 // NewDefaultPGXClient initializes a DefaultPGXClient with separate read and write database connection pools.
@@ -42,8 +42,8 @@ func NewDefaultPGXClient(readDSN, writeDSN string) (*DefaultPGXClient, error) {
 		return nil, fmt.Errorf("write DB ping failed: %w", err)
 	}
 	return &DefaultPGXClient{
-		readPool:  readPool,
-		writePool: writePool,
+		ReadPool:  readPool,
+		WritePool: writePool,
 	}, nil
 }
 
@@ -92,7 +92,7 @@ func (c *DefaultPGXClient) QueryRowCtx(ctx context.Context, mode Mode, query str
 
 // WithTx executes a function within a database transaction, ensuring proper commit or rollback handling.
 func (c *DefaultPGXClient) WithTx(ctx context.Context, fn func(tx pgx.Tx) error) error {
-	tx, err := c.writePool.Begin(ctx)
+	tx, err := c.WritePool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin transaction: %w", err)
 	}
@@ -120,11 +120,11 @@ func (c *DefaultPGXClient) WithTx(ctx context.Context, fn func(tx pgx.Tx) error)
 
 // Ping checks the connectivity of both read and write database connection pools, returning an error if any ping fails.
 func (c *DefaultPGXClient) Ping(ctx context.Context) error {
-	if err := c.readPool.Ping(ctx); err != nil {
+	if err := c.ReadPool.Ping(ctx); err != nil {
 		slog.ErrorContext(ctx, "db.ping", "mode", ReadMode, "error", err)
 		return fmt.Errorf("read pool ping failed: %w", err)
 	}
-	if err := c.writePool.Ping(ctx); err != nil {
+	if err := c.WritePool.Ping(ctx); err != nil {
 		slog.ErrorContext(ctx, "db.ping", "mode", WriteMode, "error", err)
 		return fmt.Errorf("write pool ping failed: %w", err)
 	}
@@ -133,14 +133,14 @@ func (c *DefaultPGXClient) Ping(ctx context.Context) error {
 
 // SetConnectionSettings configures connection pool settings including max open connections, idle connections, and lifetimes.
 func (c *DefaultPGXClient) SetConnectionSettings(maxOpen, maxIdle int, maxLifetime, maxIdleTime time.Duration) {
-	c.writePool.Config().MaxConns = int32(maxOpen)
-	c.writePool.Config().MinConns = int32(maxIdle)
-	c.writePool.Config().MaxConnLifetime = maxLifetime
-	c.writePool.Config().MaxConnIdleTime = maxIdleTime
-	c.readPool.Config().MaxConns = int32(maxOpen)
-	c.readPool.Config().MinConns = int32(maxIdle)
-	c.readPool.Config().MaxConnLifetime = maxLifetime
-	c.readPool.Config().MaxConnIdleTime = maxIdleTime
+	c.WritePool.Config().MaxConns = int32(maxOpen)
+	c.WritePool.Config().MinConns = int32(maxIdle)
+	c.WritePool.Config().MaxConnLifetime = maxLifetime
+	c.WritePool.Config().MaxConnIdleTime = maxIdleTime
+	c.ReadPool.Config().MaxConns = int32(maxOpen)
+	c.ReadPool.Config().MinConns = int32(maxIdle)
+	c.ReadPool.Config().MaxConnLifetime = maxLifetime
+	c.ReadPool.Config().MaxConnIdleTime = maxIdleTime
 }
 
 // Query executes a read-only database query using the specified context, query string, and arguments. Returns rows and error.
@@ -165,18 +165,18 @@ func (c *DefaultPGXClient) Close() (err error) {
 			err = fmt.Errorf("panic during pool close: %v", r)
 		}
 	}()
-	if c.readPool != nil {
-		c.readPool.Close()
+	if c.ReadPool != nil {
+		c.ReadPool.Close()
 	}
-	if c.writePool != nil {
-		c.writePool.Close()
+	if c.WritePool != nil {
+		c.WritePool.Close()
 	}
 	return nil
 }
 
 func (c *DefaultPGXClient) selectPool(mode Mode) *pgxpool.Pool {
 	if mode == ReadMode {
-		return c.readPool
+		return c.ReadPool
 	}
-	return c.writePool
+	return c.WritePool
 }

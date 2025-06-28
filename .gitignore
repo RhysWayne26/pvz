@@ -14,3 +14,9 @@ pvz/third_party
 pvz/logs
 
 pvz/.env
+
+pvz/coverage.html
+pvz/coverage.out
+
+pvz/allure-results/
+pvz/allure-report/

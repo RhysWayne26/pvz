@@ -8,8 +8,8 @@ var _ FacadeHandler = (*DefaultFacadeHandler)(nil)
 
 // DefaultFacadeHandler is the default implementation of the FacadeHandler interface.
 type DefaultFacadeHandler struct {
-	orderService   services.OrderService
-	historyService services.HistoryService
+	OrderService   services.OrderService
+	HistoryService services.HistoryService
 }
 
 // NewDefaultFacadeHandler constructs a new DefaultFacadeHandler with the provided services.
@@ -18,7 +18,7 @@ func NewDefaultFacadeHandler(
 	historySvc services.HistoryService,
 ) *DefaultFacadeHandler {
 	return &DefaultFacadeHandler{
-		orderService:   orderSvc,
-		historyService: historySvc,
+		OrderService:   orderSvc,
+		HistoryService: historySvc,
 	}
 }

@@ -21,19 +21,19 @@ var (
 
 // PGOrderRepository provides PostgreSQL-based persistence for OrderRepository.
 type PGOrderRepository struct {
-	db db.PGXClient
+	Db db.PGXClient
 }
 
 // NewPGOrderRepository initializes and returns a new instance of PGOrderRepository with the provided database client.
 func NewPGOrderRepository(db db.PGXClient) *PGOrderRepository {
 	return &PGOrderRepository{
-		db: db,
+		Db: db,
 	}
 }
 
 // Save persists the provided order in the database.
 func (r *PGOrderRepository) Save(ctx context.Context, order models.Order) error {
-	_, err := r.db.ExecCtx(
+	_, err := r.Db.ExecCtx(
 		ctx,
 		db.WriteMode,
 		queries.SaveOrderSQL,
@@ -53,7 +53,7 @@ func (r *PGOrderRepository) Save(ctx context.Context, order models.Order) error 
 // Load retrieves an order from the database by the given ID.
 func (r *PGOrderRepository) Load(ctx context.Context, id uint64) (models.Order, error) {
 	var order models.Order
-	err := pgxscan.Get(ctx, r.db, &order, queries.LoadOrderSQL, id)
+	err := pgxscan.Get(ctx, r.Db, &order, queries.LoadOrderSQL, id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return models.Order{}, ErrOrderNotFound
@@ -65,7 +65,7 @@ func (r *PGOrderRepository) Load(ctx context.Context, id uint64) (models.Order, 
 
 // Delete removes an order from the database identified by its ID.
 func (r *PGOrderRepository) Delete(ctx context.Context, id uint64) error {
-	res, err := r.db.ExecCtx(
+	res, err := r.Db.ExecCtx(
 		ctx, db.WriteMode,
 		queries.SoftDeleteOrderSQL,
 		id,
@@ -84,13 +84,13 @@ func (r *PGOrderRepository) Delete(ctx context.Context, id uint64) error {
 func (r *PGOrderRepository) List(ctx context.Context, filter requests.OrdersFilterRequest) ([]models.Order, int, error) {
 	sqlStr, args := queries.BuildFilterOrdersQuery(filter)
 	var orders []models.Order
-	err := pgxscan.Select(ctx, r.db, &orders, sqlStr, args...)
+	err := pgxscan.Select(ctx, r.Db, &orders, sqlStr, args...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list orders: %w", err)
 	}
 	countSQL, countArgs := queries.BuildCountOrdersQuery(filter)
 	var total int
-	err = pgxscan.Get(ctx, r.db, &total, countSQL, countArgs...)
+	err = pgxscan.Get(ctx, r.Db, &total, countSQL, countArgs...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("count orders: %w", err)
 	}

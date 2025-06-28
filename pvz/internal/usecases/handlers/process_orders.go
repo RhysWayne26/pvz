@@ -23,14 +23,14 @@ func (f *DefaultFacadeHandler) HandleProcessOrders(
 
 	switch req.Action {
 	case constants.ActionIssue:
-		results, err = f.orderService.IssueOrders(ctx,
+		results, err = f.OrderService.IssueOrders(ctx,
 			requests.IssueOrdersRequest{
 				UserID:   req.UserID,
 				OrderIDs: req.OrderIDs,
 			})
 
 	case constants.ActionReturn:
-		results, err = f.orderService.CreateClientReturns(ctx,
+		results, err = f.OrderService.CreateClientReturns(ctx,
 			requests.ClientReturnsRequest{
 				UserID:   req.UserID,
 				OrderIDs: req.OrderIDs,

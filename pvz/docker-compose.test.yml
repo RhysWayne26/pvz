@@ -1,0 +1,14 @@
+services:
+  postgres-test:
+    image: postgres:15-alpine
+    container_name: pvz-db-test
+    ports:
+      - "5455:5432"
+    environment:
+      POSTGRES_DB: pvz_test
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_pass
+    volumes:
+      - pg_test_data:/var/lib/postgresql/data
+volumes:
+  pg_test_data:
