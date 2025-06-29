@@ -3,10 +3,11 @@ MINIMOCK := go run github.com/gojuno/minimock/v3/cmd/minimock@$(MINIMOCK_VER)
 USECASES_MOCK_OUTPUT_DIR := internal/usecases/mocks
 MODULE := $(shell go list -m)
 ALLURE_CLI_VER := 2.25.0
-ALLURE_RESULTS := $(shell pwd)
-ALLURE_REPORT := $(shell pwd)
+ALLURE_RESULTS := $(shell pwd)/allure-results
+ALLURE_REPORT := $(shell pwd)/allure-report
 ALLURE_DIR := tools/allure
 ALLURE_BIN := $(ALLURE_DIR)/allure-$(ALLURE_CLI_VER)/bin/allure
+ALLURE_GO_VER := v0.6.34
 
 define gen_mock
 	@$(MINIMOCK) -i $(MODULE)/$1 -o $(MOCK_OUTPUT)/$2
@@ -66,43 +67,41 @@ cover/html: cover
 e2e/test:
 	@echo "running e2e tests with Allure output"
 	@mkdir -p $(ALLURE_RESULTS)
-	ALLURE_OUTPUT_PATH=$(ALLURE_RESULTS) go test -v ./tests/e2e
+	ALLURE_OUTPUT_PATH=$(shell pwd) go test -v ./tests/e2e
 
 .PHONY: int/test
 int/test: test/migrate-up
 	@echo "running integration tests with Allure output"
 	@mkdir -p $(ALLURE_RESULTS)
-	ALLURE_OUTPUT_PATH=$(ALLURE_RESULTS) go test -v ./tests/integration/...
+	ALLURE_OUTPUT_PATH=$(shell pwd) go test -v ./tests/integration/...
 
 
 .PHONY: allure/install
 allure/install:
-	@if ! command -v java >/dev/null 2>&1; then \
-		echo "Installing Java..."; \
-		sudo apt update && sudo apt install default-jre -y; \
-	fi
+	@echo "Installing Allure tools..."
+	@echo "allure-go library should be in go.mod dependencies"
 	@if [ ! -f $(ALLURE_BIN) ]; then \
-		echo "Installing Allure CLI v$(ALLURE_CLI_VER)..."; \
+		echo "Installing Allure CLI..."; \
 		mkdir -p $(ALLURE_DIR); \
-		cd $(ALLURE_DIR) && \
-		wget -q https://github.com/allure-framework/allure2/releases/download/$(ALLURE_CLI_VER)/allure-$(ALLURE_CLI_VER).tgz && \
-		tar -xzf allure-$(ALLURE_CLI_VER).tgz && \
-		rm allure-$(ALLURE_CLI_VER).tgz; \
-		echo "Allure CLI installed"; \
+		echo "Downloading Allure CLI $(ALLURE_CLI_VER)..."; \
+		curl -L "https://github.com/allure-framework/allure2/releases/download/$(ALLURE_CLI_VER)/allure-$(ALLURE_CLI_VER).tgz" | tar -xz -C $(ALLURE_DIR); \
+		echo "Allure CLI installed at $(ALLURE_BIN)"; \
 	else \
-		echo "Allure CLI already installed"; \
+		echo "Allure CLI already installed at $(ALLURE_BIN)"; \
 	fi
+	@echo "Allure tools ready"
 
 .PHONY: allure/report
 allure/report: allure/install
 	@echo "Generating Allure report..."
-	@$(ALLURE_BIN) generate $(ALLURE_RESULTS) --clean -o $(ALLURE_REPORT)
+	@mkdir -p $(ALLURE_REPORT)
+	@$(ALLURE_BIN) generate $(ALLURE_RESULTS) -o $(ALLURE_REPORT) --clean
 
 .PHONY: allure/open
 allure/open: allure/report
 	@echo "Opening Allure report..."
 	@$(ALLURE_BIN) open $(ALLURE_REPORT) || \
-		echo "Could not open browser. Report available at: $(ALLURE_REPORT)/index.html"
+		echo "Report generated at: $(ALLURE_REPORT)/index.html"
 
 .PHONY: test/all
 test/all: allure/install e2e/test int/test allure/report allure/open
