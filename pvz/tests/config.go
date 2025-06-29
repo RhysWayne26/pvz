@@ -1,32 +1,73 @@
 package tests
 
 import (
+	"context"
 	"fmt"
+	"github.com/jackc/pgx/v5/stdlib"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/ozontech/allure-go/pkg/framework/provider"
+	"github.com/pressly/goose/v3"
+	"github.com/stretchr/testify/require"
+	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/wait"
+	"pvz-cli/infrastructure/db"
+	"time"
 )
 
 const (
-	// TestDBName represents the name of the test database used during integration tests.
-	TestDBName = "pvz_test"
 
-	// TestDBUser specifies the username for the test database used during integration tests.
-	TestDBUser = "test_user"
+	// MigrationsDir specifies the relative path to the directory containing database migration files.
+	MigrationsDir = "../../../migrations"
 
-	// TestDBPassword specifies the password for the test database used during integration tests.
-	TestDBPassword = "test_pass"
-
-	// TestStandaloneDSN is used for standalone integration tests with local Docker DB
-	TestStandaloneDSN = "postgres://test_user:test_pass@localhost:5455/pvz_test?sslmode=disable"
-
+	// TruncateOrderSql defines the SQL query to truncate the `orders` table and reset its identity sequence.
 	TruncateOrderSql = `TRUNCATE orders RESTART IDENTITY CASCADE;`
 
 	// TruncateHistorySQL defines the SQL query to truncate the `order_history` table and reset its identity sequence.
 	TruncateHistorySQL = `TRUNCATE order_history RESTART IDENTITY CASCADE;`
 )
 
-// BuildDSN constructs a PostgreSQL DSN using the given host and port with test database credentials.
-// For tests only, not intended to be used in a project manually
-func BuildDSN(host, port string) string {
-	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
-		TestDBUser, TestDBPassword, host, port, TestDBName)
+// NewCommonDeps sets up and returns common dependencies including a PostgreSQL container, database client, and context.
+func NewCommonDeps(t provider.T) CommonDeps {
+	t.Helper()
+	ctx := context.Background()
+	req := testcontainers.ContainerRequest{
+		Image:        "postgres:15-alpine",
+		ExposedPorts: []string{"5432/tcp"},
+		Env: map[string]string{
+			"POSTGRES_PASSWORD": "password",
+			"POSTGRES_USER":     "testuser",
+			"POSTGRES_DB":       "testdb",
+		},
+		WaitingFor: wait.ForLog("listening on IPv4 address").
+			WithPollInterval(1 * time.Second).
+			WithStartupTimeout(10 * time.Second),
+	}
+	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ContainerRequest: req,
+		Started:          true,
+	})
+	require.NoError(t, err)
+	port, err := container.MappedPort(ctx, "5432")
+	require.NoError(t, err)
+	dsn := fmt.Sprintf("postgres://testuser:password@localhost:%s/testdb?sslmode=disable", port.Port())
+	client, err := db.NewDefaultPGXClient(dsn, dsn)
+	require.NoError(t, err)
+	sqlDB := stdlib.OpenDBFromPool(client.WritePool)
+	err = goose.SetDialect("postgres")
+	require.NoError(t, err)
+	err = goose.Up(sqlDB, MigrationsDir)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_ = container.Terminate(ctx)
+	})
+	return CommonDeps{
+		Ctx:    ctx,
+		Client: client,
+	}
+}
+
+// CommonDeps defines core dependencies including a context and a database client for executing queries and transactions.
+type CommonDeps struct {
+	Ctx    context.Context
+	Client db.PGXClient
 }

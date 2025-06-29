@@ -144,6 +144,20 @@ func TestPGHistoryRepository_List(t *testing.T) {
 	r.RunTests()
 }
 
+func newHistoryDeps(t provider.T) historyDeps {
+	commonDeps := tests.NewCommonDeps(t)
+	ctx := commonDeps.Ctx
+	client := commonDeps.Client
+	repo := repositories.NewPGHistoryRepository(client)
+	_, _ = client.ExecCtx(ctx, db.WriteMode, tests.TruncateHistorySQL)
+	_, _ = client.ExecCtx(ctx, db.WriteMode, tests.TruncateOrderSql)
+	return historyDeps{
+		ctx:    ctx,
+		client: client,
+		repo:   repo,
+	}
+}
+
 func (deps historyDeps) createOrder(t provider.T, orderID uint64) {
 	t.Helper()
 	_, err := deps.client.ExecCtx(deps.ctx, db.WriteMode,
@@ -157,23 +171,4 @@ type historyDeps struct {
 	ctx    context.Context
 	client db.PGXClient
 	repo   *repositories.PGHistoryRepository
-}
-
-func newHistoryDeps(t provider.T) historyDeps {
-	t.Helper()
-	ctx := context.Background()
-	dsn := tests.TestStandaloneDSN
-	client, err := db.NewDefaultPGXClient(dsn, dsn)
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		_ = client.Close()
-	})
-	repo := repositories.NewPGHistoryRepository(client)
-	_, _ = client.ExecCtx(ctx, db.WriteMode, tests.TruncateHistorySQL)
-	_, _ = client.ExecCtx(ctx, db.WriteMode, tests.TruncateOrderSql)
-	return historyDeps{
-		ctx:    ctx,
-		client: client,
-		repo:   repo,
-	}
 }

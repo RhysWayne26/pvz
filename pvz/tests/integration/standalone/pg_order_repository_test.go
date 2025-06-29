@@ -18,6 +18,7 @@ import (
 
 // TestPGOrderRepository_SaveAndLoad validates the saving and loading functionality of the PGOrderRepository implementation.
 func TestPGOrderRepository_SaveAndLoad(t *testing.T) {
+	t.Parallel()
 	r := runner.NewRunner(t, "PGOrderRepository: Save and Load")
 	const (
 		orderID uint64 = 1001
@@ -56,6 +57,7 @@ func TestPGOrderRepository_SaveAndLoad(t *testing.T) {
 
 // TestPGOrderRepository_Delete validates the delete functionality of the PGOrderRepository by checking proper deletion of an order.
 func TestPGOrderRepository_Delete(t *testing.T) {
+	t.Parallel()
 	r := runner.NewRunner(t, "PGOrderRepository: Delete")
 	const orderID uint64 = 2001
 
@@ -94,6 +96,7 @@ func TestPGOrderRepository_Delete(t *testing.T) {
 
 // TestPGOrderRepository_List validates the functionality of the List method in PGOrderRepository with different filter scenarios.
 func TestPGOrderRepository_List(t *testing.T) {
+	t.Parallel()
 	r := runner.NewRunner(t, "PGOrderRepository: List")
 	r.NewTest("List with filters", func(t provider.T) {
 		deps := newOrderDeps(t)
@@ -156,25 +159,22 @@ func TestPGOrderRepository_List(t *testing.T) {
 	r.RunTests()
 }
 
-type orderDeps struct {
-	ctx    context.Context
-	client db.PGXClient
-	repo   *repositories.PGOrderRepository
-}
-
 func newOrderDeps(t provider.T) orderDeps {
-	t.Helper()
-	ctx := context.Background()
-	dsn := tests.TestStandaloneDSN
-	client, err := db.NewDefaultPGXClient(dsn, dsn)
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		_ = client.Close()
-	})
+	commonDeps := tests.NewCommonDeps(t)
+	ctx := commonDeps.Ctx
+	client := commonDeps.Client
 	repo := repositories.NewPGOrderRepository(client)
+	_, _ = client.ExecCtx(ctx, db.WriteMode, tests.TruncateHistorySQL)
+	_, _ = client.ExecCtx(ctx, db.WriteMode, tests.TruncateOrderSql)
 	return orderDeps{
 		ctx:    ctx,
 		client: client,
 		repo:   repo,
 	}
+}
+
+type orderDeps struct {
+	ctx    context.Context
+	client db.PGXClient
+	repo   *repositories.PGOrderRepository
 }

@@ -70,7 +70,7 @@ e2e/test:
 	ALLURE_OUTPUT_PATH=$(shell pwd) go test -v ./tests/e2e
 
 .PHONY: int/test
-int/test: test/migrate-up
+int/test:
 	@echo "running integration tests with Allure output"
 	@mkdir -p $(ALLURE_RESULTS)
 	ALLURE_OUTPUT_PATH=$(shell pwd) go test -v ./tests/integration/...
