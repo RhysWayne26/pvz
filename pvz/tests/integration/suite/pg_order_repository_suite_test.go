@@ -16,10 +16,12 @@ import (
 	"pvz-cli/tests"
 )
 
+// PGOrderRepositorySuite is a testing suite for verifying the functionality of the PGOrderRepository implementation.
 type PGOrderRepositorySuite struct {
 	suite.Suite
 }
 
+// TestPGOrderRepositorySuite runs the test suite for the PGOrderRepository to ensure its methods function correctly.
 func TestPGOrderRepositorySuite(t *testing.T) {
 	t.Parallel()
 	suite.RunSuite(t, new(PGOrderRepositorySuite))
@@ -27,7 +29,6 @@ func TestPGOrderRepositorySuite(t *testing.T) {
 
 // TestSaveAndLoad validates the saving and loading functionality of the PGOrderRepository implementation.
 func (s *PGOrderRepositorySuite) TestSaveAndLoad(t provider.T) {
-	t.Parallel()
 	const (
 		orderID uint64 = 1001
 		userID  uint64 = 1
@@ -60,7 +61,6 @@ func (s *PGOrderRepositorySuite) TestSaveAndLoad(t provider.T) {
 
 // TestDelete validates the delete functionality of the PGOrderRepository by checking proper deletion of an order.
 func (s *PGOrderRepositorySuite) TestDelete(t provider.T) {
-	t.Parallel()
 	const orderID uint64 = 2001
 	deps := s.newOrderDeps(t)
 	t.WithNewStep("Setup: create order", func(ctx provider.StepCtx) {
@@ -90,7 +90,6 @@ func (s *PGOrderRepositorySuite) TestDelete(t provider.T) {
 
 // TestList validates the functionality of the List method in PGOrderRepository with different filter scenarios.
 func (s *PGOrderRepositorySuite) TestList(t provider.T) {
-	t.Parallel()
 	deps := s.newOrderDeps(t)
 	cases := []struct {
 		orderID uint64
@@ -137,7 +136,6 @@ func (s *PGOrderRepositorySuite) TestList(t provider.T) {
 
 // TestUpdate validates the update functionality of the PGOrderRepository.
 func (s *PGOrderRepositorySuite) TestUpdate(t provider.T) {
-	t.Parallel()
 	const orderID uint64 = 4001
 	deps := s.newOrderDeps(t)
 	t.WithNewStep("Setup: create order", func(ctx provider.StepCtx) {
@@ -184,7 +182,6 @@ func (s *PGOrderRepositorySuite) TestUpdate(t provider.T) {
 
 // TestListPagination validates the pagination functionality of the List method.
 func (s *PGOrderRepositorySuite) TestListPagination(t provider.T) {
-	t.Parallel()
 	deps := s.newOrderDeps(t)
 
 	t.WithNewStep("Setup: create multiple orders", func(ctx provider.StepCtx) {
