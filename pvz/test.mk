@@ -13,9 +13,7 @@ test/tools/install:
 	@GOBIN=$(BIN_DIR) go install github.com/gojuno/minimock/v3/cmd/minimock@$(MINIMOCK_VER)
 
 .PHONY: mocks/generate
-mocks/generate: test/tools/install
-	@echo "Cleaning existing mocks..."
-	@find . -path '*/mocks/*.go' -type f -delete 2>/dev/null || true
+mocks/generate: test/tools/install mocks/clean
 	@echo "Generating mocks using go generate..."
 	@PATH="$(BIN_DIR):${PATH}" go generate ./...
 
@@ -51,7 +49,7 @@ cover/html: cover
 e2e/test:
 	@echo "running e2e tests with Allure output"
 	@mkdir -p $(ALLURE_RESULTS)
-	ALLURE_OUTPUT_PATH=$(shell pwd) go test -v -tags=e2e -v ./tests/e2e
+	ALLURE_OUTPUT_PATH=$(shell pwd) go test -v -tags=e2e -v ./tests/e2e/...
 
 .PHONY: int/test
 int/test:
@@ -87,5 +85,5 @@ allure/open: allure/report
 	@$(ALLURE_BIN) open $(ALLURE_REPORT) || \
 		echo "Report generated at: $(ALLURE_REPORT)/index.html"
 
-.PHONY: test/all
-test/all: allure/install e2e/test int/test allure/report allure/open
+.PHONY: all/test
+all/test: allure/install e2e/test int/test allure/report allure/open

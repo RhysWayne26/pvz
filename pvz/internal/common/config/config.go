@@ -37,6 +37,9 @@ func Load() *Config {
 	if err := godotenv.Load(); err != nil {
 		slog.Warn("failed to load .env, falling back to real environment", "error", err)
 	}
+	if os.Getenv("APP_ENV") == "test" {
+		return loadTestConfig()
+	}
 	flag.Parse()
 	mode := strings.TrimSpace(os.Getenv("STORAGE_MODE"))
 	switch mode {
@@ -87,4 +90,18 @@ func loadFileConfig() *FileConfig {
 		path = constants.DefaultFileStoragePath
 	}
 	return &FileConfig{Path: path}
+}
+
+func loadTestConfig() *Config {
+	testDSN := strings.TrimSpace(os.Getenv("TEST_DB_DSN"))
+	if testDSN == "" {
+		slog.Error("TEST_DB_DSN required when APP_ENV=test")
+		os.Exit(1)
+	}
+	return &Config{
+		DB: &DBConfig{
+			WriteDSN: testDSN,
+			ReadDSN:  testDSN,
+		},
+	}
 }

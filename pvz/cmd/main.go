@@ -42,7 +42,8 @@ func main() {
 	var wg sync.WaitGroup
 	wg.Add(4)
 
-	go app.StartGRPCServer(application, &wg)
+	grpcPort := os.Getenv("GRPC_PORT")
+	go app.StartGRPCServer(application, grpcPort, &wg)
 	go app.StartHTTPGateway(application, &wg)
 	go app.StartSwaggerUI(application, &wg)
 	go app.StartCLI(application, &wg)

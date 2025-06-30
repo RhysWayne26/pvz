@@ -1,4 +1,4 @@
-//go:build integration
+//go:build integration || e2e
 
 package tests
 
@@ -65,6 +65,7 @@ func NewCommonDeps(t provider.T) CommonDeps {
 	return CommonDeps{
 		Ctx:    ctx,
 		Client: client,
+		DSN:    dsn,
 	}
 }
 
@@ -72,4 +73,9 @@ func NewCommonDeps(t provider.T) CommonDeps {
 type CommonDeps struct {
 	Ctx    context.Context
 	Client db.PGXClient
+	DSN    string
+}
+
+func (d *CommonDeps) GetDSN() string {
+	return d.DSN
 }
