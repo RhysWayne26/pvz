@@ -1,23 +1,22 @@
-package validators_test
+package validators
 
 import (
 	"github.com/stretchr/testify/require"
-	"pvz-cli/internal/usecases/builders"
+	"pvz-cli/pkg/clock"
+	"pvz-cli/tests/builders"
 	"testing"
 	"time"
 
 	"pvz-cli/internal/common/apperrors"
-	"pvz-cli/internal/common/clock"
 	"pvz-cli/internal/common/constants"
 	"pvz-cli/internal/models"
 	"pvz-cli/internal/usecases/requests"
-	"pvz-cli/internal/usecases/services/validators"
 )
 
 // TestDefaultOrderValidator_ValidateAccept tests the ValidateAccept function of DefaultOrderValidator for various scenarios.
 func TestDefaultOrderValidator_ValidateAccept(t *testing.T) {
 	clk := &clock.FakeClock{}
-	v := validators.NewDefaultOrderValidator(clk)
+	v := NewDefaultOrderValidator(clk)
 	now := clk.Now()
 	tests := []struct {
 		name      string
@@ -66,7 +65,7 @@ func TestDefaultOrderValidator_ValidateAccept(t *testing.T) {
 // TestDefaultOrderValidator_ValidateIssue tests the ValidateIssue method of DefaultOrderValidator for various input scenarios.
 func TestDefaultOrderValidator_ValidateIssue(t *testing.T) {
 	clk := &clock.FakeClock{}
-	v := validators.NewDefaultOrderValidator(clk)
+	v := NewDefaultOrderValidator(clk)
 	now := clk.Now()
 	baseOrder := models.Order{
 		OrderID:   1,
@@ -144,7 +143,7 @@ func TestDefaultOrderValidator_ValidateIssue(t *testing.T) {
 // TestDefaultOrderValidator_ValidateClientReturn tests the validation logic for client return requests.
 func TestDefaultOrderValidator_ValidateClientReturn(t *testing.T) {
 	clk := &clock.FakeClock{}
-	v := validators.NewDefaultOrderValidator(clk)
+	v := NewDefaultOrderValidator(clk)
 	now := clk.Now()
 	baseOrder := builders.NewOrderBuilder(clk).
 		WithID(2).
@@ -223,7 +222,7 @@ func TestDefaultOrderValidator_ValidateClientReturn(t *testing.T) {
 
 func TestDefaultOrderValidator_ValidateReturnToCourier(t *testing.T) {
 	clk := &clock.FakeClock{}
-	v := validators.NewDefaultOrderValidator(clk)
+	v := NewDefaultOrderValidator(clk)
 	now := clk.Now()
 	tests := []struct {
 		name      string
@@ -233,8 +232,7 @@ func TestDefaultOrderValidator_ValidateReturnToCourier(t *testing.T) {
 	}{
 		{
 			name: "already returned",
-			order: builders.
-				NewOrderBuilder(clk).
+			order: builders.NewOrderBuilder(clk).
 				WithStatus(models.Returned).
 				Build(),
 			expectErr: false,
@@ -242,8 +240,7 @@ func TestDefaultOrderValidator_ValidateReturnToCourier(t *testing.T) {
 		},
 		{
 			name: "issued",
-			order: builders.
-				NewOrderBuilder(clk).
+			order: builders.NewOrderBuilder(clk).
 				WithID(3).
 				WithStatus(models.Issued).
 				Build(),
@@ -252,8 +249,7 @@ func TestDefaultOrderValidator_ValidateReturnToCourier(t *testing.T) {
 		},
 		{
 			name: "not expired",
-			order: builders.
-				NewOrderBuilder(clk).
+			order: builders.NewOrderBuilder(clk).
 				WithID(4).
 				WithStatus(models.Accepted).
 				WithExpiresAt(now.Add(time.Hour)).
@@ -263,8 +259,7 @@ func TestDefaultOrderValidator_ValidateReturnToCourier(t *testing.T) {
 		},
 		{
 			name: "expired",
-			order: builders.
-				NewOrderBuilder(clk).
+			order: builders.NewOrderBuilder(clk).
 				WithID(5).
 				WithStatus(models.Accepted).
 				WithExpiresAt(now.Add(-time.Hour)).

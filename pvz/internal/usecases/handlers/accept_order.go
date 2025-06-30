@@ -12,7 +12,7 @@ func (f *DefaultFacadeHandler) HandleAcceptOrder(ctx context.Context, req reques
 		return responses.AcceptOrderResponse{}, ctx.Err()
 	}
 
-	order, err := f.OrderService.AcceptOrder(ctx, req)
+	order, err := f.orderService.AcceptOrder(ctx, req)
 	if err != nil {
 		return responses.AcceptOrderResponse{}, err
 	}

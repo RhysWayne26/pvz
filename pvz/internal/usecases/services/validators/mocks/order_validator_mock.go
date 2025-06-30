@@ -2,8 +2,6 @@
 
 package mocks
 
-//go:generate minimock -i pvz-cli/internal/usecases/services/validators.OrderValidator -o order_validator_mock.go -n OrderValidatorMock -p mocks
-
 import (
 	"pvz-cli/internal/models"
 	"pvz-cli/internal/usecases/requests"

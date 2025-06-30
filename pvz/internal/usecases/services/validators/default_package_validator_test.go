@@ -1,4 +1,4 @@
-package validators_test
+package validators
 
 import (
 	"github.com/stretchr/testify/require"
@@ -6,12 +6,11 @@ import (
 
 	"pvz-cli/internal/common/apperrors"
 	"pvz-cli/internal/models"
-	"pvz-cli/internal/usecases/services/validators"
 )
 
 // TestDefaultPackageValidator_Validate tests the validation logic of DefaultPackageValidator for various package types and weights.
 func TestDefaultPackageValidator_Validate(t *testing.T) {
-	v := validators.NewDefaultPackageValidator()
+	v := NewDefaultPackageValidator()
 	tests := []struct {
 		name      string
 		pkg       models.PackageType

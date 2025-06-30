@@ -1,8 +1,8 @@
-package services_test
+package services
 
 import (
-	"pvz-cli/internal/usecases/mocks"
-	"pvz-cli/internal/usecases/services"
+	"pvz-cli/internal/usecases/services/strategies/mocks"
+	valmocks "pvz-cli/internal/usecases/services/validators/mocks"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -13,9 +13,9 @@ import (
 // TestDefaultPackagePricingService_Evaluate_Success tests that the Evaluate method calculates the correct total price.
 func TestDefaultPackagePricingService_Evaluate_Success(t *testing.T) {
 	t.Parallel()
-	v := mocks.NewPackageValidatorMock(t)
+	v := valmocks.NewPackageValidatorMock(t)
 	s := mocks.NewPricingStrategyMock(t)
-	svc := services.NewDefaultPackagePricingService(v, s)
+	svc := NewDefaultPackagePricingService(v, s)
 	pkg := models.PackageBox
 	weight, price := float32(2), float32(100)
 	surcharge := float32(25)
@@ -29,9 +29,9 @@ func TestDefaultPackagePricingService_Evaluate_Success(t *testing.T) {
 // TestDefaultPackagePricingService_Evaluate_ValidationError verifies that a validation error is returned when validation fails.
 func TestDefaultPackagePricingService_Evaluate_ValidationError(t *testing.T) {
 	t.Parallel()
-	v := mocks.NewPackageValidatorMock(t)
+	v := valmocks.NewPackageValidatorMock(t)
 	s := mocks.NewPricingStrategyMock(t)
-	svc := services.NewDefaultPackagePricingService(v, s)
+	svc := NewDefaultPackagePricingService(v, s)
 	pkg := models.PackageBox
 	weight, price := float32(100), float32(100)
 	vErr := apperrors.Newf(apperrors.ValidationFailed, "too heavy")
@@ -46,7 +46,7 @@ func TestDefaultPackagePricingService_Evaluate_ValidationError(t *testing.T) {
 // TestDefaultPackagePricingService_Evaluate_InvalidParams verifies Evaluate method handles invalid inputs correctly.
 func TestDefaultPackagePricingService_Evaluate_InvalidParams(t *testing.T) {
 	t.Parallel()
-	svc := services.NewDefaultPackagePricingService(nil, nil)
+	svc := NewDefaultPackagePricingService(nil, nil)
 	cases := []struct {
 		name   string
 		weight float32

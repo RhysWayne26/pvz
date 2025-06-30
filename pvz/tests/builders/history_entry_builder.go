@@ -1,8 +1,8 @@
 package builders
 
 import (
-	"pvz-cli/internal/common/clock"
 	"pvz-cli/internal/models"
+	"pvz-cli/pkg/clock"
 	"time"
 )
 

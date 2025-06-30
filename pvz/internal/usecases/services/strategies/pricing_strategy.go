@@ -1,3 +1,4 @@
+//go:generate minimock -g -i * -o mocks -s "_mock.go"
 package strategies
 
 import "pvz-cli/internal/models"

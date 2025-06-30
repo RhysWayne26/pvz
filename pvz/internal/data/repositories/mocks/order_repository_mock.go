@@ -2,8 +2,6 @@
 
 package mocks
 
-//go:generate minimock -i pvz-cli/internal/data/repositories.OrderRepository -o order_repository_mock.go -n OrderRepositoryMock -p mocks
-
 import (
 	"context"
 	"pvz-cli/internal/models"

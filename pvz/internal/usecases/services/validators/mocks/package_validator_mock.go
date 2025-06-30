@@ -2,8 +2,6 @@
 
 package mocks
 
-//go:generate minimock -i pvz-cli/internal/usecases/services/validators.PackageValidator -o package_validator_mock.go -n PackageValidatorMock -p mocks
-
 import (
 	"pvz-cli/internal/models"
 	"sync"

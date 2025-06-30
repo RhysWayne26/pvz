@@ -1,9 +1,12 @@
-package e2e_test
+//go:build e2e
+
+package e2e
 
 import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"pvz-cli/pkg/clock"
 	"testing"
 	"time"
 
@@ -11,7 +14,6 @@ import (
 	"github.com/ozontech/allure-go/pkg/framework/runner"
 	"github.com/stretchr/testify/require"
 
-	"pvz-cli/internal/common/clock"
 	"pvz-cli/internal/data/repositories"
 	"pvz-cli/internal/data/storage"
 	"pvz-cli/internal/models"

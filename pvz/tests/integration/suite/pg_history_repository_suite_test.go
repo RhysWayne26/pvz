@@ -1,4 +1,6 @@
-package suite_test
+//go:build integration
+
+package suite
 
 import (
 	"context"

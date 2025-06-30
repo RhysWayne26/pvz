@@ -1,12 +1,12 @@
-package services_test
+package services
 
 import (
 	"context"
 	"errors"
-	"pvz-cli/internal/common/clock"
 	"pvz-cli/internal/common/utils"
-	"pvz-cli/internal/usecases/builders"
-	"pvz-cli/internal/usecases/mocks"
+	"pvz-cli/internal/data/repositories/mocks"
+	"pvz-cli/pkg/clock"
+	"pvz-cli/tests/builders"
 	"testing"
 	"time"
 
@@ -14,16 +14,14 @@ import (
 	"pvz-cli/internal/common/apperrors"
 	"pvz-cli/internal/models"
 	"pvz-cli/internal/usecases/requests"
-	"pvz-cli/internal/usecases/services"
 )
-
-var clkForHistory = &clock.FakeClock{}
 
 // TestDefaultHistoryService_Record_Success verifies that the Record method of DefaultHistoryService saves an entry successfully.
 func TestDefaultHistoryService_Record_Success(t *testing.T) {
 	t.Parallel()
+	clkForHistory := &clock.FakeClock{}
 	mockRepo := mocks.NewHistoryRepositoryMock(t)
-	svc := services.NewDefaultHistoryService(mockRepo)
+	svc := NewDefaultHistoryService(mockRepo)
 	ctx := context.Background()
 	entry := builders.NewHistoryEntryBuilder(clkForHistory).
 		WithOrderID(52).
@@ -37,8 +35,9 @@ func TestDefaultHistoryService_Record_Success(t *testing.T) {
 // TestDefaultHistoryService_Record_SaveFails verifies behavior when saving a history record fails due to repository error.
 func TestDefaultHistoryService_Record_SaveFails(t *testing.T) {
 	t.Parallel()
+	clkForHistory := &clock.FakeClock{}
 	mockRepo := mocks.NewHistoryRepositoryMock(t)
-	svc := services.NewDefaultHistoryService(mockRepo)
+	svc := NewDefaultHistoryService(mockRepo)
 	ctx := context.Background()
 	entry := builders.NewHistoryEntryBuilder(clkForHistory).
 		WithOrderID(52).
@@ -121,7 +120,7 @@ func TestDefaultHistoryService_List(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			mockRepo := mocks.NewHistoryRepositoryMock(t)
-			svc := services.NewDefaultHistoryService(mockRepo)
+			svc := NewDefaultHistoryService(mockRepo)
 			var ctx context.Context
 			if tc.wantPlainErr {
 				var cancel context.CancelFunc
@@ -152,6 +151,7 @@ func TestDefaultHistoryService_List(t *testing.T) {
 }
 
 func entry(orderID uint64, event models.EventType, offset time.Duration) models.HistoryEntry {
+	clkForHistory := &clock.FakeClock{}
 	return builders.NewHistoryEntryBuilder(clkForHistory).
 		WithOrderID(orderID).
 		WithEvent(event).

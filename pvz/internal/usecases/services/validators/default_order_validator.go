@@ -2,10 +2,10 @@ package validators
 
 import (
 	"pvz-cli/internal/common/apperrors"
-	"pvz-cli/internal/common/clock"
 	"pvz-cli/internal/common/constants"
 	"pvz-cli/internal/models"
 	"pvz-cli/internal/usecases/requests"
+	"pvz-cli/pkg/clock"
 )
 
 var _ OrderValidator = (*DefaultOrderValidator)(nil)

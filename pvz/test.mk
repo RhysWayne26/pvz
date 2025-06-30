@@ -1,54 +1,38 @@
 MINIMOCK_VER := v3.4.5
-MINIMOCK := go run github.com/gojuno/minimock/v3/cmd/minimock@$(MINIMOCK_VER)
-USECASES_MOCK_OUTPUT_DIR := internal/usecases/mocks
-MODULE := $(shell go list -m)
 ALLURE_CLI_VER := 2.25.0
 ALLURE_RESULTS := $(shell pwd)/allure-results
 ALLURE_REPORT := $(shell pwd)/allure-report
 ALLURE_DIR := tools/allure
 ALLURE_BIN := $(ALLURE_DIR)/allure-$(ALLURE_CLI_VER)/bin/allure
-ALLURE_GO_VER := v0.6.34
+BIN_DIR := $(shell pwd)/tools/bin
 
-define gen_mock
-	@$(MINIMOCK) -i $(MODULE)/$1 -o $(MOCK_OUTPUT)/$2
-endef
+.PHONY: test/tools/install
+test/tools/install:
+	@echo "Installing minimock to $(BIN_DIR)"
+	@mkdir -p $(BIN_DIR)
+	@GOBIN=$(BIN_DIR) go install github.com/gojuno/minimock/v3/cmd/minimock@$(MINIMOCK_VER)
 
-.PHONY: mocks mocks/generate
-mocks/generate:
-	@echo "generating minimock interfaces into $(USECASES_MOCK_OUTPUT_DIR)"
-	mkdir -p $(USECASES_MOCK_OUTPUT_DIR)
-	$(eval MOCK_OUTPUT := $(USECASES_MOCK_OUTPUT_DIR))
-
-	# Repositories
-	$(call gen_mock,internal/data/repositories.HistoryRepository,history_repository_mock.go)
-	$(call gen_mock,internal/data/repositories.OrderRepository,order_repository_mock.go)
-
-	# Validators
-	$(call gen_mock,internal/usecases/services/validators.OrderValidator,order_validator_mock.go)
-	$(call gen_mock,internal/usecases/services/validators.PackageValidator,package_validator_mock.go)
-
-	# Strategies
-	$(call gen_mock,internal/usecases/services/strategies.PricingStrategy,pricing_strategy_mock.go)
-
-	# Services
-	$(call gen_mock,internal/usecases/services.OrderService,order_service_mock.go)
-	$(call gen_mock,internal/usecases/services.HistoryService,history_service_mock.go)
-	$(call gen_mock,internal/usecases/services.PackagePricingService,package_pricing_service_mock.go)
+.PHONY: mocks/generate
+mocks/generate: test/tools/install
+	@echo "Cleaning existing mocks..."
+	@find . -path '*/mocks/*.go' -type f -delete 2>/dev/null || true
+	@echo "Generating mocks using go generate..."
+	@PATH="$(BIN_DIR):${PATH}" go generate ./...
 
 mocks: mocks/generate
 
 .PHONY: mocks/clean
 mocks/clean:
-	@echo "cleaning mocks from $(USECASES_MOCK_OUTPUT_DIR)"
-	rm -f $(USECASES_MOCK_OUTPUT_DIR)/*_mock.go
+	@echo "cleaning all mock files"
+	@find . -path '*/mocks/*.go' -type f -delete 2>/dev/null || true
 
 COVER_PKGS := $(shell \
-	go list ./internal/usecases/... \
-	| grep -v /mocks \
-	| grep -v /requests \
-	| grep -v /responses \
-	| grep -v /strategies \
-	| grep -v /builders \
+    go list ./internal/usecases/... \
+    | grep -v /mocks \
+    | grep -v /requests \
+    | grep -v /responses \
+    | grep -v /strategies \
+    | grep -v /builders \
 )
 
 .PHONY: cover
@@ -67,13 +51,13 @@ cover/html: cover
 e2e/test:
 	@echo "running e2e tests with Allure output"
 	@mkdir -p $(ALLURE_RESULTS)
-	ALLURE_OUTPUT_PATH=$(shell pwd) go test -v ./tests/e2e
+	ALLURE_OUTPUT_PATH=$(shell pwd) go test -v -tags=e2e -v ./tests/e2e
 
 .PHONY: int/test
 int/test:
 	@echo "running integration tests with Allure output"
 	@mkdir -p $(ALLURE_RESULTS)
-	ALLURE_OUTPUT_PATH=$(shell pwd) go test -v ./tests/integration/...
+	ALLURE_OUTPUT_PATH=$(shell pwd) go test -v -tags=integration -v ./tests/integration/...
 
 
 .PHONY: allure/install

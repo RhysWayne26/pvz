@@ -4,7 +4,6 @@ import (
 	"log/slog"
 	"os"
 	"pvz-cli/infrastructure/db"
-	"pvz-cli/internal/common/clock"
 	"pvz-cli/internal/common/config"
 	"pvz-cli/internal/data/repositories"
 	"pvz-cli/internal/data/storage"
@@ -12,6 +11,7 @@ import (
 	"pvz-cli/internal/usecases/services"
 	"pvz-cli/internal/usecases/services/strategies"
 	"pvz-cli/internal/usecases/services/validators"
+	"pvz-cli/pkg/clock"
 	"time"
 )
 

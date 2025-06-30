@@ -1,15 +1,14 @@
-package handlers_test
+package handlers
 
 import (
 	"context"
 	"errors"
-	"pvz-cli/internal/usecases/services"
+	svcmocks "pvz-cli/internal/usecases/services/mocks"
+	"pvz-cli/internal/usecases/services/shared"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"pvz-cli/internal/models"
-	"pvz-cli/internal/usecases/handlers"
-	"pvz-cli/internal/usecases/mocks"
 	"pvz-cli/internal/usecases/requests"
 	"pvz-cli/internal/usecases/responses"
 )
@@ -21,7 +20,7 @@ func TestDefaultFacadeHandler_HandleAcceptOrder_ContextCanceled(t *testing.T) {
 	t.Parallel()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	h := handlers.NewDefaultFacadeHandler(mocks.NewOrderServiceMock(t), nil)
+	h := NewDefaultFacadeHandler(svcmocks.NewOrderServiceMock(t), nil)
 	_, err := h.HandleAcceptOrder(ctx, requests.AcceptOrderRequest{OrderID: 5})
 	require.ErrorIs(t, err, context.Canceled)
 }
@@ -32,7 +31,7 @@ func TestDefaultFacadeHandler_HandleListOrders(t *testing.T) {
 	ctx := context.Background()
 	cases := []struct {
 		name      string
-		setup     func(t *testing.T) handlers.FacadeHandler
+		setup     func(t *testing.T) FacadeHandler
 		ctx       context.Context
 		expectErr error
 		wantResp  responses.ListOrdersResponse
@@ -44,29 +43,29 @@ func TestDefaultFacadeHandler_HandleListOrders(t *testing.T) {
 				cancel()
 				return cctx
 			}(),
-			setup: func(t *testing.T) handlers.FacadeHandler {
-				return handlers.NewDefaultFacadeHandler(mocks.NewOrderServiceMock(t), nil)
+			setup: func(t *testing.T) FacadeHandler {
+				return NewDefaultFacadeHandler(svcmocks.NewOrderServiceMock(t), nil)
 			},
 			expectErr: context.Canceled,
 		},
 		{
 			name: "service error",
 			ctx:  ctx,
-			setup: func(t *testing.T) handlers.FacadeHandler {
-				svc := mocks.NewOrderServiceMock(t)
+			setup: func(t *testing.T) FacadeHandler {
+				svc := svcmocks.NewOrderServiceMock(t)
 				svc.ListOrdersMock.Expect(ctx, requests.OrdersFilterRequest{}).Return(nil, 0, 0, errListFail)
-				return handlers.NewDefaultFacadeHandler(svc, nil)
+				return NewDefaultFacadeHandler(svc, nil)
 			},
 			expectErr: errListFail,
 		},
 		{
 			name: "success",
 			ctx:  ctx,
-			setup: func(t *testing.T) handlers.FacadeHandler {
-				svc := mocks.NewOrderServiceMock(t)
+			setup: func(t *testing.T) FacadeHandler {
+				svc := svcmocks.NewOrderServiceMock(t)
 				svc.ListOrdersMock.Expect(ctx, requests.OrdersFilterRequest{}).
 					Return([]models.Order{{OrderID: 10}}, 10, 1, nil)
-				return handlers.NewDefaultFacadeHandler(svc, nil)
+				return NewDefaultFacadeHandler(svc, nil)
 			},
 			wantResp: responses.ListOrdersResponse{
 				Orders: []models.Order{{OrderID: 10}},
@@ -98,7 +97,7 @@ func TestDefaultFacadeHandler_HandleOrderHistory(t *testing.T) {
 	ctx := context.Background()
 	cases := []struct {
 		name      string
-		setup     func(t *testing.T) handlers.FacadeHandler
+		setup     func(t *testing.T) FacadeHandler
 		ctx       context.Context
 		expectErr error
 		wantResp  responses.OrderHistoryResponse
@@ -110,28 +109,28 @@ func TestDefaultFacadeHandler_HandleOrderHistory(t *testing.T) {
 				cancel()
 				return cctx
 			}(),
-			setup: func(t *testing.T) handlers.FacadeHandler {
-				return handlers.NewDefaultFacadeHandler(nil, mocks.NewHistoryServiceMock(t))
+			setup: func(t *testing.T) FacadeHandler {
+				return NewDefaultFacadeHandler(nil, svcmocks.NewHistoryServiceMock(t))
 			},
 			expectErr: context.Canceled,
 		},
 		{
 			name: "service error",
 			ctx:  ctx,
-			setup: func(t *testing.T) handlers.FacadeHandler {
-				hsvc := mocks.NewHistoryServiceMock(t)
+			setup: func(t *testing.T) FacadeHandler {
+				hsvc := svcmocks.NewHistoryServiceMock(t)
 				hsvc.ListMock.Expect(ctx, requests.OrderHistoryFilter{}).Return(nil, errListFail)
-				return handlers.NewDefaultFacadeHandler(nil, hsvc)
+				return NewDefaultFacadeHandler(nil, hsvc)
 			},
 			expectErr: errListFail,
 		},
 		{
 			name: "success",
 			ctx:  ctx,
-			setup: func(t *testing.T) handlers.FacadeHandler {
-				hsvc := mocks.NewHistoryServiceMock(t)
+			setup: func(t *testing.T) FacadeHandler {
+				hsvc := svcmocks.NewHistoryServiceMock(t)
 				hsvc.ListMock.Expect(ctx, requests.OrderHistoryFilter{}).Return([]models.HistoryEntry{{OrderID: 5}}, nil)
-				return handlers.NewDefaultFacadeHandler(nil, hsvc)
+				return NewDefaultFacadeHandler(nil, hsvc)
 			},
 			wantResp: responses.OrderHistoryResponse{History: []models.HistoryEntry{{OrderID: 5}}},
 		},
@@ -160,7 +159,7 @@ func TestDefaultFacadeHandler_HandleReturnOrder(t *testing.T) {
 
 	cases := []struct {
 		name      string
-		setup     func(t *testing.T) handlers.FacadeHandler
+		setup     func(t *testing.T) FacadeHandler
 		ctx       context.Context
 		req       requests.ReturnOrderRequest
 		expectErr error
@@ -174,8 +173,8 @@ func TestDefaultFacadeHandler_HandleReturnOrder(t *testing.T) {
 				return cctx
 			}(),
 			req: requests.ReturnOrderRequest{},
-			setup: func(t *testing.T) handlers.FacadeHandler {
-				return handlers.NewDefaultFacadeHandler(mocks.NewOrderServiceMock(t), nil)
+			setup: func(t *testing.T) FacadeHandler {
+				return NewDefaultFacadeHandler(svcmocks.NewOrderServiceMock(t), nil)
 			},
 			expectErr: context.Canceled,
 		},
@@ -183,10 +182,10 @@ func TestDefaultFacadeHandler_HandleReturnOrder(t *testing.T) {
 			name: "service error",
 			ctx:  ctx,
 			req:  requests.ReturnOrderRequest{OrderID: 8},
-			setup: func(t *testing.T) handlers.FacadeHandler {
-				svc := mocks.NewOrderServiceMock(t)
+			setup: func(t *testing.T) FacadeHandler {
+				svc := svcmocks.NewOrderServiceMock(t)
 				svc.ReturnToCourierMock.Expect(ctx, requests.ReturnOrderRequest{OrderID: 8}).Return(errListFail)
-				return handlers.NewDefaultFacadeHandler(svc, nil)
+				return NewDefaultFacadeHandler(svc, nil)
 			},
 			expectErr: errListFail,
 		},
@@ -194,10 +193,10 @@ func TestDefaultFacadeHandler_HandleReturnOrder(t *testing.T) {
 			name: "success",
 			ctx:  ctx,
 			req:  requests.ReturnOrderRequest{OrderID: 8},
-			setup: func(t *testing.T) handlers.FacadeHandler {
-				svc := mocks.NewOrderServiceMock(t)
+			setup: func(t *testing.T) FacadeHandler {
+				svc := svcmocks.NewOrderServiceMock(t)
 				svc.ReturnToCourierMock.Expect(ctx, requests.ReturnOrderRequest{OrderID: 8}).Return(nil)
-				return handlers.NewDefaultFacadeHandler(svc, nil)
+				return NewDefaultFacadeHandler(svc, nil)
 			},
 			wantResp: responses.ReturnOrderResponse{OrderID: 8},
 		},
@@ -225,7 +224,7 @@ func TestDefaultFacadeHandler_HandleImportOrders(t *testing.T) {
 	ctx := context.Background()
 	t.Run("aggregation logic", func(t *testing.T) {
 		t.Parallel()
-		svc := mocks.NewOrderServiceMock(t)
+		svc := svcmocks.NewOrderServiceMock(t)
 		defer svc.MinimockFinish()
 		statuses := []requests.ImportOrderStatus{
 			{ItemNumber: 1, Request: &requests.AcceptOrderRequest{OrderID: 1}},
@@ -235,7 +234,7 @@ func TestDefaultFacadeHandler_HandleImportOrders(t *testing.T) {
 
 		svc.AcceptOrderMock.When(ctx, *statuses[0].Request).Then(models.Order{OrderID: 1}, nil)
 		svc.AcceptOrderMock.When(ctx, *statuses[1].Request).Then(models.Order{}, errors.New("fail2"))
-		h := handlers.NewDefaultFacadeHandler(svc, nil)
+		h := NewDefaultFacadeHandler(svc, nil)
 		resp, err := h.HandleImportOrders(ctx, requests.ImportOrdersRequest{Statuses: statuses})
 		require.NoError(t, err)
 		require.Equal(t, 1, resp.Imported)
@@ -251,13 +250,13 @@ func TestDefaultFacadeHandler_HandleProcessOrders(t *testing.T) {
 	ctx := context.Background()
 	t.Run("issue and return branch", func(t *testing.T) {
 		t.Parallel()
-		svc := mocks.NewOrderServiceMock(t)
+		svc := svcmocks.NewOrderServiceMock(t)
 		defer svc.MinimockFinish()
 		svc.IssueOrdersMock.Expect(ctx, requests.IssueOrdersRequest{UserID: 1, OrderIDs: []uint64{10}}).
-			Return([]services.ProcessResult{{OrderID: 10}}, nil)
+			Return([]shared.ProcessResult{{OrderID: 10}}, nil)
 		svc.CreateClientReturnsMock.Expect(ctx, requests.ClientReturnsRequest{UserID: 1, OrderIDs: []uint64{11}}).
-			Return([]services.ProcessResult{{OrderID: 11}}, nil)
-		h := handlers.NewDefaultFacadeHandler(svc, nil)
+			Return([]shared.ProcessResult{{OrderID: 11}}, nil)
+		h := NewDefaultFacadeHandler(svc, nil)
 		resp1, err1 := h.HandleProcessOrders(ctx, requests.ProcessOrdersRequest{
 			UserID:   1,
 			OrderIDs: []uint64{10},

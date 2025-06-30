@@ -2,8 +2,6 @@
 
 package mocks
 
-//go:generate minimock -i pvz-cli/internal/usecases/services.HistoryService -o history_service_mock.go -n HistoryServiceMock -p mocks
-
 import (
 	"context"
 	"pvz-cli/internal/models"

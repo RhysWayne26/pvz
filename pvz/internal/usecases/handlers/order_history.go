@@ -12,7 +12,7 @@ func (f *DefaultFacadeHandler) HandleOrderHistory(ctx context.Context, req reque
 		return responses.OrderHistoryResponse{}, ctx.Err()
 	}
 
-	entries, err := f.HistoryService.List(ctx, req)
+	entries, err := f.historyService.List(ctx, req)
 	if err != nil {
 		return responses.OrderHistoryResponse{}, err
 	}

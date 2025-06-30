@@ -13,7 +13,7 @@ func (f *DefaultFacadeHandler) HandleListOrders(ctx context.Context, req request
 		return responses.ListOrdersResponse{}, ctx.Err()
 	}
 
-	orders, nextID, total, err := f.OrderService.ListOrders(ctx, req)
+	orders, nextID, total, err := f.orderService.ListOrders(ctx, req)
 	if err != nil {
 		return responses.ListOrdersResponse{}, err
 	}

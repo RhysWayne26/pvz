@@ -1,4 +1,6 @@
-package standalone_test
+//go:build integration
+
+package standalone
 
 import (
 	"context"

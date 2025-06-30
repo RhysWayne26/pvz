@@ -2,8 +2,6 @@
 
 package mocks
 
-//go:generate minimock -i pvz-cli/internal/usecases/services/strategies.PricingStrategy -o pricing_strategy_mock.go -n PricingStrategyMock -p mocks
-
 import (
 	"pvz-cli/internal/models"
 	"sync"

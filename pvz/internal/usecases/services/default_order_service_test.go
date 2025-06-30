@@ -1,19 +1,29 @@
-package services_test
+package services
 
 import (
 	"context"
 	"errors"
 	"github.com/stretchr/testify/require"
 	"pvz-cli/internal/common/apperrors"
-	"pvz-cli/internal/common/clock"
 	"pvz-cli/internal/common/utils"
+	repmocks "pvz-cli/internal/data/repositories/mocks"
 	"pvz-cli/internal/models"
-	"pvz-cli/internal/usecases/builders"
-	"pvz-cli/internal/usecases/mocks"
 	"pvz-cli/internal/usecases/requests"
-	"pvz-cli/internal/usecases/services"
+	svcmocks "pvz-cli/internal/usecases/services/mocks"
+	valmocks "pvz-cli/internal/usecases/services/validators/mocks"
+	"pvz-cli/pkg/clock"
+	"pvz-cli/tests/builders"
 	"testing"
 	"time"
+)
+
+type acceptanceStage string
+
+const (
+	stageValidate acceptanceStage = "validate"
+	stageEvaluate acceptanceStage = "evaluate"
+	stageSave     acceptanceStage = "save"
+	stageRecord   acceptanceStage = "record"
 )
 
 // TestDefaultOrderService_AcceptOrder_Success verifies that an order is successfully accepted with the correct flow and mocks.
@@ -40,78 +50,32 @@ func TestDefaultOrderService_AcceptOrder_Success(t *testing.T) {
 	require.Equal(t, models.Accepted, order.Status)
 }
 
-// TestAcceptOrder_FailureStages tests the AcceptOrder handler across various failure stages during the order processing.
-func TestAcceptOrder_FailureStages(t *testing.T) {
+func TestDefaultOrderService_AcceptOrder_FailureCases(t *testing.T) {
 	t.Parallel()
-	type stage string
-	const (
-		stageValidate stage = "validate"
-		stageEvaluate stage = "evaluate"
-		stageSave     stage = "save"
-		stageRecord   stage = "record"
-	)
-	tests := []struct {
-		stage    stage
-		wantCode apperrors.ErrorCode
+	cases := []struct {
+		name            string
+		acceptanceStage acceptanceStage
+		mockErr         error
+		wantCode        apperrors.ErrorCode
 	}{
-		{stageValidate, apperrors.ValidationFailed},
-		{stageEvaluate, apperrors.WeightTooHeavy},
-		{stageSave, apperrors.InternalError},
-		{stageRecord, apperrors.InternalError},
+		{"validation fails", stageValidate, apperrors.Newf(apperrors.ValidationFailed, "bad input"), apperrors.ValidationFailed},
+		{"evaluation fails", stageEvaluate, apperrors.Newf(apperrors.WeightTooHeavy, "too heavy"), apperrors.WeightTooHeavy},
+		{"save fails", stageSave, apperrors.Newf(apperrors.InternalError, "save fail"), apperrors.InternalError},
+		{"record fails", stageRecord, apperrors.Newf(apperrors.InternalError, "record fail"), apperrors.InternalError},
 	}
-	for _, tc := range tests {
+	for _, tc := range cases {
 		tc := tc
-		t.Run(string(tc.stage), func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			deps := newTestOrderService(t)
-			req := requests.AcceptOrderRequest{
-				OrderID: 1, UserID: 42,
-				Package: models.PackageBox,
-				Weight:  5, Price: 50,
-				ExpiresAt: deps.clk.After(48 * time.Hour),
-			}
+			req := newAcceptOrderRequest(
+				1, models.PackageBox, 5, deps.clk.After(48*time.Hour),
+			)
 			deps.repo.LoadMock.
 				Expect(deps.ctx, req.OrderID).
 				Return(models.Order{}, apperrors.Newf(apperrors.OrderNotFound, "not found"))
-			switch tc.stage {
-			case stageValidate:
-				deps.validator.ValidateAcceptMock.
-					Expect(models.Order{}, req).
-					Return(apperrors.Newf(apperrors.ValidationFailed, "bad input"))
-			default:
-				deps.validator.ValidateAcceptMock.
-					Expect(models.Order{}, req).
-					Return(nil)
-				if tc.stage == stageEvaluate {
-					deps.pricing.EvaluateMock.
-						Expect(req.Package, req.Weight, req.Price).
-						Return(0, apperrors.Newf(apperrors.WeightTooHeavy, "too heavy"))
-				} else {
-					deps.pricing.EvaluateMock.
-						Expect(req.Package, req.Weight, req.Price).
-						Return(75.0, nil)
-					if tc.stage == stageSave {
-						deps.repo.SaveMock.
-							Expect(deps.ctx, anyOrderFromAcceptRequest(deps.clk, req, 75.0)).
-							Return(apperrors.Newf(apperrors.InternalError, "save failed"))
-					} else {
-						deps.repo.SaveMock.
-							Expect(deps.ctx, anyOrderFromAcceptRequest(deps.clk, req, 75.0)).
-							Return(nil)
-						if tc.stage == stageRecord {
-							deps.history.RecordMock.
-								Expect(deps.ctx, anyEntryWith(deps.clk, req.OrderID, models.EventAccepted)).
-								Return(apperrors.Newf(apperrors.InternalError, "record failed"))
-						} else {
-							deps.history.RecordMock.
-								Expect(deps.ctx, anyEntryWith(deps.clk, req.OrderID, models.EventAccepted)).
-								Return(nil)
-						}
-					}
-				}
-			}
+			mockAcceptFailure(deps, req, tc.acceptanceStage, tc.mockErr)
 			_, err := deps.svc.AcceptOrder(deps.ctx, req)
-			require.Error(t, err)
 			var appErr *apperrors.AppError
 			require.ErrorAs(t, err, &appErr)
 			require.Equal(t, tc.wantCode, appErr.Code)
@@ -189,8 +153,7 @@ func TestDefaultOrderService_IssueOrders_FailureCases(t *testing.T) {
 					Return(tc.validateErr)
 			}
 			if tc.loadErr == nil && tc.validateErr == nil {
-				upd := builders.
-					NewOrderBuilderFrom(deps.clk, &order).
+				upd := builders.NewOrderBuilderFrom(deps.clk, &order).
 					WithStatus(models.Issued).
 					Build()
 				deps.repo.SaveMock.
@@ -330,20 +293,20 @@ func TestDefaultOrderService_ReturnToCourier_Failures(t *testing.T) {
 	deps := newTestOrderService(t)
 	type tc struct {
 		name     string
-		setup    func(repo *mocks.OrderRepositoryMock, val *mocks.OrderValidatorMock, hist *mocks.HistoryServiceMock)
+		setup    func(repo *repmocks.OrderRepositoryMock, val *valmocks.OrderValidatorMock, hist *svcmocks.HistoryServiceMock)
 		wantCode apperrors.ErrorCode
 	}
 	cases := []tc{
 		{
 			name: "not found",
-			setup: func(repo *mocks.OrderRepositoryMock, val *mocks.OrderValidatorMock, hist *mocks.HistoryServiceMock) {
+			setup: func(repo *repmocks.OrderRepositoryMock, val *valmocks.OrderValidatorMock, hist *svcmocks.HistoryServiceMock) {
 				repo.LoadMock.Expect(deps.ctx, uint64(1)).Return(models.Order{}, errors.New("nope"))
 			},
 			wantCode: apperrors.OrderNotFound,
 		},
 		{
 			name: "validation",
-			setup: func(repo *mocks.OrderRepositoryMock, val *mocks.OrderValidatorMock, hist *mocks.HistoryServiceMock) {
+			setup: func(repo *repmocks.OrderRepositoryMock, val *valmocks.OrderValidatorMock, hist *svcmocks.HistoryServiceMock) {
 				order := models.Order{OrderID: 1}
 				repo.LoadMock.Expect(deps.ctx, uint64(1)).Return(order, nil)
 				val.ValidateReturnToCourierMock.Expect(order).Return(apperrors.Newf(apperrors.ValidationFailed, "bad"))
@@ -352,7 +315,7 @@ func TestDefaultOrderService_ReturnToCourier_Failures(t *testing.T) {
 		},
 		{
 			name: "delete fails",
-			setup: func(repo *mocks.OrderRepositoryMock, val *mocks.OrderValidatorMock, hist *mocks.HistoryServiceMock) {
+			setup: func(repo *repmocks.OrderRepositoryMock, val *valmocks.OrderValidatorMock, hist *svcmocks.HistoryServiceMock) {
 				order := models.Order{OrderID: 1}
 				repo.LoadMock.Expect(deps.ctx, uint64(1)).Return(order, nil)
 				val.ValidateReturnToCourierMock.Expect(order).Return(nil)
@@ -362,7 +325,7 @@ func TestDefaultOrderService_ReturnToCourier_Failures(t *testing.T) {
 		},
 		{
 			name: "history record fails",
-			setup: func(repo *mocks.OrderRepositoryMock, val *mocks.OrderValidatorMock, hist *mocks.HistoryServiceMock) {
+			setup: func(repo *repmocks.OrderRepositoryMock, val *valmocks.OrderValidatorMock, hist *svcmocks.HistoryServiceMock) {
 				order := models.Order{OrderID: 1}
 				repo.LoadMock.Expect(deps.ctx, uint64(1)).Return(order, nil)
 				val.ValidateReturnToCourierMock.Expect(order).Return(nil)
@@ -503,37 +466,37 @@ func TestDefaultOrderService_CtxCancel_ListReturns(t *testing.T) {
 }
 
 type orderSvcDeps struct {
-	svc       *services.DefaultOrderService
-	repo      *mocks.OrderRepositoryMock
-	history   *mocks.HistoryServiceMock
-	pricing   *mocks.PackagePricingServiceMock
-	validator *mocks.OrderValidatorMock
+	svc       *DefaultOrderService
+	repo      *repmocks.OrderRepositoryMock
+	history   *svcmocks.HistoryServiceMock
+	pricing   *svcmocks.PackagePricingServiceMock
+	validator *valmocks.OrderValidatorMock
 	ctx       context.Context
 	clk       clock.Clock
 }
 
 func newTestOrderService(t *testing.T) orderSvcDeps {
-	repo := mocks.NewOrderRepositoryMock(t)
-	history := mocks.NewHistoryServiceMock(t)
-	pricing := mocks.NewPackagePricingServiceMock(t)
-	validator := mocks.NewOrderValidatorMock(t)
+	repo := repmocks.NewOrderRepositoryMock(t)
+	history := svcmocks.NewHistoryServiceMock(t)
+	pricing := svcmocks.NewPackagePricingServiceMock(t)
+	validator := valmocks.NewOrderValidatorMock(t)
 	clk := &clock.FakeClock{}
-	svc := services.NewDefaultOrderService(clk, repo, pricing, history, validator)
+	svc := NewDefaultOrderService(clk, repo, pricing, history, validator)
 	ctx := context.Background()
 	return orderSvcDeps{svc, repo, history, pricing, validator, ctx, clk}
 }
 
 type orderSvcDepsMinimal struct {
-	svc  *services.DefaultOrderService
-	repo *mocks.OrderRepositoryMock
+	svc  *DefaultOrderService
+	repo *repmocks.OrderRepositoryMock
 	ctx  context.Context
 	clk  clock.Clock
 }
 
 func newTestOrderServiceMinimal(t *testing.T) orderSvcDepsMinimal {
-	repo := mocks.NewOrderRepositoryMock(t)
+	repo := repmocks.NewOrderRepositoryMock(t)
 	clk := &clock.FakeClock{}
-	svc := services.NewDefaultOrderService(clk, repo, nil, nil, nil)
+	svc := NewDefaultOrderService(clk, repo, nil, nil, nil)
 	ctx := context.Background()
 	return orderSvcDepsMinimal{svc: svc, repo: repo, ctx: ctx, clk: clk}
 }
@@ -576,4 +539,80 @@ func anyEntryWith(clk clock.Clock, orderID uint64, event models.EventType) model
 		WithOrderID(orderID).
 		WithEvent(event).
 		Build()
+}
+
+// User ID and price are irrelevant for validator at this point
+func newAcceptOrderRequest(id uint64, packageType models.PackageType, weight float32, expiresAt time.Time) requests.AcceptOrderRequest {
+	return requests.AcceptOrderRequest{
+		OrderID:   id,
+		UserID:    42,
+		Package:   packageType,
+		Weight:    weight,
+		Price:     100,
+		ExpiresAt: expiresAt,
+	}
+}
+
+func mockAcceptFailureBase(deps orderSvcDeps, req requests.AcceptOrderRequest) {
+	deps.repo.LoadMock.
+		Expect(deps.ctx, req.OrderID).
+		Return(models.Order{}, apperrors.Newf(apperrors.OrderNotFound, "not found"))
+}
+
+func mockAcceptFailureValidation(deps orderSvcDeps, req requests.AcceptOrderRequest, mockErr error) {
+	mockAcceptFailureBase(deps, req)
+	deps.validator.ValidateAcceptMock.
+		Expect(models.Order{}, req).
+		Return(mockErr)
+}
+
+func mockAcceptFailureEvaluation(deps orderSvcDeps, req requests.AcceptOrderRequest, mockErr error) {
+	mockAcceptFailureBase(deps, req)
+	deps.validator.ValidateAcceptMock.
+		Expect(models.Order{}, req).
+		Return(nil)
+	deps.pricing.EvaluateMock.
+		Expect(req.Package, req.Weight, req.Price).
+		Return(0, mockErr)
+}
+
+func mockAcceptFailureSave(deps orderSvcDeps, req requests.AcceptOrderRequest, mockErr error) {
+	mockAcceptFailureBase(deps, req)
+	deps.validator.ValidateAcceptMock.
+		Expect(models.Order{}, req).
+		Return(nil)
+	deps.pricing.EvaluateMock.
+		Expect(req.Package, req.Weight, req.Price).
+		Return(75.0, nil)
+	deps.repo.SaveMock.
+		Expect(deps.ctx, anyOrderFromAcceptRequest(deps.clk, req, 75.0)).
+		Return(mockErr)
+}
+
+func mockAcceptFailureRecord(deps orderSvcDeps, req requests.AcceptOrderRequest, mockErr error) {
+	mockAcceptFailureBase(deps, req)
+	deps.validator.ValidateAcceptMock.
+		Expect(models.Order{}, req).
+		Return(nil)
+	deps.pricing.EvaluateMock.
+		Expect(req.Package, req.Weight, req.Price).
+		Return(75.0, nil)
+	deps.repo.SaveMock.
+		Expect(deps.ctx, anyOrderFromAcceptRequest(deps.clk, req, 75.0)).
+		Return(nil)
+	deps.history.RecordMock.
+		Expect(deps.ctx, anyEntryWith(deps.clk, req.OrderID, models.EventAccepted)).
+		Return(mockErr)
+}
+func mockAcceptFailure(deps orderSvcDeps, req requests.AcceptOrderRequest, acceptanceStage acceptanceStage, mockErr error) {
+	switch acceptanceStage {
+	case stageValidate:
+		mockAcceptFailureValidation(deps, req, mockErr)
+	case stageEvaluate:
+		mockAcceptFailureEvaluation(deps, req, mockErr)
+	case stageSave:
+		mockAcceptFailureSave(deps, req, mockErr)
+	case stageRecord:
+		mockAcceptFailureRecord(deps, req, mockErr)
+	}
 }

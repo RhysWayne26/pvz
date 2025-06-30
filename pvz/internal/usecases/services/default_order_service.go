@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 	"pvz-cli/internal/common/apperrors"
-	"pvz-cli/internal/common/clock"
 	"pvz-cli/internal/data/repositories"
 	"pvz-cli/internal/models"
 	"pvz-cli/internal/usecases/requests"
+	"pvz-cli/internal/usecases/services/shared"
 	"pvz-cli/internal/usecases/services/validators"
+	"pvz-cli/pkg/clock"
 )
 
 var _ OrderService = (*DefaultOrderService)(nil)
@@ -87,15 +88,15 @@ func (s *DefaultOrderService) AcceptOrder(ctx context.Context, req requests.Acce
 }
 
 // IssueOrders processes multiple orders for issuance to clients
-func (s *DefaultOrderService) IssueOrders(ctx context.Context, req requests.IssueOrdersRequest) ([]ProcessResult, error) {
+func (s *DefaultOrderService) IssueOrders(ctx context.Context, req requests.IssueOrdersRequest) ([]shared.ProcessResult, error) {
 	if ctx.Err() != nil {
 		return nil, ctx.Err()
 	}
-	results := make([]ProcessResult, 0, len(req.OrderIDs))
+	results := make([]shared.ProcessResult, 0, len(req.OrderIDs))
 	now := s.clk.Now()
 
 	for _, id := range req.OrderIDs {
-		res := ProcessResult{OrderID: id}
+		res := shared.ProcessResult{OrderID: id}
 
 		order, err := s.orderRepo.Load(ctx, id)
 		if err != nil {
@@ -163,15 +164,15 @@ func (s *DefaultOrderService) ListOrders(ctx context.Context, filter requests.Or
 }
 
 // CreateClientReturns processes multiple client return requests
-func (s *DefaultOrderService) CreateClientReturns(ctx context.Context, req requests.ClientReturnsRequest) ([]ProcessResult, error) {
+func (s *DefaultOrderService) CreateClientReturns(ctx context.Context, req requests.ClientReturnsRequest) ([]shared.ProcessResult, error) {
 	if ctx.Err() != nil {
 		return nil, ctx.Err()
 	}
-	results := make([]ProcessResult, 0, len(req.OrderIDs))
+	results := make([]shared.ProcessResult, 0, len(req.OrderIDs))
 	now := s.clk.Now()
 
 	for _, id := range req.OrderIDs {
-		res := ProcessResult{OrderID: id}
+		res := shared.ProcessResult{OrderID: id}
 
 		order, err := s.orderRepo.Load(ctx, id)
 		if err != nil {
