@@ -29,8 +29,8 @@ const (
 	WeightFractionDigit = 3
 	PriceFractionDigit  = 2
 
-	DefaultRPS   = 5
-	DefaultBurst = 1
+	DefaultRPS   = 50
+	DefaultBurst = 10
 
 	DefaultFileStoragePath = "./storage.json"
 	DefaultPGHost          = "localhost"

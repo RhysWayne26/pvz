@@ -1,5 +1,6 @@
 include proto.mk
 include db.mk
+include test.mk
 
 SHELL := /bin/bash
 

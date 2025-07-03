@@ -42,14 +42,14 @@ func (a *Application) Shutdown() {
 }
 
 // StartGRPCServer launches the main gRPC server on :50051 with interceptors for logging, tracing, validation, etc.
-func StartGRPCServer(app *Application, wg *sync.WaitGroup) {
+func StartGRPCServer(app *Application, port string, wg *sync.WaitGroup) {
 	defer wg.Done()
 	mapper := grpcmappers.NewDefaultGRPCFacadeMapper()
 	router := gateway.NewGRPCRouter(mapper, app.Container.FacadeHandler)
 
 	err := gateway.RunGRPCServer(
 		app.Ctx,
-		":50051",
+		port,
 		router,
 		grpc.ChainUnaryInterceptor(
 			interceptors.ValidationInterceptor(),

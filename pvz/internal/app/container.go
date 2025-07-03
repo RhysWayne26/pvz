@@ -11,6 +11,7 @@ import (
 	"pvz-cli/internal/usecases/services"
 	"pvz-cli/internal/usecases/services/strategies"
 	"pvz-cli/internal/usecases/services/validators"
+	"pvz-cli/pkg/clock"
 	"time"
 )
 
@@ -48,13 +49,16 @@ func NewContainer() *Container {
 		slog.Error("No valid storage config provided")
 		os.Exit(1)
 	}
-	orderValidator := validators.NewDefaultOrderValidator()
+
+	clk := &clock.RealClock{}
+
+	orderValidator := validators.NewDefaultOrderValidator(clk)
 	packageValidator := validators.NewDefaultPackageValidator()
 	pricingStrategy := strategies.NewDefaultPricingStrategy()
 
 	historySvc := services.NewDefaultHistoryService(historyRepo)
 	pricingSvc := services.NewDefaultPackagePricingService(packageValidator, pricingStrategy)
-	orderSvc := services.NewDefaultOrderService(orderRepo, pricingSvc, historySvc, orderValidator)
+	orderSvc := services.NewDefaultOrderService(clk, orderRepo, pricingSvc, historySvc, orderValidator)
 
 	facadeHandler := handlers.NewDefaultFacadeHandler(orderSvc, historySvc)
 

@@ -7,14 +7,16 @@ import (
 	"pvz-cli/internal/data/repositories"
 	"pvz-cli/internal/models"
 	"pvz-cli/internal/usecases/requests"
+	"pvz-cli/internal/usecases/services/shared"
 	"pvz-cli/internal/usecases/services/validators"
-	"time"
+	"pvz-cli/pkg/clock"
 )
 
 var _ OrderService = (*DefaultOrderService)(nil)
 
 // DefaultOrderService is a default implementation of the OrderService interface
 type DefaultOrderService struct {
+	clk               clock.Clock
 	orderRepo         repositories.OrderRepository
 	packagePricingSvc PackagePricingService
 	historySvc        HistoryService
@@ -23,11 +25,13 @@ type DefaultOrderService struct {
 
 // NewDefaultOrderService creates a new instance of DefaultOrderService
 func NewDefaultOrderService(
+	clk clock.Clock,
 	orderRepo repositories.OrderRepository,
 	packagePricingService PackagePricingService,
 	historyService HistoryService,
 	validator validators.OrderValidator) *DefaultOrderService {
 	return &DefaultOrderService{
+		clk:               clk,
 		orderRepo:         orderRepo,
 		packagePricingSvc: packagePricingService,
 		historySvc:        historyService,
@@ -54,7 +58,7 @@ func (s *DefaultOrderService) AcceptOrder(ctx context.Context, req requests.Acce
 		return models.Order{}, err
 	}
 
-	now := time.Now()
+	now := s.clk.Now()
 
 	order := models.Order{
 		OrderID:         req.OrderID,
@@ -84,15 +88,15 @@ func (s *DefaultOrderService) AcceptOrder(ctx context.Context, req requests.Acce
 }
 
 // IssueOrders processes multiple orders for issuance to clients
-func (s *DefaultOrderService) IssueOrders(ctx context.Context, req requests.IssueOrdersRequest) ([]ProcessResult, error) {
+func (s *DefaultOrderService) IssueOrders(ctx context.Context, req requests.IssueOrdersRequest) ([]shared.ProcessResult, error) {
 	if ctx.Err() != nil {
 		return nil, ctx.Err()
 	}
-	results := make([]ProcessResult, 0, len(req.OrderIDs))
-	now := time.Now()
+	results := make([]shared.ProcessResult, 0, len(req.OrderIDs))
+	now := s.clk.Now()
 
 	for _, id := range req.OrderIDs {
-		res := ProcessResult{OrderID: id}
+		res := shared.ProcessResult{OrderID: id}
 
 		order, err := s.orderRepo.Load(ctx, id)
 		if err != nil {
@@ -101,7 +105,7 @@ func (s *DefaultOrderService) IssueOrders(ctx context.Context, req requests.Issu
 			continue
 		}
 
-		if err := s.validator.ValidateIssue([]models.Order{order}, req); err != nil {
+		if err := s.validator.ValidateIssue(order, req); err != nil {
 			res.Error = err
 			results = append(results, res)
 			continue
@@ -135,6 +139,9 @@ func (s *DefaultOrderService) IssueOrders(ctx context.Context, req requests.Issu
 
 // ListOrders retrieves filtered and paginated list of orders
 func (s *DefaultOrderService) ListOrders(ctx context.Context, filter requests.OrdersFilterRequest) ([]models.Order, uint64, int, error) {
+	if ctx.Err() != nil {
+		return nil, 0, 0, ctx.Err()
+	}
 	result, total, err := s.orderRepo.List(ctx, filter)
 	if err != nil {
 		return nil, 0, 0, apperrors.Newf(apperrors.InternalError, "failed to list orders: %v", err)
@@ -157,15 +164,15 @@ func (s *DefaultOrderService) ListOrders(ctx context.Context, filter requests.Or
 }
 
 // CreateClientReturns processes multiple client return requests
-func (s *DefaultOrderService) CreateClientReturns(ctx context.Context, req requests.ClientReturnsRequest) ([]ProcessResult, error) {
+func (s *DefaultOrderService) CreateClientReturns(ctx context.Context, req requests.ClientReturnsRequest) ([]shared.ProcessResult, error) {
 	if ctx.Err() != nil {
 		return nil, ctx.Err()
 	}
-	results := make([]ProcessResult, 0, len(req.OrderIDs))
-	now := time.Now()
+	results := make([]shared.ProcessResult, 0, len(req.OrderIDs))
+	now := s.clk.Now()
 
 	for _, id := range req.OrderIDs {
-		res := ProcessResult{OrderID: id}
+		res := shared.ProcessResult{OrderID: id}
 
 		order, err := s.orderRepo.Load(ctx, id)
 		if err != nil {
@@ -174,7 +181,7 @@ func (s *DefaultOrderService) CreateClientReturns(ctx context.Context, req reque
 			continue
 		}
 
-		if err := s.validator.ValidateClientReturn([]models.Order{order}, req); err != nil {
+		if err := s.validator.ValidateClientReturn(order, req); err != nil {
 			res.Error = err
 			results = append(results, res)
 			continue
@@ -207,6 +214,9 @@ func (s *DefaultOrderService) CreateClientReturns(ctx context.Context, req reque
 
 // ReturnToCourier processes return of order back to courier/warehouse
 func (s *DefaultOrderService) ReturnToCourier(ctx context.Context, req requests.ReturnOrderRequest) error {
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
 	orderID := req.OrderID
 	o, err := s.orderRepo.Load(ctx, orderID)
 	if err != nil {
@@ -224,7 +234,7 @@ func (s *DefaultOrderService) ReturnToCourier(ctx context.Context, req requests.
 	entry := models.HistoryEntry{
 		OrderID:   orderID,
 		Event:     models.EventReturnedToWarehouse,
-		Timestamp: time.Now(),
+		Timestamp: s.clk.Now(),
 	}
 	if err := s.historySvc.Record(ctx, entry); err != nil {
 		return apperrors.Newf(apperrors.InternalError, "failed to record history for order %d: %v", orderID, err)
@@ -235,6 +245,9 @@ func (s *DefaultOrderService) ReturnToCourier(ctx context.Context, req requests.
 
 // ListReturns retrieves paginated list of return entries sorted by return date
 func (s *DefaultOrderService) ListReturns(ctx context.Context, filter requests.OrdersFilterRequest) ([]models.Order, error) {
+	if ctx.Err() != nil {
+		return nil, ctx.Err()
+	}
 	orders, _, err := s.orderRepo.List(ctx, filter)
 	if err != nil {
 		return nil, apperrors.Newf(apperrors.InternalError, "failed to list returns: %v", err)

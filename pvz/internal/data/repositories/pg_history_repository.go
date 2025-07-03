@@ -14,19 +14,19 @@ var _ HistoryRepository = (*PGHistoryRepository)(nil)
 
 // PGHistoryRepository provides PostgreSQL-based persistence for HistoryRepository.
 type PGHistoryRepository struct {
-	db db.PGXClient
+	Db db.PGXClient
 }
 
 // NewPGHistoryRepository initializes and returns a new instance of PGHistoryRepository with the provided database client.
 func NewPGHistoryRepository(db db.PGXClient) *PGHistoryRepository {
 	return &PGHistoryRepository{
-		db: db,
+		Db: db,
 	}
 }
 
 // Save persists a HistoryEntry into the database.
 func (r *PGHistoryRepository) Save(ctx context.Context, e models.HistoryEntry) error {
-	_, err := r.db.ExecCtx(
+	_, err := r.Db.ExecCtx(
 		ctx,
 		db.WriteMode,
 		queries.SaveHistoryEntrySQL,
@@ -41,15 +41,19 @@ func (r *PGHistoryRepository) Save(ctx context.Context, e models.HistoryEntry) e
 func (r *PGHistoryRepository) List(ctx context.Context, filter requests.OrderHistoryFilter) ([]models.HistoryEntry, int, error) {
 	countQuery, countArgs := queries.BuildCountHistoryQuery(filter)
 	var count int
-	err := pgxscan.Get(ctx, r.db, &count, countQuery, countArgs...)
+	err := pgxscan.Get(ctx, r.Db, &count, countQuery, countArgs...)
 	if err != nil {
 		return nil, 0, err
 	}
 	query, args := queries.BuildFilterHistoryQuery(filter)
 	var out []models.HistoryEntry
-	err = pgxscan.Select(ctx, r.db, &out, query, args...)
+	err = pgxscan.Select(ctx, r.Db, &out, query, args...)
 	if err != nil {
 		return nil, 0, err
 	}
 	return out, count, nil
+}
+
+func (r *PGHistoryRepository) GetDBClient() db.PGXClient {
+	return r.Db
 }

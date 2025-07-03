@@ -6,7 +6,7 @@ import (
 	"pvz-cli/internal/common/constants"
 	"pvz-cli/internal/usecases/requests"
 	"pvz-cli/internal/usecases/responses"
-	"pvz-cli/internal/usecases/services"
+	"pvz-cli/internal/usecases/services/shared"
 )
 
 // HandleProcessOrders processes orders for issue or return actions
@@ -18,7 +18,7 @@ func (f *DefaultFacadeHandler) HandleProcessOrders(
 		return responses.ProcessOrdersResponse{}, ctx.Err()
 	}
 
-	var results []services.ProcessResult
+	var results []shared.ProcessResult
 	var err error
 
 	switch req.Action {
@@ -48,7 +48,7 @@ func (f *DefaultFacadeHandler) HandleProcessOrders(
 	return buildProcessOrdersResponse(results), nil
 }
 
-func buildProcessOrdersResponse(resultsFromService []services.ProcessResult) responses.ProcessOrdersResponse {
+func buildProcessOrdersResponse(resultsFromService []shared.ProcessResult) responses.ProcessOrdersResponse {
 	res := responses.ProcessOrdersResponse{
 		Processed: make([]uint64, 0, len(resultsFromService)),
 		Failed:    make([]responses.ProcessFailReport, 0, len(resultsFromService)),

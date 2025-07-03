@@ -1,4 +1,4 @@
-package services
+package shared
 
 // ProcessResult represents the outcome of processing a single order operation
 type ProcessResult struct {

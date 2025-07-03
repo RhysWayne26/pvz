@@ -5,6 +5,8 @@ GOOSE_VER := v3.16.0
 GOOSE_DRIVER=postgres
 DB_DSN ?= $(DB_WRITE_DSN)
 
+TEST_DB_DSN = "postgres://test_user:test_pass@localhost:5455/pvz_test?sslmode=disable"
+
 $(GOOSE_BIN):
 	@mkdir -p $(dir $(GOOSE_BIN))
 	@echo "Installing goose@$(GOOSE_VER) into $(TOOLS_BIN)"
@@ -27,3 +29,15 @@ migrate-down: $(GOOSE_BIN)
 .PHONY: migrate-new
 migrate-new: $(GOOSE_BIN)
 	@$(GOOSE_BIN) -dir migrations create $(name) sql
+
+.PHONY: test/migrate-up
+test/migrate-up: $(GOOSE_BIN)
+	@$(GOOSE_BIN) -dir migrations $(GOOSE_DRIVER) "$(TEST_DB_DSN)" up
+
+.PHONY: test/migrate-status
+test/migrate-status: $(GOOSE_BIN)
+	@$(GOOSE_BIN) -dir migrations $(GOOSE_DRIVER) "$(TEST_DB_DSN)" status
+
+.PHONY: test/migrate-down
+test/migrate-down: $(GOOSE_BIN)
+	@$(GOOSE_BIN) -dir migrations $(GOOSE_DRIVER) "$(TEST_DB_DSN)" down
