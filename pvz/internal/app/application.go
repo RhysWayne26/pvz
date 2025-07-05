@@ -82,7 +82,7 @@ func StartGRPCServer(app *Application, port string, wg *sync.WaitGroup) {
 // StartHTTPGateway starts the gRPC-Gateway proxy on :8080, routing HTTP requests to the gRPC backend.
 func StartHTTPGateway(app *Application, wg *sync.WaitGroup) {
 	defer wg.Done()
-	err := gateway.RunHTTPGateway(app.Ctx, ":50051", ":8080")
+	err := gateway.RunHTTPGateway(app.Ctx, ":50051", ":50052", ":8080")
 	if err != nil && app.Ctx.Err() == nil {
 		log.Fatalf("HTTP gateway error: %v", err)
 	}
@@ -123,4 +123,21 @@ func StartCLI(app *Application, wg *sync.WaitGroup) {
 	router := cli.NewRouter(app.Container.FacadeHandler, mapper)
 	router.Run(app.Ctx, app.Shutdown)
 	log.Println("CLI finished")
+}
+
+func StartAdminGRPCServer(app *Application, port string, wg *sync.WaitGroup) {
+	defer wg.Done()
+	router := gateway.NewAdminGRPCRouter(app.Pool)
+	err := gateway.RunAdminGRPCServer(
+		app.Ctx,
+		port,
+		router,
+		grpc.ChainUnaryInterceptor(
+			interceptors.ValidationInterceptor(),
+			interceptors.RecoveryInterceptor(),
+		),
+	)
+	if err != nil && app.Ctx.Err() == nil {
+		log.Fatalf("gRPC server error: %v", err)
+	}
 }

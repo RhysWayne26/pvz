@@ -1,8 +1,9 @@
 PROTO_DIR := api/grpc
-PROTO_FILE := $(PROTO_DIR)/orders.proto
+PROTO_FILES := orders.proto admin.proto
 THIRD_PARTY_DIR := third_party
 SWAGGER_OUT := docs/swagger
 PROTO_OUT := internal/gen/orders
+ADMIN_PROTO_OUT := internal/gen/admin
 
 TOOLS_BIN := tools/bin
 
@@ -40,7 +41,7 @@ PROTOC_ZIP := protoc-$(PROTOC_VERSION)-$(PROTOC_OS)-$(PROTOC_ARCH).zip
 PROTOC_URL := https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/$(PROTOC_ZIP)
 
 .PHONY: all
-all: proto/generate
+all: proto/generate proto/generate-admin
 
 .PHONY: $(TOOLS_BIN)
 $(TOOLS_BIN):
@@ -88,6 +89,11 @@ proto/setup-third-party:
 $(PROTO_OUT):
 	@mkdir -p $@
 
+.PHONY: $(ADMIN_PROTO_OUT)
+$(ADMIN_PROTO_OUT):
+	@mkdir -p $@
+
+
 .PHONY: $(SWAGGER_OUT)
 $(SWAGGER_OUT):
 	@mkdir -p $@
@@ -113,8 +119,29 @@ proto/generate: tools/proto tools/protoc proto/setup-third-party $(PROTO_OUT) $(
 	  --plugin=protoc-gen-go-grpc=$(abspath $(TOOLS_BIN))/protoc-gen-go-grpc \
 	  --plugin=protoc-gen-grpc-gateway=$(abspath $(TOOLS_BIN))/protoc-gen-grpc-gateway \
 	  --plugin=protoc-gen-openapiv2=$(abspath $(TOOLS_BIN))/protoc-gen-openapiv2 \
-	  orders.proto
+	  $(PROTO_FILES)
 	@echo "Code generated in $(PROTO_OUT)/ and swagger in $(SWAGGER_OUT)/."
+
+.PHONY: proto/generate-admin
+proto/generate-admin: tools/proto tools/protoc proto/setup-third-party $(ADMIN_PROTO_OUT)
+	@echo "Generating admin proto code..."
+	cd $(PROTO_DIR) && \
+	PATH=../../$(PROTOC_DIR)/bin:$$PATH \
+	../../$(PROTOC_BIN) \
+		-I. \
+		-I../../$(THIRD_PARTY_DIR) \
+		-I../../$(PROTOC_DIR)/include \
+		--go_out=../../$(ADMIN_PROTO_OUT) --go_opt=paths=source_relative \
+		--go-grpc_out=../../$(ADMIN_PROTO_OUT) --go-grpc_opt=paths=source_relative \
+		--grpc-gateway_out=../../$(ADMIN_PROTO_OUT) --grpc-gateway_opt=paths=source_relative \
+		--openapiv2_out=../../$(SWAGGER_OUT) \
+		--openapiv2_opt logtostderr=true,json_names_for_fields=false \
+		--plugin=protoc-gen-go=$(abspath $(TOOLS_BIN))/protoc-gen-go \
+		--plugin=protoc-gen-go-grpc=$(abspath $(TOOLS_BIN))/protoc-gen-go-grpc \
+		--plugin=protoc-gen-grpc-gateway=$(abspath $(TOOLS_BIN))/protoc-gen-grpc-gateway \
+		--plugin=protoc-gen-openapiv2=$(abspath $(TOOLS_BIN))/protoc-gen-openapiv2 \
+		admin.proto
+	@echo "Admin proto code generated in $(ADMIN_PROTO_OUT)/"
 
 .PHONY: proto/update-deps
 proto/update-deps: tools/proto
@@ -124,6 +151,7 @@ proto/update-deps: tools/proto
 proto/clean:
 	@echo "Cleaning generated files..."
 	rm -rf $(PROTO_OUT)/*
+	rm -rf $(ADMIN_PROTO_OUT)/*
 	rm -rf $(SWAGGER_OUT)/*
 	@echo "Finished cleaning."
 

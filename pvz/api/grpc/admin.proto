@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package admin;
+
+option go_package = "pvz-cli/internal/gen/admin;admin";
+
+import "google/api/annotations.proto";
+import "validate/validate.proto";
+
+service AdminService {
+  rpc SetWorkerCount(SetWorkerCountRequest) returns (SetWorkerCountResponse) {
+    option (google.api.http) = {
+      post: "/admin/workers"
+      body: "*"
+    };
+  }
+
+  rpc GetWorkerStats(GetWorkerStatsRequest) returns (GetWorkerStatsResponse) {
+    option (google.api.http) = {
+      get: "/admin/workers/stats"
+    };
+  }
+}
+
+message SetWorkerCountRequest {
+  uint32 count = 1 [(validate.rules).uint32 = {gte: 1, lte: 20}];
+}
+
+message SetWorkerCountResponse {
+  string status = 1;
+  uint32 old_count = 2;
+  uint32 new_count = 3;
+}
+message GetWorkerStatsRequest {}
+
+message GetWorkerStatsResponse {
+  uint32 active_workers = 1;
+  uint32 queued_tasks = 2;
+  uint64 total_tasks = 3;
+  uint64 failed_tasks = 4;
+  bool is_shutdown = 5;
+}

@@ -40,13 +40,15 @@ func main() {
 	}()
 
 	var wg sync.WaitGroup
-	wg.Add(4)
+	wg.Add(5)
 
 	grpcPort := os.Getenv("GRPC_PORT")
+	adminGRPCPort := os.Getenv("ADMIN_GRPC_PORT")
 	go app.StartGRPCServer(application, grpcPort, &wg)
 	go app.StartHTTPGateway(application, &wg)
 	go app.StartSwaggerUI(application, &wg)
 	go app.StartCLI(application, &wg)
+	go app.StartAdminGRPCServer(application, adminGRPCPort, &wg)
 
 	<-application.Ctx.Done()
 	logger.Infow("Shutdown signal received, waiting for all servers…")
