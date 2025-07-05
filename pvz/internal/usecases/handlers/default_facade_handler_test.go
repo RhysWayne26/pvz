@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	svcmocks "pvz-cli/internal/usecases/services/mocks"
-	"pvz-cli/internal/usecases/services/shared"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -231,7 +230,7 @@ func TestDefaultFacadeHandler_HandleImportOrders(t *testing.T) {
 	defer svc.MinimockFinish()
 	svc.ImportOrdersMock.
 		Expect(ctx, requests.ImportOrdersRequest{Statuses: statuses}).
-		Return([]shared.BatchEntryProcessedResult{
+		Return([]models.BatchEntryProcessedResult{
 			{OrderID: 1, Error: nil},
 			{OrderID: 2, Error: errors.New("fail2")},
 			{OrderID: 3, Error: errors.New("already invalid")},
@@ -254,9 +253,9 @@ func TestDefaultFacadeHandler_HandleProcessOrders(t *testing.T) {
 		svc := svcmocks.NewOrderServiceMock(t)
 		defer svc.MinimockFinish()
 		svc.IssueOrdersMock.Expect(ctx, requests.IssueOrdersRequest{UserID: 1, OrderIDs: []uint64{10}}).
-			Return([]shared.BatchEntryProcessedResult{{OrderID: 10}}, nil)
+			Return([]models.BatchEntryProcessedResult{{OrderID: 10}}, nil)
 		svc.CreateClientReturnsMock.Expect(ctx, requests.ClientReturnsRequest{UserID: 1, OrderIDs: []uint64{11}}).
-			Return([]shared.BatchEntryProcessedResult{{OrderID: 11}}, nil)
+			Return([]models.BatchEntryProcessedResult{{OrderID: 11}}, nil)
 		h := NewDefaultFacadeHandler(svc, nil)
 		resp1, err1 := h.HandleProcessOrders(ctx, requests.ProcessOrdersRequest{
 			UserID:   1,

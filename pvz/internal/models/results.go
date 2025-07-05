@@ -1,4 +1,4 @@
-package shared
+package models
 
 // BatchEntryProcessedResult represents the result of processing a batch entry, including the OrderID and any associated error.
 type BatchEntryProcessedResult struct {

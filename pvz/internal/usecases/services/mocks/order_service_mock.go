@@ -6,7 +6,6 @@ import (
 	"context"
 	"pvz-cli/internal/models"
 	"pvz-cli/internal/usecases/requests"
-	"pvz-cli/internal/usecases/services/shared"
 	"sync"
 	mm_atomic "sync/atomic"
 	mm_time "time"
@@ -26,21 +25,21 @@ type OrderServiceMock struct {
 	beforeAcceptOrderCounter uint64
 	AcceptOrderMock          mOrderServiceMockAcceptOrder
 
-	funcCreateClientReturns          func(ctx context.Context, req requests.ClientReturnsRequest) (ba1 []shared.BatchEntryProcessedResult, err error)
+	funcCreateClientReturns          func(ctx context.Context, req requests.ClientReturnsRequest) (ba1 []models.BatchEntryProcessedResult, err error)
 	funcCreateClientReturnsOrigin    string
 	inspectFuncCreateClientReturns   func(ctx context.Context, req requests.ClientReturnsRequest)
 	afterCreateClientReturnsCounter  uint64
 	beforeCreateClientReturnsCounter uint64
 	CreateClientReturnsMock          mOrderServiceMockCreateClientReturns
 
-	funcImportOrders          func(ctx context.Context, req requests.ImportOrdersRequest) (ba1 []shared.BatchEntryProcessedResult, err error)
+	funcImportOrders          func(ctx context.Context, req requests.ImportOrdersRequest) (ba1 []models.BatchEntryProcessedResult, err error)
 	funcImportOrdersOrigin    string
 	inspectFuncImportOrders   func(ctx context.Context, req requests.ImportOrdersRequest)
 	afterImportOrdersCounter  uint64
 	beforeImportOrdersCounter uint64
 	ImportOrdersMock          mOrderServiceMockImportOrders
 
-	funcIssueOrders          func(ctx context.Context, req requests.IssueOrdersRequest) (ba1 []shared.BatchEntryProcessedResult, err error)
+	funcIssueOrders          func(ctx context.Context, req requests.IssueOrdersRequest) (ba1 []models.BatchEntryProcessedResult, err error)
 	funcIssueOrdersOrigin    string
 	inspectFuncIssueOrders   func(ctx context.Context, req requests.IssueOrdersRequest)
 	afterIssueOrdersCounter  uint64
@@ -484,7 +483,7 @@ type OrderServiceMockCreateClientReturnsParamPtrs struct {
 
 // OrderServiceMockCreateClientReturnsResults contains results of the OrderService.CreateClientReturns
 type OrderServiceMockCreateClientReturnsResults struct {
-	ba1 []shared.BatchEntryProcessedResult
+	ba1 []models.BatchEntryProcessedResult
 	err error
 }
 
@@ -588,7 +587,7 @@ func (mmCreateClientReturns *mOrderServiceMockCreateClientReturns) Inspect(f fun
 }
 
 // Return sets up results that will be returned by OrderService.CreateClientReturns
-func (mmCreateClientReturns *mOrderServiceMockCreateClientReturns) Return(ba1 []shared.BatchEntryProcessedResult, err error) *OrderServiceMock {
+func (mmCreateClientReturns *mOrderServiceMockCreateClientReturns) Return(ba1 []models.BatchEntryProcessedResult, err error) *OrderServiceMock {
 	if mmCreateClientReturns.mock.funcCreateClientReturns != nil {
 		mmCreateClientReturns.mock.t.Fatalf("OrderServiceMock.CreateClientReturns mock is already set by Set")
 	}
@@ -602,7 +601,7 @@ func (mmCreateClientReturns *mOrderServiceMockCreateClientReturns) Return(ba1 []
 }
 
 // Set uses given function f to mock the OrderService.CreateClientReturns method
-func (mmCreateClientReturns *mOrderServiceMockCreateClientReturns) Set(f func(ctx context.Context, req requests.ClientReturnsRequest) (ba1 []shared.BatchEntryProcessedResult, err error)) *OrderServiceMock {
+func (mmCreateClientReturns *mOrderServiceMockCreateClientReturns) Set(f func(ctx context.Context, req requests.ClientReturnsRequest) (ba1 []models.BatchEntryProcessedResult, err error)) *OrderServiceMock {
 	if mmCreateClientReturns.defaultExpectation != nil {
 		mmCreateClientReturns.mock.t.Fatalf("Default expectation is already set for the OrderService.CreateClientReturns method")
 	}
@@ -633,7 +632,7 @@ func (mmCreateClientReturns *mOrderServiceMockCreateClientReturns) When(ctx cont
 }
 
 // Then sets up OrderService.CreateClientReturns return parameters for the expectation previously defined by the When method
-func (e *OrderServiceMockCreateClientReturnsExpectation) Then(ba1 []shared.BatchEntryProcessedResult, err error) *OrderServiceMock {
+func (e *OrderServiceMockCreateClientReturnsExpectation) Then(ba1 []models.BatchEntryProcessedResult, err error) *OrderServiceMock {
 	e.results = &OrderServiceMockCreateClientReturnsResults{ba1, err}
 	return e.mock
 }
@@ -660,7 +659,7 @@ func (mmCreateClientReturns *mOrderServiceMockCreateClientReturns) invocationsDo
 }
 
 // CreateClientReturns implements mm_services.OrderService
-func (mmCreateClientReturns *OrderServiceMock) CreateClientReturns(ctx context.Context, req requests.ClientReturnsRequest) (ba1 []shared.BatchEntryProcessedResult, err error) {
+func (mmCreateClientReturns *OrderServiceMock) CreateClientReturns(ctx context.Context, req requests.ClientReturnsRequest) (ba1 []models.BatchEntryProcessedResult, err error) {
 	mm_atomic.AddUint64(&mmCreateClientReturns.beforeCreateClientReturnsCounter, 1)
 	defer mm_atomic.AddUint64(&mmCreateClientReturns.afterCreateClientReturnsCounter, 1)
 
@@ -827,7 +826,7 @@ type OrderServiceMockImportOrdersParamPtrs struct {
 
 // OrderServiceMockImportOrdersResults contains results of the OrderService.ImportOrders
 type OrderServiceMockImportOrdersResults struct {
-	ba1 []shared.BatchEntryProcessedResult
+	ba1 []models.BatchEntryProcessedResult
 	err error
 }
 
@@ -931,7 +930,7 @@ func (mmImportOrders *mOrderServiceMockImportOrders) Inspect(f func(ctx context.
 }
 
 // Return sets up results that will be returned by OrderService.ImportOrders
-func (mmImportOrders *mOrderServiceMockImportOrders) Return(ba1 []shared.BatchEntryProcessedResult, err error) *OrderServiceMock {
+func (mmImportOrders *mOrderServiceMockImportOrders) Return(ba1 []models.BatchEntryProcessedResult, err error) *OrderServiceMock {
 	if mmImportOrders.mock.funcImportOrders != nil {
 		mmImportOrders.mock.t.Fatalf("OrderServiceMock.ImportOrders mock is already set by Set")
 	}
@@ -945,7 +944,7 @@ func (mmImportOrders *mOrderServiceMockImportOrders) Return(ba1 []shared.BatchEn
 }
 
 // Set uses given function f to mock the OrderService.ImportOrders method
-func (mmImportOrders *mOrderServiceMockImportOrders) Set(f func(ctx context.Context, req requests.ImportOrdersRequest) (ba1 []shared.BatchEntryProcessedResult, err error)) *OrderServiceMock {
+func (mmImportOrders *mOrderServiceMockImportOrders) Set(f func(ctx context.Context, req requests.ImportOrdersRequest) (ba1 []models.BatchEntryProcessedResult, err error)) *OrderServiceMock {
 	if mmImportOrders.defaultExpectation != nil {
 		mmImportOrders.mock.t.Fatalf("Default expectation is already set for the OrderService.ImportOrders method")
 	}
@@ -976,7 +975,7 @@ func (mmImportOrders *mOrderServiceMockImportOrders) When(ctx context.Context, r
 }
 
 // Then sets up OrderService.ImportOrders return parameters for the expectation previously defined by the When method
-func (e *OrderServiceMockImportOrdersExpectation) Then(ba1 []shared.BatchEntryProcessedResult, err error) *OrderServiceMock {
+func (e *OrderServiceMockImportOrdersExpectation) Then(ba1 []models.BatchEntryProcessedResult, err error) *OrderServiceMock {
 	e.results = &OrderServiceMockImportOrdersResults{ba1, err}
 	return e.mock
 }
@@ -1003,7 +1002,7 @@ func (mmImportOrders *mOrderServiceMockImportOrders) invocationsDone() bool {
 }
 
 // ImportOrders implements mm_services.OrderService
-func (mmImportOrders *OrderServiceMock) ImportOrders(ctx context.Context, req requests.ImportOrdersRequest) (ba1 []shared.BatchEntryProcessedResult, err error) {
+func (mmImportOrders *OrderServiceMock) ImportOrders(ctx context.Context, req requests.ImportOrdersRequest) (ba1 []models.BatchEntryProcessedResult, err error) {
 	mm_atomic.AddUint64(&mmImportOrders.beforeImportOrdersCounter, 1)
 	defer mm_atomic.AddUint64(&mmImportOrders.afterImportOrdersCounter, 1)
 
@@ -1170,7 +1169,7 @@ type OrderServiceMockIssueOrdersParamPtrs struct {
 
 // OrderServiceMockIssueOrdersResults contains results of the OrderService.IssueOrders
 type OrderServiceMockIssueOrdersResults struct {
-	ba1 []shared.BatchEntryProcessedResult
+	ba1 []models.BatchEntryProcessedResult
 	err error
 }
 
@@ -1274,7 +1273,7 @@ func (mmIssueOrders *mOrderServiceMockIssueOrders) Inspect(f func(ctx context.Co
 }
 
 // Return sets up results that will be returned by OrderService.IssueOrders
-func (mmIssueOrders *mOrderServiceMockIssueOrders) Return(ba1 []shared.BatchEntryProcessedResult, err error) *OrderServiceMock {
+func (mmIssueOrders *mOrderServiceMockIssueOrders) Return(ba1 []models.BatchEntryProcessedResult, err error) *OrderServiceMock {
 	if mmIssueOrders.mock.funcIssueOrders != nil {
 		mmIssueOrders.mock.t.Fatalf("OrderServiceMock.IssueOrders mock is already set by Set")
 	}
@@ -1288,7 +1287,7 @@ func (mmIssueOrders *mOrderServiceMockIssueOrders) Return(ba1 []shared.BatchEntr
 }
 
 // Set uses given function f to mock the OrderService.IssueOrders method
-func (mmIssueOrders *mOrderServiceMockIssueOrders) Set(f func(ctx context.Context, req requests.IssueOrdersRequest) (ba1 []shared.BatchEntryProcessedResult, err error)) *OrderServiceMock {
+func (mmIssueOrders *mOrderServiceMockIssueOrders) Set(f func(ctx context.Context, req requests.IssueOrdersRequest) (ba1 []models.BatchEntryProcessedResult, err error)) *OrderServiceMock {
 	if mmIssueOrders.defaultExpectation != nil {
 		mmIssueOrders.mock.t.Fatalf("Default expectation is already set for the OrderService.IssueOrders method")
 	}
@@ -1319,7 +1318,7 @@ func (mmIssueOrders *mOrderServiceMockIssueOrders) When(ctx context.Context, req
 }
 
 // Then sets up OrderService.IssueOrders return parameters for the expectation previously defined by the When method
-func (e *OrderServiceMockIssueOrdersExpectation) Then(ba1 []shared.BatchEntryProcessedResult, err error) *OrderServiceMock {
+func (e *OrderServiceMockIssueOrdersExpectation) Then(ba1 []models.BatchEntryProcessedResult, err error) *OrderServiceMock {
 	e.results = &OrderServiceMockIssueOrdersResults{ba1, err}
 	return e.mock
 }
@@ -1346,7 +1345,7 @@ func (mmIssueOrders *mOrderServiceMockIssueOrders) invocationsDone() bool {
 }
 
 // IssueOrders implements mm_services.OrderService
-func (mmIssueOrders *OrderServiceMock) IssueOrders(ctx context.Context, req requests.IssueOrdersRequest) (ba1 []shared.BatchEntryProcessedResult, err error) {
+func (mmIssueOrders *OrderServiceMock) IssueOrders(ctx context.Context, req requests.IssueOrdersRequest) (ba1 []models.BatchEntryProcessedResult, err error) {
 	mm_atomic.AddUint64(&mmIssueOrders.beforeIssueOrdersCounter, 1)
 	defer mm_atomic.AddUint64(&mmIssueOrders.afterIssueOrdersCounter, 1)
 

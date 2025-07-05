@@ -6,7 +6,6 @@ import (
 	"pvz-cli/internal/data/repositories"
 	"pvz-cli/internal/models"
 	"pvz-cli/internal/usecases/requests"
-	"pvz-cli/internal/usecases/services/shared"
 	"pvz-cli/internal/usecases/services/validators"
 	"pvz-cli/internal/workerpool"
 	"pvz-cli/pkg/clock"
@@ -95,19 +94,19 @@ func (s *DefaultOrderService) AcceptOrder(ctx context.Context, req requests.Acce
 func (s *DefaultOrderService) IssueOrders(
 	ctx context.Context,
 	req requests.IssueOrdersRequest,
-) ([]shared.BatchEntryProcessedResult, error) {
+) ([]models.BatchEntryProcessedResult, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 	n := len(req.OrderIDs)
-	results := make([]shared.BatchEntryProcessedResult, n)
+	results := make([]models.BatchEntryProcessedResult, n)
 	var wg sync.WaitGroup
 	for i, id := range req.OrderIDs {
 		wg.Add(1)
 		i, id := i, id
 		s.pool.Submit(func() {
 			defer wg.Done()
-			res := shared.BatchEntryProcessedResult{OrderID: id}
+			res := models.BatchEntryProcessedResult{OrderID: id}
 			order, err := s.orderRepo.Load(ctx, id)
 			if err != nil {
 				res.Error = apperrors.Newf(apperrors.OrderNotFound, "order %d not found", id)
@@ -170,19 +169,19 @@ func (s *DefaultOrderService) ListOrders(ctx context.Context, filter requests.Or
 func (s *DefaultOrderService) CreateClientReturns(
 	ctx context.Context,
 	req requests.ClientReturnsRequest,
-) ([]shared.BatchEntryProcessedResult, error) {
+) ([]models.BatchEntryProcessedResult, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 	n := len(req.OrderIDs)
-	results := make([]shared.BatchEntryProcessedResult, n)
+	results := make([]models.BatchEntryProcessedResult, n)
 	var wg sync.WaitGroup
 	for i, id := range req.OrderIDs {
 		wg.Add(1)
 		i, id := i, id
 		s.pool.Submit(func() {
 			defer wg.Done()
-			res := shared.BatchEntryProcessedResult{OrderID: id}
+			res := models.BatchEntryProcessedResult{OrderID: id}
 			order, err := s.orderRepo.Load(ctx, id)
 			if err != nil {
 				res.Error = apperrors.Newf(apperrors.OrderNotFound, "order %d not found", id)
@@ -263,16 +262,16 @@ func (s *DefaultOrderService) ListReturns(ctx context.Context, filter requests.O
 func (s *DefaultOrderService) ImportOrders(
 	ctx context.Context,
 	req requests.ImportOrdersRequest,
-) ([]shared.BatchEntryProcessedResult, error) {
+) ([]models.BatchEntryProcessedResult, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 	n := len(req.Statuses)
-	results := make([]shared.BatchEntryProcessedResult, n)
+	results := make([]models.BatchEntryProcessedResult, n)
 	var wg sync.WaitGroup
 	for i, st := range req.Statuses {
 		if st.Error != nil {
-			results[i] = shared.BatchEntryProcessedResult{OrderID: st.Request.OrderID, Error: st.Error}
+			results[i] = models.BatchEntryProcessedResult{OrderID: st.Request.OrderID, Error: st.Error}
 			continue
 		}
 		wg.Add(1)
@@ -280,7 +279,7 @@ func (s *DefaultOrderService) ImportOrders(
 		s.pool.Submit(func() {
 			defer wg.Done()
 			order, err := s.AcceptOrder(ctx, *st.Request)
-			results[i] = shared.BatchEntryProcessedResult{OrderID: order.OrderID, Error: err}
+			results[i] = models.BatchEntryProcessedResult{OrderID: order.OrderID, Error: err}
 		})
 	}
 	wg.Wait()
