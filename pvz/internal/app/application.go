@@ -3,13 +3,16 @@ package app
 import (
 	"context"
 	"errors"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"log"
 	"net/http"
+	"os"
 	"os/signal"
 	"pvz-cli/docs/swagger"
 	"pvz-cli/internal/cli"
 	climappers "pvz-cli/internal/cli/mappers"
+	"pvz-cli/internal/common/observability"
 	"pvz-cli/internal/grpc/gateway"
 	"pvz-cli/internal/grpc/interceptors"
 	grpcmappers "pvz-cli/internal/grpc/mappers"
@@ -21,15 +24,21 @@ import (
 
 // The Application holds shared context and the DI container.
 type Application struct {
-	Ctx       context.Context
-	Cancel    context.CancelFunc
-	Container *Container
-	Pool      workerpool.WorkerPool
+	ctx       context.Context
+	cancel    context.CancelFunc
+	container *Container
+	pool      workerpool.WorkerPool
+	logger    *zap.SugaredLogger
+	wg        sync.WaitGroup
 }
 
 // New wires up the cancellation context and container.
-func New() *Application {
+func New(logger *zap.SugaredLogger) *Application {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+
+	if err := observability.InitTracing(ctx); err != nil {
+		logger.Errorf("failed to init tracing: %v", err)
+	}
 
 	pool := workerpool.NewDefaultWorkerPool(
 		ctx,
@@ -39,30 +48,55 @@ func New() *Application {
 	)
 
 	return &Application{
-		Ctx:       ctx,
-		Cancel:    cancel,
-		Container: NewContainer(pool),
-		Pool:      pool,
+		ctx:       ctx,
+		cancel:    cancel,
+		container: NewContainer(pool),
+		pool:      pool,
+		logger:    logger,
+		wg:        sync.WaitGroup{},
 	}
+}
+
+func (a *Application) Run() {
+	a.wg.Add(5)
+	grpcPort := os.Getenv("GRPC_PORT")
+	adminGRPCPort := os.Getenv("ADMIN_GRPC_PORT")
+	go a.StartGRPCServer(grpcPort)
+	go a.StartHTTPGateway()
+	go a.StartSwaggerUI()
+	go a.StartCLI()
+	go a.StartAdminGRPCServer(adminGRPCPort)
+}
+
+func (a *Application) Wait() {
+	<-a.ctx.Done()
+	a.logger.Info("Shutdown signal received, waiting for all servers…")
+	a.wg.Wait()
+	a.logger.Info("All services stopped, exiting.")
 }
 
 // Shutdown triggers cancellation; cleanup hooks live in main().
 func (a *Application) Shutdown() {
 	log.Println("Shutdown signal received")
-	a.Cancel()
+	a.cancel()
+	defer func() {
+		if err := observability.ShutdownTracing(context.Background()); err != nil {
+			a.logger.Errorf("failed to shutdown tracing: %v", err)
+		}
+	}()
 	log.Println("Shutting down worker pool")
-	a.Pool.Shutdown()
+	a.pool.Shutdown()
 	log.Println("Worker pool is shutdown")
 }
 
 // StartGRPCServer launches the main gRPC server on :50051 with interceptors for logging, tracing, validation, etc.
-func StartGRPCServer(app *Application, port string, wg *sync.WaitGroup) {
-	defer wg.Done()
+func (a *Application) StartGRPCServer(port string) {
+	defer a.wg.Done()
 	mapper := grpcmappers.NewDefaultGRPCFacadeMapper()
-	router := gateway.NewGRPCRouter(mapper, app.Container.FacadeHandler)
+	router := gateway.NewGRPCRouter(mapper, a.container.facadeHandler)
 
 	err := gateway.RunGRPCServer(
-		app.Ctx,
+		a.ctx,
 		port,
 		router,
 		grpc.ChainUnaryInterceptor(
@@ -74,23 +108,23 @@ func StartGRPCServer(app *Application, port string, wg *sync.WaitGroup) {
 			interceptors.LoggingInterceptor(),
 		),
 	)
-	if err != nil && app.Ctx.Err() == nil {
+	if err != nil && a.ctx.Err() == nil {
 		log.Fatalf("gRPC server error: %v", err)
 	}
 }
 
 // StartHTTPGateway starts the gRPC-Gateway proxy on :8080, routing HTTP requests to the gRPC backend.
-func StartHTTPGateway(app *Application, wg *sync.WaitGroup) {
-	defer wg.Done()
-	err := gateway.RunHTTPGateway(app.Ctx, ":50051", ":50052", ":8080")
-	if err != nil && app.Ctx.Err() == nil {
+func (a *Application) StartHTTPGateway() {
+	defer a.wg.Done()
+	err := gateway.RunHTTPGateway(a.ctx, ":50051", ":50052", ":8080")
+	if err != nil && a.ctx.Err() == nil {
 		log.Fatalf("HTTP gateway error: %v", err)
 	}
 }
 
 // StartSwaggerUI serves the embedded Swagger UI from / on :8082.
-func StartSwaggerUI(app *Application, wg *sync.WaitGroup) {
-	defer wg.Done()
+func (a *Application) StartSwaggerUI() {
+	defer a.wg.Done()
 	mux := http.NewServeMux()
 	mux.Handle("/", http.FileServer(http.FS(swagger.FS)))
 
@@ -102,7 +136,7 @@ func StartSwaggerUI(app *Application, wg *sync.WaitGroup) {
 		IdleTimeout:       60 * time.Second,
 	}
 	go func() {
-		<-app.Ctx.Done()
+		<-a.ctx.Done()
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if err := srv.Shutdown(ctx); err != nil {
@@ -116,20 +150,21 @@ func StartSwaggerUI(app *Application, wg *sync.WaitGroup) {
 }
 
 // StartCLI runs the interactive CLI interface using the shared DI container.
-func StartCLI(app *Application, wg *sync.WaitGroup) {
-	defer wg.Done()
+func (a *Application) StartCLI() {
+	defer a.wg.Done()
 	log.Println("CLI started")
 	mapper := climappers.NewDefaultFacadeMapper()
-	router := cli.NewRouter(app.Container.FacadeHandler, mapper)
-	router.Run(app.Ctx, app.Shutdown)
+	router := cli.NewRouter(a.container.facadeHandler, mapper)
+	router.Run(a.ctx, a.Shutdown)
 	log.Println("CLI finished")
 }
 
-func StartAdminGRPCServer(app *Application, port string, wg *sync.WaitGroup) {
-	defer wg.Done()
-	router := gateway.NewAdminGRPCRouter(app.Pool)
+// StartAdminGRPCServer starts the admin gRPC server on the specified port with validation and recovery interceptors.
+func (a *Application) StartAdminGRPCServer(port string) {
+	defer a.wg.Done()
+	router := gateway.NewAdminGRPCRouter(a.pool)
 	err := gateway.RunAdminGRPCServer(
-		app.Ctx,
+		a.ctx,
 		port,
 		router,
 		grpc.ChainUnaryInterceptor(
@@ -137,7 +172,7 @@ func StartAdminGRPCServer(app *Application, port string, wg *sync.WaitGroup) {
 			interceptors.RecoveryInterceptor(),
 		),
 	)
-	if err != nil && app.Ctx.Err() == nil {
+	if err != nil && a.ctx.Err() == nil {
 		log.Fatalf("gRPC server error: %v", err)
 	}
 }

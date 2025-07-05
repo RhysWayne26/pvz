@@ -18,10 +18,10 @@ import (
 
 // Container holds all shared business-level dependencies: configuration, repositories, services, and the facade handler.
 type Container struct {
-	Config         *config.Config
-	OrderService   services.OrderService
-	HistoryService services.HistoryService
-	FacadeHandler  handlers.FacadeHandler
+	config         *config.Config
+	orderService   services.OrderService
+	historyService services.HistoryService
+	facadeHandler  handlers.FacadeHandler
 }
 
 // NewContainer returns a new instance of an application container
@@ -64,9 +64,9 @@ func NewContainer(pool workerpool.WorkerPool) *Container {
 	facadeHandler := handlers.NewDefaultFacadeHandler(orderSvc, historySvc)
 
 	return &Container{
-		Config:         cfg,
-		OrderService:   orderSvc,
-		HistoryService: historySvc,
-		FacadeHandler:  facadeHandler,
+		config:         cfg,
+		orderService:   orderSvc,
+		historyService: historySvc,
+		facadeHandler:  facadeHandler,
 	}
 }

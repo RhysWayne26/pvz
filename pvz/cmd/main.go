@@ -1,14 +1,8 @@
 package main
 
 import (
-	"context"
-	"os"
-	"os/signal"
 	"pvz-cli/internal/app"
-	"pvz-cli/internal/common/observability"
 	"pvz-cli/internal/grpc/interceptors"
-	"sync"
-	"syscall"
 )
 
 func main() {
@@ -18,40 +12,9 @@ func main() {
 			logger.Errorf("failed to close log file: %v", err)
 		}
 	}()
-
-	application := app.New()
+	application := app.New(logger)
 	defer application.Shutdown()
 
-	if err := observability.InitTracing(application.Ctx); err != nil {
-		logger.Errorf("failed to init tracing: %v", err)
-		return
-	}
-	defer func() {
-		if err := observability.ShutdownTracing(context.Background()); err != nil {
-			logger.Errorf("failed to shutdown tracing: %v", err)
-		}
-	}()
-
-	signals := make(chan os.Signal, 1)
-	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		<-signals
-		application.Shutdown()
-	}()
-
-	var wg sync.WaitGroup
-	wg.Add(5)
-
-	grpcPort := os.Getenv("GRPC_PORT")
-	adminGRPCPort := os.Getenv("ADMIN_GRPC_PORT")
-	go app.StartGRPCServer(application, grpcPort, &wg)
-	go app.StartHTTPGateway(application, &wg)
-	go app.StartSwaggerUI(application, &wg)
-	go app.StartCLI(application, &wg)
-	go app.StartAdminGRPCServer(application, adminGRPCPort, &wg)
-
-	<-application.Ctx.Done()
-	logger.Infow("Shutdown signal received, waiting for all servers…")
-	wg.Wait()
-	logger.Info("All services stopped, exiting.")
+	application.Run()
+	application.Wait()
 }
