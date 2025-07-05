@@ -1,7 +1,7 @@
 package shared
 
-// ProcessResult represents the outcome of processing a single order operation
-type ProcessResult struct {
+// BatchEntryProcessedResult represents the result of processing a batch entry, including the OrderID and any associated error.
+type BatchEntryProcessedResult struct {
 	OrderID uint64
 	Error   error
 }

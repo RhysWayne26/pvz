@@ -12,27 +12,24 @@ func (f *DefaultFacadeHandler) HandleImportOrders(
 	ctx context.Context,
 	req requests.ImportOrdersRequest,
 ) (responses.ImportOrdersResponse, error) {
-	if ctx.Err() != nil {
-		return responses.ImportOrdersResponse{}, ctx.Err()
+	if err := ctx.Err(); err != nil {
+		return responses.ImportOrdersResponse{}, err
 	}
-
-	var importedCount int
-	for i := range req.Statuses {
-		status := &req.Statuses[i]
-
-		if status.Error != nil {
-			continue
-		}
-		_, err := f.HandleAcceptOrder(ctx, *status.Request)
-		if err != nil {
-			status.Error = err
-			continue
-		}
-		importedCount++
+	batchResults, err := f.orderService.ImportOrders(ctx, req)
+	if err != nil {
+		return responses.ImportOrdersResponse{}, err
 	}
-
+	statuses := make([]requests.ImportOrderStatus, len(req.Statuses))
+	copy(statuses, req.Statuses)
+	importedCount := 0
+	for i, r := range batchResults {
+		statuses[i].Error = r.Error
+		if r.Error == nil {
+			importedCount++
+		}
+	}
 	return responses.ImportOrdersResponse{
 		Imported: importedCount,
-		Statuses: req.Statuses,
+		Statuses: statuses,
 	}, nil
 }

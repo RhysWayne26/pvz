@@ -222,26 +222,27 @@ func TestDefaultFacadeHandler_HandleReturnOrder(t *testing.T) {
 func TestDefaultFacadeHandler_HandleImportOrders(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	t.Run("aggregation logic", func(t *testing.T) {
-		t.Parallel()
-		svc := svcmocks.NewOrderServiceMock(t)
-		defer svc.MinimockFinish()
-		statuses := []requests.ImportOrderStatus{
-			{ItemNumber: 1, Request: &requests.AcceptOrderRequest{OrderID: 1}},
-			{ItemNumber: 2, Request: &requests.AcceptOrderRequest{OrderID: 2}},
-			{ItemNumber: 3, Request: &requests.AcceptOrderRequest{OrderID: 3}, Error: errors.New("already invalid")},
-		}
-
-		svc.AcceptOrderMock.When(ctx, *statuses[0].Request).Then(models.Order{OrderID: 1}, nil)
-		svc.AcceptOrderMock.When(ctx, *statuses[1].Request).Then(models.Order{}, errors.New("fail2"))
-		h := NewDefaultFacadeHandler(svc, nil)
-		resp, err := h.HandleImportOrders(ctx, requests.ImportOrdersRequest{Statuses: statuses})
-		require.NoError(t, err)
-		require.Equal(t, 1, resp.Imported)
-		require.NoError(t, resp.Statuses[0].Error)
-		require.EqualError(t, resp.Statuses[1].Error, "fail2")
-		require.EqualError(t, resp.Statuses[2].Error, "already invalid")
-	})
+	statuses := []requests.ImportOrderStatus{
+		{ItemNumber: 1, Request: &requests.AcceptOrderRequest{OrderID: 1}},
+		{ItemNumber: 2, Request: &requests.AcceptOrderRequest{OrderID: 2}},
+		{ItemNumber: 3, Request: &requests.AcceptOrderRequest{OrderID: 3}, Error: errors.New("already invalid")},
+	}
+	svc := svcmocks.NewOrderServiceMock(t)
+	defer svc.MinimockFinish()
+	svc.ImportOrdersMock.
+		Expect(ctx, requests.ImportOrdersRequest{Statuses: statuses}).
+		Return([]shared.BatchEntryProcessedResult{
+			{OrderID: 1, Error: nil},
+			{OrderID: 2, Error: errors.New("fail2")},
+			{OrderID: 3, Error: errors.New("already invalid")},
+		}, nil)
+	h := NewDefaultFacadeHandler(svc, nil)
+	resp, err := h.HandleImportOrders(ctx, requests.ImportOrdersRequest{Statuses: statuses})
+	require.NoError(t, err)
+	require.Equal(t, 1, resp.Imported)
+	require.NoError(t, resp.Statuses[0].Error)
+	require.EqualError(t, resp.Statuses[1].Error, "fail2")
+	require.EqualError(t, resp.Statuses[2].Error, "already invalid")
 }
 
 // TestDefaultFacadeHandler_HandleProcessOrders tests the HandleProcessOrders function ensuring actions like issue and return work correctly.
@@ -253,9 +254,9 @@ func TestDefaultFacadeHandler_HandleProcessOrders(t *testing.T) {
 		svc := svcmocks.NewOrderServiceMock(t)
 		defer svc.MinimockFinish()
 		svc.IssueOrdersMock.Expect(ctx, requests.IssueOrdersRequest{UserID: 1, OrderIDs: []uint64{10}}).
-			Return([]shared.ProcessResult{{OrderID: 10}}, nil)
+			Return([]shared.BatchEntryProcessedResult{{OrderID: 10}}, nil)
 		svc.CreateClientReturnsMock.Expect(ctx, requests.ClientReturnsRequest{UserID: 1, OrderIDs: []uint64{11}}).
-			Return([]shared.ProcessResult{{OrderID: 11}}, nil)
+			Return([]shared.BatchEntryProcessedResult{{OrderID: 11}}, nil)
 		h := NewDefaultFacadeHandler(svc, nil)
 		resp1, err1 := h.HandleProcessOrders(ctx, requests.ProcessOrdersRequest{
 			UserID:   1,

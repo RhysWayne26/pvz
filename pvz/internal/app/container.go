@@ -11,6 +11,7 @@ import (
 	"pvz-cli/internal/usecases/services"
 	"pvz-cli/internal/usecases/services/strategies"
 	"pvz-cli/internal/usecases/services/validators"
+	"pvz-cli/internal/workerpool"
 	"pvz-cli/pkg/clock"
 	"time"
 )
@@ -24,7 +25,7 @@ type Container struct {
 }
 
 // NewContainer returns a new instance of an application container
-func NewContainer() *Container {
+func NewContainer(pool workerpool.WorkerPool) *Container {
 	cfg := config.Load()
 	var orderRepo repositories.OrderRepository
 	var historyRepo repositories.HistoryRepository
@@ -58,7 +59,7 @@ func NewContainer() *Container {
 
 	historySvc := services.NewDefaultHistoryService(historyRepo)
 	pricingSvc := services.NewDefaultPackagePricingService(packageValidator, pricingStrategy)
-	orderSvc := services.NewDefaultOrderService(clk, orderRepo, pricingSvc, historySvc, orderValidator)
+	orderSvc := services.NewDefaultOrderService(clk, pool, orderRepo, pricingSvc, historySvc, orderValidator)
 
 	facadeHandler := handlers.NewDefaultFacadeHandler(orderSvc, historySvc)
 

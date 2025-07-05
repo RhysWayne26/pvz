@@ -13,6 +13,7 @@ import (
 	"pvz-cli/internal/grpc/gateway"
 	"pvz-cli/internal/grpc/interceptors"
 	grpcmappers "pvz-cli/internal/grpc/mappers"
+	"pvz-cli/internal/workerpool"
 	"sync"
 	"syscall"
 	"time"
@@ -23,15 +24,25 @@ type Application struct {
 	Ctx       context.Context
 	Cancel    context.CancelFunc
 	Container *Container
+	Pool      workerpool.WorkerPool
 }
 
 // New wires up the cancellation context and container.
 func New() *Application {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+
+	pool := workerpool.NewDefaultWorkerPool(
+		ctx,
+		workerpool.WithWorkerCount(2),
+		workerpool.WithStatsInterval(10*time.Second),
+		workerpool.WithQueueFactor(3),
+	)
+
 	return &Application{
 		Ctx:       ctx,
 		Cancel:    cancel,
-		Container: NewContainer(),
+		Container: NewContainer(pool),
+		Pool:      pool,
 	}
 }
 
@@ -39,6 +50,9 @@ func New() *Application {
 func (a *Application) Shutdown() {
 	log.Println("Shutdown signal received")
 	a.Cancel()
+	log.Println("Shutting down worker pool")
+	a.Pool.Shutdown()
+	log.Println("Worker pool is shutdown")
 }
 
 // StartGRPCServer launches the main gRPC server on :50051 with interceptors for logging, tracing, validation, etc.

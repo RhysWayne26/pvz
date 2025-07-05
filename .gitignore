@@ -20,3 +20,5 @@ pvz/coverage.out
 
 pvz/allure-results/
 pvz/allure-report/
+
+pvz/tests/e2e/standalone/logs

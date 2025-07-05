@@ -18,7 +18,7 @@ func (f *DefaultFacadeHandler) HandleProcessOrders(
 		return responses.ProcessOrdersResponse{}, ctx.Err()
 	}
 
-	var results []shared.ProcessResult
+	var results []shared.BatchEntryProcessedResult
 	var err error
 
 	switch req.Action {
@@ -48,7 +48,7 @@ func (f *DefaultFacadeHandler) HandleProcessOrders(
 	return buildProcessOrdersResponse(results), nil
 }
 
-func buildProcessOrdersResponse(resultsFromService []shared.ProcessResult) responses.ProcessOrdersResponse {
+func buildProcessOrdersResponse(resultsFromService []shared.BatchEntryProcessedResult) responses.ProcessOrdersResponse {
 	res := responses.ProcessOrdersResponse{
 		Processed: make([]uint64, 0, len(resultsFromService)),
 		Failed:    make([]responses.ProcessFailReport, 0, len(resultsFromService)),
