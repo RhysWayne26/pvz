@@ -18,7 +18,7 @@ window.onload = function() {
     ],
     layout: "StandaloneLayout",
     requestInterceptor: (request) => {
-      if (request.url.includes('/v1/')) {
+      if (request.url.includes('/v1/') || request.url.includes('/admin/')) {
         const currentHost = window.location.hostname;
         let path = request.url;
         if (path.includes('://')) {
