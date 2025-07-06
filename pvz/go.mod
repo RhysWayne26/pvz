@@ -13,6 +13,7 @@ require (
 	github.com/ozontech/allure-go/pkg/framework v0.6.34
 	github.com/pressly/goose/v3 v3.24.3
 	github.com/rs/cors v1.11.1
+	github.com/shopspring/decimal v1.4.0
 	github.com/stretchr/testify v1.10.0
 	github.com/testcontainers/testcontainers-go v0.37.0
 	go.opentelemetry.io/otel v1.37.0

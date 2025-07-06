@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"math"
+	"github.com/shopspring/decimal"
 	"pvz-cli/internal/common/apperrors"
 )
 
@@ -27,15 +27,11 @@ func ValidatePositiveFloat(name string, val float32) error {
 	return nil
 }
 
-// ValidateFractionDigits validates that float has no more than specified fractional digits
+// ValidateFractionDigits validates that the given float32 value has at most the specified number of fractional digits.
 func ValidateFractionDigits(name string, value float32, maxDigits int) error {
-	v := float64(value)
-	mult := math.Pow10(maxDigits)
-	vMult := v * mult
-	intPart := math.Round(vMult)
-
-	const epsilon = 1e-3
-	if math.Abs(vMult-intPart) > epsilon {
+	d := decimal.NewFromFloat32(value)
+	truncated := d.Truncate(int32(maxDigits))
+	if !d.Equal(truncated) {
 		return apperrors.Newf(
 			apperrors.ValidationFailed,
 			"%s must have at most %d fractional digits", name, maxDigits,
