@@ -17,6 +17,42 @@ import (
 	"time"
 )
 
+type SyncPoolStub struct {
+	shutdown bool
+}
+
+func (p *SyncPoolStub) Submit(task func()) {
+	task()
+}
+
+func (p *SyncPoolStub) SubmitWithContext(ctx context.Context, task func()) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	task()
+	return nil
+}
+
+func (p *SyncPoolStub) Shutdown() {
+	p.shutdown = true
+}
+
+func (p *SyncPoolStub) ShutdownWithTimeout(timeout time.Duration) error {
+	p.shutdown = true
+	return nil
+}
+
+func (p *SyncPoolStub) SetWorkerCount(count int) {
+}
+
+func (p *SyncPoolStub) GetStats() map[string]interface{} {
+	return map[string]interface{}{}
+}
+
+func (p *SyncPoolStub) IsShutdown() bool {
+	return p.shutdown
+}
+
 type acceptanceStage string
 
 const (
@@ -481,8 +517,10 @@ func newTestOrderService(t *testing.T) orderSvcDeps {
 	pricing := svcmocks.NewPackagePricingServiceMock(t)
 	validator := valmocks.NewOrderValidatorMock(t)
 	clk := &clock.FakeClock{}
-	svc := NewDefaultOrderService(clk, repo, pricing, history, validator)
+	pool := &SyncPoolStub{}
 	ctx := context.Background()
+	svc := NewDefaultOrderService(clk, pool, repo, pricing, history, validator)
+
 	return orderSvcDeps{svc, repo, history, pricing, validator, ctx, clk}
 }
 
@@ -496,7 +534,8 @@ type orderSvcDepsMinimal struct {
 func newTestOrderServiceMinimal(t *testing.T) orderSvcDepsMinimal {
 	repo := repmocks.NewOrderRepositoryMock(t)
 	clk := &clock.FakeClock{}
-	svc := NewDefaultOrderService(clk, repo, nil, nil, nil)
+	pool := &SyncPoolStub{}
+	svc := NewDefaultOrderService(clk, pool, repo, nil, nil, nil)
 	ctx := context.Background()
 	return orderSvcDepsMinimal{svc: svc, repo: repo, ctx: ctx, clk: clk}
 }

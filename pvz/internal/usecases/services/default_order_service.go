@@ -2,14 +2,14 @@ package services
 
 import (
 	"context"
-	"fmt"
 	"pvz-cli/internal/common/apperrors"
 	"pvz-cli/internal/data/repositories"
 	"pvz-cli/internal/models"
 	"pvz-cli/internal/usecases/requests"
-	"pvz-cli/internal/usecases/services/shared"
 	"pvz-cli/internal/usecases/services/validators"
+	"pvz-cli/internal/workerpool"
 	"pvz-cli/pkg/clock"
+	"sync"
 )
 
 var _ OrderService = (*DefaultOrderService)(nil)
@@ -17,6 +17,7 @@ var _ OrderService = (*DefaultOrderService)(nil)
 // DefaultOrderService is a default implementation of the OrderService interface
 type DefaultOrderService struct {
 	clk               clock.Clock
+	pool              workerpool.WorkerPool
 	orderRepo         repositories.OrderRepository
 	packagePricingSvc PackagePricingService
 	historySvc        HistoryService
@@ -26,12 +27,14 @@ type DefaultOrderService struct {
 // NewDefaultOrderService creates a new instance of DefaultOrderService
 func NewDefaultOrderService(
 	clk clock.Clock,
+	pool workerpool.WorkerPool,
 	orderRepo repositories.OrderRepository,
 	packagePricingService PackagePricingService,
 	historyService HistoryService,
 	validator validators.OrderValidator) *DefaultOrderService {
 	return &DefaultOrderService{
 		clk:               clk,
+		pool:              pool,
 		orderRepo:         orderRepo,
 		packagePricingSvc: packagePricingService,
 		historySvc:        historyService,
@@ -88,52 +91,51 @@ func (s *DefaultOrderService) AcceptOrder(ctx context.Context, req requests.Acce
 }
 
 // IssueOrders processes multiple orders for issuance to clients
-func (s *DefaultOrderService) IssueOrders(ctx context.Context, req requests.IssueOrdersRequest) ([]shared.ProcessResult, error) {
-	if ctx.Err() != nil {
-		return nil, ctx.Err()
+func (s *DefaultOrderService) IssueOrders(
+	ctx context.Context,
+	req requests.IssueOrdersRequest,
+) ([]models.BatchEntryProcessedResult, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
 	}
-	results := make([]shared.ProcessResult, 0, len(req.OrderIDs))
-	now := s.clk.Now()
+	n := len(req.OrderIDs)
+	results := make([]models.BatchEntryProcessedResult, n)
+	var wg sync.WaitGroup
+	for i, id := range req.OrderIDs {
+		wg.Add(1)
+		i, id := i, id
+		s.pool.Submit(func() {
+			defer wg.Done()
+			res := models.BatchEntryProcessedResult{OrderID: id}
+			order, err := s.orderRepo.Load(ctx, id)
+			if err != nil {
+				res.Error = apperrors.Newf(apperrors.OrderNotFound, "order %d not found", id)
+				results[i] = res
+				return
+			}
+			if err := s.validator.ValidateIssue(order, req); err != nil {
+				res.Error = err
+				results[i] = res
+				return
+			}
+			order.Status = models.Issued
+			order.UpdatedStatusAt = s.clk.Now()
+			if err := s.orderRepo.Save(ctx, order); err != nil {
+				res.Error = apperrors.Newf(apperrors.InternalError, "failed to save order %d: %v", id, err)
+				results[i] = res
+				return
+			}
+			_ = s.historySvc.Record(ctx, models.HistoryEntry{
+				OrderID:   id,
+				Event:     models.EventIssued,
+				Timestamp: s.clk.Now(),
+			})
 
-	for _, id := range req.OrderIDs {
-		res := shared.ProcessResult{OrderID: id}
-
-		order, err := s.orderRepo.Load(ctx, id)
-		if err != nil {
-			res.Error = apperrors.Newf(apperrors.OrderNotFound, "order %d not found", id)
-			results = append(results, res)
-			continue
-		}
-
-		if err := s.validator.ValidateIssue(order, req); err != nil {
-			res.Error = err
-			results = append(results, res)
-			continue
-		}
-
-		order.Status = models.Issued
-		order.UpdatedStatusAt = now
-
-		if err := s.orderRepo.Save(ctx, order); err != nil {
-			res.Error = apperrors.Newf(apperrors.InternalError, "failed to save order %d: %v", id, err)
-			results = append(results, res)
-			continue
-		}
-
-		entry := models.HistoryEntry{
-			OrderID:   order.OrderID,
-			Event:     models.EventIssued,
-			Timestamp: now,
-		}
-
-		if err := s.historySvc.Record(ctx, entry); err != nil {
-			fmt.Printf("WARNING: failed to record history for order %d: %v\n", id, err)
-		}
-
-		res.Error = nil
-		results = append(results, res)
+			results[i] = res
+		})
 	}
 
+	wg.Wait()
 	return results, nil
 }
 
@@ -164,51 +166,51 @@ func (s *DefaultOrderService) ListOrders(ctx context.Context, filter requests.Or
 }
 
 // CreateClientReturns processes multiple client return requests
-func (s *DefaultOrderService) CreateClientReturns(ctx context.Context, req requests.ClientReturnsRequest) ([]shared.ProcessResult, error) {
-	if ctx.Err() != nil {
-		return nil, ctx.Err()
+func (s *DefaultOrderService) CreateClientReturns(
+	ctx context.Context,
+	req requests.ClientReturnsRequest,
+) ([]models.BatchEntryProcessedResult, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
 	}
-	results := make([]shared.ProcessResult, 0, len(req.OrderIDs))
-	now := s.clk.Now()
+	n := len(req.OrderIDs)
+	results := make([]models.BatchEntryProcessedResult, n)
+	var wg sync.WaitGroup
+	for i, id := range req.OrderIDs {
+		wg.Add(1)
+		i, id := i, id
+		s.pool.Submit(func() {
+			defer wg.Done()
+			res := models.BatchEntryProcessedResult{OrderID: id}
+			order, err := s.orderRepo.Load(ctx, id)
+			if err != nil {
+				res.Error = apperrors.Newf(apperrors.OrderNotFound, "order %d not found", id)
+				results[i] = res
+				return
+			}
+			if err := s.validator.ValidateClientReturn(order, req); err != nil {
+				res.Error = err
+				results[i] = res
+				return
+			}
+			order.Status = models.Returned
+			order.UpdatedStatusAt = s.clk.Now()
+			if err := s.orderRepo.Save(ctx, order); err != nil {
+				res.Error = apperrors.Newf(apperrors.InternalError, "failed to save order %d: %v", id, err)
+				results[i] = res
+				return
+			}
 
-	for _, id := range req.OrderIDs {
-		res := shared.ProcessResult{OrderID: id}
-
-		order, err := s.orderRepo.Load(ctx, id)
-		if err != nil {
-			res.Error = apperrors.Newf(apperrors.OrderNotFound, "order %d not found", id)
-			results = append(results, res)
-			continue
-		}
-
-		if err := s.validator.ValidateClientReturn(order, req); err != nil {
-			res.Error = err
-			results = append(results, res)
-			continue
-		}
-
-		order.Status = models.Returned
-		order.UpdatedStatusAt = now
-
-		if err := s.orderRepo.Save(ctx, order); err != nil {
-			res.Error = apperrors.Newf(apperrors.InternalError, "failed to save order %d: %v", order.OrderID, err)
-			results = append(results, res)
-			continue
-		}
-
-		entry := models.HistoryEntry{
-			OrderID:   order.OrderID,
-			Event:     models.EventReturnedByClient,
-			Timestamp: now,
-		}
-		if err := s.historySvc.Record(ctx, entry); err != nil {
-			fmt.Printf("WARNING: failed to record history for order %d: %v\n", order.OrderID, err)
-		}
-
-		res.Error = nil
-		results = append(results, res)
+			_ = s.historySvc.Record(ctx, models.HistoryEntry{
+				OrderID:   id,
+				Event:     models.EventReturnedByClient,
+				Timestamp: s.clk.Now(),
+			})
+			results[i] = res
+		})
 	}
 
+	wg.Wait()
 	return results, nil
 }
 
@@ -254,4 +256,32 @@ func (s *DefaultOrderService) ListReturns(ctx context.Context, filter requests.O
 	}
 
 	return orders, nil
+}
+
+// ImportOrders imports multiple orders concurrently, processing each status and returning a batch of results with errors, if any.
+func (s *DefaultOrderService) ImportOrders(
+	ctx context.Context,
+	req requests.ImportOrdersRequest,
+) ([]models.BatchEntryProcessedResult, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	n := len(req.Statuses)
+	results := make([]models.BatchEntryProcessedResult, n)
+	var wg sync.WaitGroup
+	for i, st := range req.Statuses {
+		if st.Error != nil {
+			results[i] = models.BatchEntryProcessedResult{OrderID: st.Request.OrderID, Error: st.Error}
+			continue
+		}
+		wg.Add(1)
+		i, st := i, st
+		s.pool.Submit(func() {
+			defer wg.Done()
+			order, err := s.AcceptOrder(ctx, *st.Request)
+			results[i] = models.BatchEntryProcessedResult{OrderID: order.OrderID, Error: err}
+		})
+	}
+	wg.Wait()
+	return results, nil
 }

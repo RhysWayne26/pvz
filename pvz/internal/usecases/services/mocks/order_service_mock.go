@@ -6,7 +6,6 @@ import (
 	"context"
 	"pvz-cli/internal/models"
 	"pvz-cli/internal/usecases/requests"
-	"pvz-cli/internal/usecases/services/shared"
 	"sync"
 	mm_atomic "sync/atomic"
 	mm_time "time"
@@ -26,14 +25,21 @@ type OrderServiceMock struct {
 	beforeAcceptOrderCounter uint64
 	AcceptOrderMock          mOrderServiceMockAcceptOrder
 
-	funcCreateClientReturns          func(ctx context.Context, req requests.ClientReturnsRequest) (pa1 []shared.ProcessResult, err error)
+	funcCreateClientReturns          func(ctx context.Context, req requests.ClientReturnsRequest) (ba1 []models.BatchEntryProcessedResult, err error)
 	funcCreateClientReturnsOrigin    string
 	inspectFuncCreateClientReturns   func(ctx context.Context, req requests.ClientReturnsRequest)
 	afterCreateClientReturnsCounter  uint64
 	beforeCreateClientReturnsCounter uint64
 	CreateClientReturnsMock          mOrderServiceMockCreateClientReturns
 
-	funcIssueOrders          func(ctx context.Context, req requests.IssueOrdersRequest) (pa1 []shared.ProcessResult, err error)
+	funcImportOrders          func(ctx context.Context, req requests.ImportOrdersRequest) (ba1 []models.BatchEntryProcessedResult, err error)
+	funcImportOrdersOrigin    string
+	inspectFuncImportOrders   func(ctx context.Context, req requests.ImportOrdersRequest)
+	afterImportOrdersCounter  uint64
+	beforeImportOrdersCounter uint64
+	ImportOrdersMock          mOrderServiceMockImportOrders
+
+	funcIssueOrders          func(ctx context.Context, req requests.IssueOrdersRequest) (ba1 []models.BatchEntryProcessedResult, err error)
 	funcIssueOrdersOrigin    string
 	inspectFuncIssueOrders   func(ctx context.Context, req requests.IssueOrdersRequest)
 	afterIssueOrdersCounter  uint64
@@ -75,6 +81,9 @@ func NewOrderServiceMock(t minimock.Tester) *OrderServiceMock {
 
 	m.CreateClientReturnsMock = mOrderServiceMockCreateClientReturns{mock: m}
 	m.CreateClientReturnsMock.callArgs = []*OrderServiceMockCreateClientReturnsParams{}
+
+	m.ImportOrdersMock = mOrderServiceMockImportOrders{mock: m}
+	m.ImportOrdersMock.callArgs = []*OrderServiceMockImportOrdersParams{}
 
 	m.IssueOrdersMock = mOrderServiceMockIssueOrders{mock: m}
 	m.IssueOrdersMock.callArgs = []*OrderServiceMockIssueOrdersParams{}
@@ -474,7 +483,7 @@ type OrderServiceMockCreateClientReturnsParamPtrs struct {
 
 // OrderServiceMockCreateClientReturnsResults contains results of the OrderService.CreateClientReturns
 type OrderServiceMockCreateClientReturnsResults struct {
-	pa1 []shared.ProcessResult
+	ba1 []models.BatchEntryProcessedResult
 	err error
 }
 
@@ -578,7 +587,7 @@ func (mmCreateClientReturns *mOrderServiceMockCreateClientReturns) Inspect(f fun
 }
 
 // Return sets up results that will be returned by OrderService.CreateClientReturns
-func (mmCreateClientReturns *mOrderServiceMockCreateClientReturns) Return(pa1 []shared.ProcessResult, err error) *OrderServiceMock {
+func (mmCreateClientReturns *mOrderServiceMockCreateClientReturns) Return(ba1 []models.BatchEntryProcessedResult, err error) *OrderServiceMock {
 	if mmCreateClientReturns.mock.funcCreateClientReturns != nil {
 		mmCreateClientReturns.mock.t.Fatalf("OrderServiceMock.CreateClientReturns mock is already set by Set")
 	}
@@ -586,13 +595,13 @@ func (mmCreateClientReturns *mOrderServiceMockCreateClientReturns) Return(pa1 []
 	if mmCreateClientReturns.defaultExpectation == nil {
 		mmCreateClientReturns.defaultExpectation = &OrderServiceMockCreateClientReturnsExpectation{mock: mmCreateClientReturns.mock}
 	}
-	mmCreateClientReturns.defaultExpectation.results = &OrderServiceMockCreateClientReturnsResults{pa1, err}
+	mmCreateClientReturns.defaultExpectation.results = &OrderServiceMockCreateClientReturnsResults{ba1, err}
 	mmCreateClientReturns.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
 	return mmCreateClientReturns.mock
 }
 
 // Set uses given function f to mock the OrderService.CreateClientReturns method
-func (mmCreateClientReturns *mOrderServiceMockCreateClientReturns) Set(f func(ctx context.Context, req requests.ClientReturnsRequest) (pa1 []shared.ProcessResult, err error)) *OrderServiceMock {
+func (mmCreateClientReturns *mOrderServiceMockCreateClientReturns) Set(f func(ctx context.Context, req requests.ClientReturnsRequest) (ba1 []models.BatchEntryProcessedResult, err error)) *OrderServiceMock {
 	if mmCreateClientReturns.defaultExpectation != nil {
 		mmCreateClientReturns.mock.t.Fatalf("Default expectation is already set for the OrderService.CreateClientReturns method")
 	}
@@ -623,8 +632,8 @@ func (mmCreateClientReturns *mOrderServiceMockCreateClientReturns) When(ctx cont
 }
 
 // Then sets up OrderService.CreateClientReturns return parameters for the expectation previously defined by the When method
-func (e *OrderServiceMockCreateClientReturnsExpectation) Then(pa1 []shared.ProcessResult, err error) *OrderServiceMock {
-	e.results = &OrderServiceMockCreateClientReturnsResults{pa1, err}
+func (e *OrderServiceMockCreateClientReturnsExpectation) Then(ba1 []models.BatchEntryProcessedResult, err error) *OrderServiceMock {
+	e.results = &OrderServiceMockCreateClientReturnsResults{ba1, err}
 	return e.mock
 }
 
@@ -650,7 +659,7 @@ func (mmCreateClientReturns *mOrderServiceMockCreateClientReturns) invocationsDo
 }
 
 // CreateClientReturns implements mm_services.OrderService
-func (mmCreateClientReturns *OrderServiceMock) CreateClientReturns(ctx context.Context, req requests.ClientReturnsRequest) (pa1 []shared.ProcessResult, err error) {
+func (mmCreateClientReturns *OrderServiceMock) CreateClientReturns(ctx context.Context, req requests.ClientReturnsRequest) (ba1 []models.BatchEntryProcessedResult, err error) {
 	mm_atomic.AddUint64(&mmCreateClientReturns.beforeCreateClientReturnsCounter, 1)
 	defer mm_atomic.AddUint64(&mmCreateClientReturns.afterCreateClientReturnsCounter, 1)
 
@@ -670,7 +679,7 @@ func (mmCreateClientReturns *OrderServiceMock) CreateClientReturns(ctx context.C
 	for _, e := range mmCreateClientReturns.CreateClientReturnsMock.expectations {
 		if minimock.Equal(*e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.pa1, e.results.err
+			return e.results.ba1, e.results.err
 		}
 	}
 
@@ -702,7 +711,7 @@ func (mmCreateClientReturns *OrderServiceMock) CreateClientReturns(ctx context.C
 		if mm_results == nil {
 			mmCreateClientReturns.t.Fatal("No results are set for the OrderServiceMock.CreateClientReturns")
 		}
-		return (*mm_results).pa1, (*mm_results).err
+		return (*mm_results).ba1, (*mm_results).err
 	}
 	if mmCreateClientReturns.funcCreateClientReturns != nil {
 		return mmCreateClientReturns.funcCreateClientReturns(ctx, req)
@@ -779,6 +788,349 @@ func (m *OrderServiceMock) MinimockCreateClientReturnsInspect() {
 	}
 }
 
+type mOrderServiceMockImportOrders struct {
+	optional           bool
+	mock               *OrderServiceMock
+	defaultExpectation *OrderServiceMockImportOrdersExpectation
+	expectations       []*OrderServiceMockImportOrdersExpectation
+
+	callArgs []*OrderServiceMockImportOrdersParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// OrderServiceMockImportOrdersExpectation specifies expectation struct of the OrderService.ImportOrders
+type OrderServiceMockImportOrdersExpectation struct {
+	mock               *OrderServiceMock
+	params             *OrderServiceMockImportOrdersParams
+	paramPtrs          *OrderServiceMockImportOrdersParamPtrs
+	expectationOrigins OrderServiceMockImportOrdersExpectationOrigins
+	results            *OrderServiceMockImportOrdersResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// OrderServiceMockImportOrdersParams contains parameters of the OrderService.ImportOrders
+type OrderServiceMockImportOrdersParams struct {
+	ctx context.Context
+	req requests.ImportOrdersRequest
+}
+
+// OrderServiceMockImportOrdersParamPtrs contains pointers to parameters of the OrderService.ImportOrders
+type OrderServiceMockImportOrdersParamPtrs struct {
+	ctx *context.Context
+	req *requests.ImportOrdersRequest
+}
+
+// OrderServiceMockImportOrdersResults contains results of the OrderService.ImportOrders
+type OrderServiceMockImportOrdersResults struct {
+	ba1 []models.BatchEntryProcessedResult
+	err error
+}
+
+// OrderServiceMockImportOrdersOrigins contains origins of expectations of the OrderService.ImportOrders
+type OrderServiceMockImportOrdersExpectationOrigins struct {
+	origin    string
+	originCtx string
+	originReq string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmImportOrders *mOrderServiceMockImportOrders) Optional() *mOrderServiceMockImportOrders {
+	mmImportOrders.optional = true
+	return mmImportOrders
+}
+
+// Expect sets up expected params for OrderService.ImportOrders
+func (mmImportOrders *mOrderServiceMockImportOrders) Expect(ctx context.Context, req requests.ImportOrdersRequest) *mOrderServiceMockImportOrders {
+	if mmImportOrders.mock.funcImportOrders != nil {
+		mmImportOrders.mock.t.Fatalf("OrderServiceMock.ImportOrders mock is already set by Set")
+	}
+
+	if mmImportOrders.defaultExpectation == nil {
+		mmImportOrders.defaultExpectation = &OrderServiceMockImportOrdersExpectation{}
+	}
+
+	if mmImportOrders.defaultExpectation.paramPtrs != nil {
+		mmImportOrders.mock.t.Fatalf("OrderServiceMock.ImportOrders mock is already set by ExpectParams functions")
+	}
+
+	mmImportOrders.defaultExpectation.params = &OrderServiceMockImportOrdersParams{ctx, req}
+	mmImportOrders.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmImportOrders.expectations {
+		if minimock.Equal(e.params, mmImportOrders.defaultExpectation.params) {
+			mmImportOrders.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmImportOrders.defaultExpectation.params)
+		}
+	}
+
+	return mmImportOrders
+}
+
+// ExpectCtxParam1 sets up expected param ctx for OrderService.ImportOrders
+func (mmImportOrders *mOrderServiceMockImportOrders) ExpectCtxParam1(ctx context.Context) *mOrderServiceMockImportOrders {
+	if mmImportOrders.mock.funcImportOrders != nil {
+		mmImportOrders.mock.t.Fatalf("OrderServiceMock.ImportOrders mock is already set by Set")
+	}
+
+	if mmImportOrders.defaultExpectation == nil {
+		mmImportOrders.defaultExpectation = &OrderServiceMockImportOrdersExpectation{}
+	}
+
+	if mmImportOrders.defaultExpectation.params != nil {
+		mmImportOrders.mock.t.Fatalf("OrderServiceMock.ImportOrders mock is already set by Expect")
+	}
+
+	if mmImportOrders.defaultExpectation.paramPtrs == nil {
+		mmImportOrders.defaultExpectation.paramPtrs = &OrderServiceMockImportOrdersParamPtrs{}
+	}
+	mmImportOrders.defaultExpectation.paramPtrs.ctx = &ctx
+	mmImportOrders.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmImportOrders
+}
+
+// ExpectReqParam2 sets up expected param req for OrderService.ImportOrders
+func (mmImportOrders *mOrderServiceMockImportOrders) ExpectReqParam2(req requests.ImportOrdersRequest) *mOrderServiceMockImportOrders {
+	if mmImportOrders.mock.funcImportOrders != nil {
+		mmImportOrders.mock.t.Fatalf("OrderServiceMock.ImportOrders mock is already set by Set")
+	}
+
+	if mmImportOrders.defaultExpectation == nil {
+		mmImportOrders.defaultExpectation = &OrderServiceMockImportOrdersExpectation{}
+	}
+
+	if mmImportOrders.defaultExpectation.params != nil {
+		mmImportOrders.mock.t.Fatalf("OrderServiceMock.ImportOrders mock is already set by Expect")
+	}
+
+	if mmImportOrders.defaultExpectation.paramPtrs == nil {
+		mmImportOrders.defaultExpectation.paramPtrs = &OrderServiceMockImportOrdersParamPtrs{}
+	}
+	mmImportOrders.defaultExpectation.paramPtrs.req = &req
+	mmImportOrders.defaultExpectation.expectationOrigins.originReq = minimock.CallerInfo(1)
+
+	return mmImportOrders
+}
+
+// Inspect accepts an inspector function that has same arguments as the OrderService.ImportOrders
+func (mmImportOrders *mOrderServiceMockImportOrders) Inspect(f func(ctx context.Context, req requests.ImportOrdersRequest)) *mOrderServiceMockImportOrders {
+	if mmImportOrders.mock.inspectFuncImportOrders != nil {
+		mmImportOrders.mock.t.Fatalf("Inspect function is already set for OrderServiceMock.ImportOrders")
+	}
+
+	mmImportOrders.mock.inspectFuncImportOrders = f
+
+	return mmImportOrders
+}
+
+// Return sets up results that will be returned by OrderService.ImportOrders
+func (mmImportOrders *mOrderServiceMockImportOrders) Return(ba1 []models.BatchEntryProcessedResult, err error) *OrderServiceMock {
+	if mmImportOrders.mock.funcImportOrders != nil {
+		mmImportOrders.mock.t.Fatalf("OrderServiceMock.ImportOrders mock is already set by Set")
+	}
+
+	if mmImportOrders.defaultExpectation == nil {
+		mmImportOrders.defaultExpectation = &OrderServiceMockImportOrdersExpectation{mock: mmImportOrders.mock}
+	}
+	mmImportOrders.defaultExpectation.results = &OrderServiceMockImportOrdersResults{ba1, err}
+	mmImportOrders.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmImportOrders.mock
+}
+
+// Set uses given function f to mock the OrderService.ImportOrders method
+func (mmImportOrders *mOrderServiceMockImportOrders) Set(f func(ctx context.Context, req requests.ImportOrdersRequest) (ba1 []models.BatchEntryProcessedResult, err error)) *OrderServiceMock {
+	if mmImportOrders.defaultExpectation != nil {
+		mmImportOrders.mock.t.Fatalf("Default expectation is already set for the OrderService.ImportOrders method")
+	}
+
+	if len(mmImportOrders.expectations) > 0 {
+		mmImportOrders.mock.t.Fatalf("Some expectations are already set for the OrderService.ImportOrders method")
+	}
+
+	mmImportOrders.mock.funcImportOrders = f
+	mmImportOrders.mock.funcImportOrdersOrigin = minimock.CallerInfo(1)
+	return mmImportOrders.mock
+}
+
+// When sets expectation for the OrderService.ImportOrders which will trigger the result defined by the following
+// Then helper
+func (mmImportOrders *mOrderServiceMockImportOrders) When(ctx context.Context, req requests.ImportOrdersRequest) *OrderServiceMockImportOrdersExpectation {
+	if mmImportOrders.mock.funcImportOrders != nil {
+		mmImportOrders.mock.t.Fatalf("OrderServiceMock.ImportOrders mock is already set by Set")
+	}
+
+	expectation := &OrderServiceMockImportOrdersExpectation{
+		mock:               mmImportOrders.mock,
+		params:             &OrderServiceMockImportOrdersParams{ctx, req},
+		expectationOrigins: OrderServiceMockImportOrdersExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmImportOrders.expectations = append(mmImportOrders.expectations, expectation)
+	return expectation
+}
+
+// Then sets up OrderService.ImportOrders return parameters for the expectation previously defined by the When method
+func (e *OrderServiceMockImportOrdersExpectation) Then(ba1 []models.BatchEntryProcessedResult, err error) *OrderServiceMock {
+	e.results = &OrderServiceMockImportOrdersResults{ba1, err}
+	return e.mock
+}
+
+// Times sets number of times OrderService.ImportOrders should be invoked
+func (mmImportOrders *mOrderServiceMockImportOrders) Times(n uint64) *mOrderServiceMockImportOrders {
+	if n == 0 {
+		mmImportOrders.mock.t.Fatalf("Times of OrderServiceMock.ImportOrders mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmImportOrders.expectedInvocations, n)
+	mmImportOrders.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmImportOrders
+}
+
+func (mmImportOrders *mOrderServiceMockImportOrders) invocationsDone() bool {
+	if len(mmImportOrders.expectations) == 0 && mmImportOrders.defaultExpectation == nil && mmImportOrders.mock.funcImportOrders == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmImportOrders.mock.afterImportOrdersCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmImportOrders.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// ImportOrders implements mm_services.OrderService
+func (mmImportOrders *OrderServiceMock) ImportOrders(ctx context.Context, req requests.ImportOrdersRequest) (ba1 []models.BatchEntryProcessedResult, err error) {
+	mm_atomic.AddUint64(&mmImportOrders.beforeImportOrdersCounter, 1)
+	defer mm_atomic.AddUint64(&mmImportOrders.afterImportOrdersCounter, 1)
+
+	mmImportOrders.t.Helper()
+
+	if mmImportOrders.inspectFuncImportOrders != nil {
+		mmImportOrders.inspectFuncImportOrders(ctx, req)
+	}
+
+	mm_params := OrderServiceMockImportOrdersParams{ctx, req}
+
+	// Record call args
+	mmImportOrders.ImportOrdersMock.mutex.Lock()
+	mmImportOrders.ImportOrdersMock.callArgs = append(mmImportOrders.ImportOrdersMock.callArgs, &mm_params)
+	mmImportOrders.ImportOrdersMock.mutex.Unlock()
+
+	for _, e := range mmImportOrders.ImportOrdersMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.ba1, e.results.err
+		}
+	}
+
+	if mmImportOrders.ImportOrdersMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmImportOrders.ImportOrdersMock.defaultExpectation.Counter, 1)
+		mm_want := mmImportOrders.ImportOrdersMock.defaultExpectation.params
+		mm_want_ptrs := mmImportOrders.ImportOrdersMock.defaultExpectation.paramPtrs
+
+		mm_got := OrderServiceMockImportOrdersParams{ctx, req}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmImportOrders.t.Errorf("OrderServiceMock.ImportOrders got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmImportOrders.ImportOrdersMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.req != nil && !minimock.Equal(*mm_want_ptrs.req, mm_got.req) {
+				mmImportOrders.t.Errorf("OrderServiceMock.ImportOrders got unexpected parameter req, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmImportOrders.ImportOrdersMock.defaultExpectation.expectationOrigins.originReq, *mm_want_ptrs.req, mm_got.req, minimock.Diff(*mm_want_ptrs.req, mm_got.req))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmImportOrders.t.Errorf("OrderServiceMock.ImportOrders got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmImportOrders.ImportOrdersMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmImportOrders.ImportOrdersMock.defaultExpectation.results
+		if mm_results == nil {
+			mmImportOrders.t.Fatal("No results are set for the OrderServiceMock.ImportOrders")
+		}
+		return (*mm_results).ba1, (*mm_results).err
+	}
+	if mmImportOrders.funcImportOrders != nil {
+		return mmImportOrders.funcImportOrders(ctx, req)
+	}
+	mmImportOrders.t.Fatalf("Unexpected call to OrderServiceMock.ImportOrders. %v %v", ctx, req)
+	return
+}
+
+// ImportOrdersAfterCounter returns a count of finished OrderServiceMock.ImportOrders invocations
+func (mmImportOrders *OrderServiceMock) ImportOrdersAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmImportOrders.afterImportOrdersCounter)
+}
+
+// ImportOrdersBeforeCounter returns a count of OrderServiceMock.ImportOrders invocations
+func (mmImportOrders *OrderServiceMock) ImportOrdersBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmImportOrders.beforeImportOrdersCounter)
+}
+
+// Calls returns a list of arguments used in each call to OrderServiceMock.ImportOrders.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmImportOrders *mOrderServiceMockImportOrders) Calls() []*OrderServiceMockImportOrdersParams {
+	mmImportOrders.mutex.RLock()
+
+	argCopy := make([]*OrderServiceMockImportOrdersParams, len(mmImportOrders.callArgs))
+	copy(argCopy, mmImportOrders.callArgs)
+
+	mmImportOrders.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockImportOrdersDone returns true if the count of the ImportOrders invocations corresponds
+// the number of defined expectations
+func (m *OrderServiceMock) MinimockImportOrdersDone() bool {
+	if m.ImportOrdersMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.ImportOrdersMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.ImportOrdersMock.invocationsDone()
+}
+
+// MinimockImportOrdersInspect logs each unmet expectation
+func (m *OrderServiceMock) MinimockImportOrdersInspect() {
+	for _, e := range m.ImportOrdersMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to OrderServiceMock.ImportOrders at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterImportOrdersCounter := mm_atomic.LoadUint64(&m.afterImportOrdersCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.ImportOrdersMock.defaultExpectation != nil && afterImportOrdersCounter < 1 {
+		if m.ImportOrdersMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to OrderServiceMock.ImportOrders at\n%s", m.ImportOrdersMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to OrderServiceMock.ImportOrders at\n%s with params: %#v", m.ImportOrdersMock.defaultExpectation.expectationOrigins.origin, *m.ImportOrdersMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcImportOrders != nil && afterImportOrdersCounter < 1 {
+		m.t.Errorf("Expected call to OrderServiceMock.ImportOrders at\n%s", m.funcImportOrdersOrigin)
+	}
+
+	if !m.ImportOrdersMock.invocationsDone() && afterImportOrdersCounter > 0 {
+		m.t.Errorf("Expected %d calls to OrderServiceMock.ImportOrders at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.ImportOrdersMock.expectedInvocations), m.ImportOrdersMock.expectedInvocationsOrigin, afterImportOrdersCounter)
+	}
+}
+
 type mOrderServiceMockIssueOrders struct {
 	optional           bool
 	mock               *OrderServiceMock
@@ -817,7 +1169,7 @@ type OrderServiceMockIssueOrdersParamPtrs struct {
 
 // OrderServiceMockIssueOrdersResults contains results of the OrderService.IssueOrders
 type OrderServiceMockIssueOrdersResults struct {
-	pa1 []shared.ProcessResult
+	ba1 []models.BatchEntryProcessedResult
 	err error
 }
 
@@ -921,7 +1273,7 @@ func (mmIssueOrders *mOrderServiceMockIssueOrders) Inspect(f func(ctx context.Co
 }
 
 // Return sets up results that will be returned by OrderService.IssueOrders
-func (mmIssueOrders *mOrderServiceMockIssueOrders) Return(pa1 []shared.ProcessResult, err error) *OrderServiceMock {
+func (mmIssueOrders *mOrderServiceMockIssueOrders) Return(ba1 []models.BatchEntryProcessedResult, err error) *OrderServiceMock {
 	if mmIssueOrders.mock.funcIssueOrders != nil {
 		mmIssueOrders.mock.t.Fatalf("OrderServiceMock.IssueOrders mock is already set by Set")
 	}
@@ -929,13 +1281,13 @@ func (mmIssueOrders *mOrderServiceMockIssueOrders) Return(pa1 []shared.ProcessRe
 	if mmIssueOrders.defaultExpectation == nil {
 		mmIssueOrders.defaultExpectation = &OrderServiceMockIssueOrdersExpectation{mock: mmIssueOrders.mock}
 	}
-	mmIssueOrders.defaultExpectation.results = &OrderServiceMockIssueOrdersResults{pa1, err}
+	mmIssueOrders.defaultExpectation.results = &OrderServiceMockIssueOrdersResults{ba1, err}
 	mmIssueOrders.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
 	return mmIssueOrders.mock
 }
 
 // Set uses given function f to mock the OrderService.IssueOrders method
-func (mmIssueOrders *mOrderServiceMockIssueOrders) Set(f func(ctx context.Context, req requests.IssueOrdersRequest) (pa1 []shared.ProcessResult, err error)) *OrderServiceMock {
+func (mmIssueOrders *mOrderServiceMockIssueOrders) Set(f func(ctx context.Context, req requests.IssueOrdersRequest) (ba1 []models.BatchEntryProcessedResult, err error)) *OrderServiceMock {
 	if mmIssueOrders.defaultExpectation != nil {
 		mmIssueOrders.mock.t.Fatalf("Default expectation is already set for the OrderService.IssueOrders method")
 	}
@@ -966,8 +1318,8 @@ func (mmIssueOrders *mOrderServiceMockIssueOrders) When(ctx context.Context, req
 }
 
 // Then sets up OrderService.IssueOrders return parameters for the expectation previously defined by the When method
-func (e *OrderServiceMockIssueOrdersExpectation) Then(pa1 []shared.ProcessResult, err error) *OrderServiceMock {
-	e.results = &OrderServiceMockIssueOrdersResults{pa1, err}
+func (e *OrderServiceMockIssueOrdersExpectation) Then(ba1 []models.BatchEntryProcessedResult, err error) *OrderServiceMock {
+	e.results = &OrderServiceMockIssueOrdersResults{ba1, err}
 	return e.mock
 }
 
@@ -993,7 +1345,7 @@ func (mmIssueOrders *mOrderServiceMockIssueOrders) invocationsDone() bool {
 }
 
 // IssueOrders implements mm_services.OrderService
-func (mmIssueOrders *OrderServiceMock) IssueOrders(ctx context.Context, req requests.IssueOrdersRequest) (pa1 []shared.ProcessResult, err error) {
+func (mmIssueOrders *OrderServiceMock) IssueOrders(ctx context.Context, req requests.IssueOrdersRequest) (ba1 []models.BatchEntryProcessedResult, err error) {
 	mm_atomic.AddUint64(&mmIssueOrders.beforeIssueOrdersCounter, 1)
 	defer mm_atomic.AddUint64(&mmIssueOrders.afterIssueOrdersCounter, 1)
 
@@ -1013,7 +1365,7 @@ func (mmIssueOrders *OrderServiceMock) IssueOrders(ctx context.Context, req requ
 	for _, e := range mmIssueOrders.IssueOrdersMock.expectations {
 		if minimock.Equal(*e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.pa1, e.results.err
+			return e.results.ba1, e.results.err
 		}
 	}
 
@@ -1045,7 +1397,7 @@ func (mmIssueOrders *OrderServiceMock) IssueOrders(ctx context.Context, req requ
 		if mm_results == nil {
 			mmIssueOrders.t.Fatal("No results are set for the OrderServiceMock.IssueOrders")
 		}
-		return (*mm_results).pa1, (*mm_results).err
+		return (*mm_results).ba1, (*mm_results).err
 	}
 	if mmIssueOrders.funcIssueOrders != nil {
 		return mmIssueOrders.funcIssueOrders(ctx, req)
@@ -2160,6 +2512,8 @@ func (m *OrderServiceMock) MinimockFinish() {
 
 			m.MinimockCreateClientReturnsInspect()
 
+			m.MinimockImportOrdersInspect()
+
 			m.MinimockIssueOrdersInspect()
 
 			m.MinimockListOrdersInspect()
@@ -2192,6 +2546,7 @@ func (m *OrderServiceMock) minimockDone() bool {
 	return done &&
 		m.MinimockAcceptOrderDone() &&
 		m.MinimockCreateClientReturnsDone() &&
+		m.MinimockImportOrdersDone() &&
 		m.MinimockIssueOrdersDone() &&
 		m.MinimockListOrdersDone() &&
 		m.MinimockListReturnsDone() &&

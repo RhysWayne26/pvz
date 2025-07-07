@@ -4,9 +4,9 @@ import (
 	"context"
 	"pvz-cli/internal/common/apperrors"
 	"pvz-cli/internal/common/constants"
+	"pvz-cli/internal/models"
 	"pvz-cli/internal/usecases/requests"
 	"pvz-cli/internal/usecases/responses"
-	"pvz-cli/internal/usecases/services/shared"
 )
 
 // HandleProcessOrders processes orders for issue or return actions
@@ -18,7 +18,7 @@ func (f *DefaultFacadeHandler) HandleProcessOrders(
 		return responses.ProcessOrdersResponse{}, ctx.Err()
 	}
 
-	var results []shared.ProcessResult
+	var results []models.BatchEntryProcessedResult
 	var err error
 
 	switch req.Action {
@@ -48,7 +48,7 @@ func (f *DefaultFacadeHandler) HandleProcessOrders(
 	return buildProcessOrdersResponse(results), nil
 }
 
-func buildProcessOrdersResponse(resultsFromService []shared.ProcessResult) responses.ProcessOrdersResponse {
+func buildProcessOrdersResponse(resultsFromService []models.BatchEntryProcessedResult) responses.ProcessOrdersResponse {
 	res := responses.ProcessOrdersResponse{
 		Processed: make([]uint64, 0, len(resultsFromService)),
 		Failed:    make([]responses.ProcessFailReport, 0, len(resultsFromService)),
