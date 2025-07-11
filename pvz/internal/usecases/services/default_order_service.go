@@ -2,6 +2,9 @@ package services
 
 import (
 	"context"
+	"encoding/json"
+	"github.com/jackc/pgx/v5"
+	"pvz-cli/infrastructure/db"
 	"pvz-cli/internal/common/apperrors"
 	"pvz-cli/internal/data/repositories"
 	"pvz-cli/internal/models"
@@ -12,15 +15,20 @@ import (
 	"sync"
 )
 
+const SourceName = "order-service"
+
 var _ OrderService = (*DefaultOrderService)(nil)
 
 // DefaultOrderService is a default implementation of the OrderService interface
 type DefaultOrderService struct {
 	clk               clock.Clock
 	pool              workerpool.WorkerPool
+	txRunner          db.TxRunner
 	orderRepo         repositories.OrderRepository
+	outboxRepo        repositories.OutboxRepository
 	packagePricingSvc PackagePricingService
 	historySvc        HistoryService
+	actorSvc          ActorService
 	validator         validators.OrderValidator
 }
 
@@ -28,16 +36,22 @@ type DefaultOrderService struct {
 func NewDefaultOrderService(
 	clk clock.Clock,
 	pool workerpool.WorkerPool,
+	txRunner db.TxRunner,
 	orderRepo repositories.OrderRepository,
+	outboxRepo repositories.OutboxRepository,
 	packagePricingService PackagePricingService,
 	historyService HistoryService,
+	actorSvc ActorService,
 	validator validators.OrderValidator) *DefaultOrderService {
 	return &DefaultOrderService{
 		clk:               clk,
 		pool:              pool,
+		txRunner:          txRunner,
 		orderRepo:         orderRepo,
+		outboxRepo:        outboxRepo,
 		packagePricingSvc: packagePricingService,
 		historySvc:        historyService,
+		actorSvc:          actorSvc,
 		validator:         validator,
 	}
 }
@@ -74,19 +88,47 @@ func (s *DefaultOrderService) AcceptOrder(ctx context.Context, req requests.Acce
 		Price:           totalPrice,
 		Package:         req.Package,
 	}
-	if err := s.orderRepo.Save(ctx, order); err != nil {
-		return models.Order{}, apperrors.Newf(apperrors.InternalError, "failed to save order: %v", err)
+
+	actor, err := s.actorSvc.DetermineActor(ctx, models.EventAccepted, order.UserID)
+	if err != nil {
+		return models.Order{}, err
 	}
 
+	event := models.KafkaEvent{
+		EventType: models.MapEventTypeToKafkaEvent(models.EventAccepted),
+		Timestamp: now,
+		Actor:     actor,
+		Order:     order,
+		Source:    SourceName,
+	}
+
+	payloadBytes, err := marshalEvent(event)
+	if err != nil {
+		return models.Order{}, err
+	}
 	entry := models.HistoryEntry{
 		OrderID:   order.OrderID,
 		Event:     models.EventAccepted,
 		Timestamp: now,
 	}
-	if err := s.historySvc.Record(ctx, entry); err != nil {
-		return models.Order{}, apperrors.Newf(apperrors.InternalError, "failed to record history: %v", err)
-	}
 
+	err = s.txRunner.WithTx(ctx, func(tx pgx.Tx) error {
+		txCtx := ctxWithTx(ctx, tx)
+		if err := s.orderRepo.Save(txCtx, order); err != nil {
+			return apperrors.Newf(apperrors.InternalError, "failed to save order %d: %v", req.OrderID, err)
+		}
+		if err := s.outboxRepo.Create(txCtx, payloadBytes); err != nil {
+			return apperrors.Newf(apperrors.InternalError, "failed to enqueue outbox event: %v", err)
+		}
+		if err := s.historySvc.Record(txCtx, entry); err != nil {
+			return apperrors.Newf(apperrors.InternalError, "failed to record history entry for order %d: %v", req.OrderID, err)
+		}
+		return nil
+	})
+
+	if err != nil {
+		return models.Order{}, err
+	}
 	return order, nil
 }
 
@@ -118,19 +160,50 @@ func (s *DefaultOrderService) IssueOrders(
 				results[i] = res
 				return
 			}
+			now := s.clk.Now()
+			actor, err := s.actorSvc.DetermineActor(ctx, models.EventIssued, order.UserID)
+			if err != nil {
+				res.Error = err
+				results[i] = res
+			}
 			order.Status = models.Issued
-			order.UpdatedStatusAt = s.clk.Now()
-			if err := s.orderRepo.Save(ctx, order); err != nil {
-				res.Error = apperrors.Newf(apperrors.InternalError, "failed to save order %d: %v", id, err)
+			order.UpdatedStatusAt = now
+			evt := models.KafkaEvent{
+				EventType: models.MapEventTypeToKafkaEvent(models.EventIssued),
+				Timestamp: now,
+				Actor:     actor,
+				Order:     order,
+				Source:    SourceName,
+			}
+			payload, err := marshalEvent(evt)
+			if err != nil {
+				res.Error = err
 				results[i] = res
 				return
 			}
-			_ = s.historySvc.Record(ctx, models.HistoryEntry{
+			entry := models.HistoryEntry{
 				OrderID:   id,
 				Event:     models.EventIssued,
-				Timestamp: s.clk.Now(),
+				Timestamp: now,
+			}
+			err = s.txRunner.WithTx(ctx, func(tx pgx.Tx) error {
+				txCtx := ctxWithTx(ctx, tx)
+				if err := s.orderRepo.Save(txCtx, order); err != nil {
+					return apperrors.Newf(apperrors.InternalError, "failed to save order %d: %v", id, err)
+				}
+				if err := s.outboxRepo.Create(txCtx, payload); err != nil {
+					return apperrors.Newf(apperrors.InternalError, "failed to enqueue issue-event for order %d: %v", id, err)
+				}
+				if err := s.historySvc.Record(txCtx, entry); err != nil {
+					return apperrors.Newf(apperrors.InternalError, "failed to record history entry for order %d: %v", id, err)
+				}
+				return nil
 			})
-
+			if err != nil {
+				res.Error = err
+				results[i] = res
+				return
+			}
 			results[i] = res
 		})
 	}
@@ -193,19 +266,50 @@ func (s *DefaultOrderService) CreateClientReturns(
 				results[i] = res
 				return
 			}
+			now := s.clk.Now()
+			actor, err := s.actorSvc.DetermineActor(ctx, models.EventReturnedByClient, order.UserID)
+			if err != nil {
+				res.Error = err
+				results[i] = res
+			}
 			order.Status = models.Returned
-			order.UpdatedStatusAt = s.clk.Now()
-			if err := s.orderRepo.Save(ctx, order); err != nil {
-				res.Error = apperrors.Newf(apperrors.InternalError, "failed to save order %d: %v", id, err)
+			order.UpdatedStatusAt = now
+			event := models.KafkaEvent{
+				EventType: models.MapEventTypeToKafkaEvent(models.EventReturnedByClient),
+				Timestamp: now,
+				Actor:     actor,
+				Order:     order,
+				Source:    SourceName,
+			}
+			payload, err := marshalEvent(event)
+			if err != nil {
+				res.Error = err
 				results[i] = res
 				return
 			}
-
-			_ = s.historySvc.Record(ctx, models.HistoryEntry{
+			entry := models.HistoryEntry{
 				OrderID:   id,
 				Event:     models.EventReturnedByClient,
-				Timestamp: s.clk.Now(),
+				Timestamp: now,
+			}
+			err = s.txRunner.WithTx(ctx, func(tx pgx.Tx) error {
+				txCtx := ctxWithTx(ctx, tx)
+				if err := s.orderRepo.Save(txCtx, order); err != nil {
+					return apperrors.Newf(apperrors.InternalError, "failed to save returned order %d: %v", id, err)
+				}
+				if err := s.outboxRepo.Create(txCtx, payload); err != nil {
+					return apperrors.Newf(apperrors.InternalError, "failed to enqueue return-event for order %d: %v", id, err)
+				}
+				if err := s.historySvc.Record(txCtx, entry); err != nil {
+					return apperrors.Newf(apperrors.InternalError, "failed to record history entry for order %d: %v", id, err)
+				}
+				return nil
 			})
+			if err != nil {
+				res.Error = err
+				results[i] = res
+				return
+			}
 			results[i] = res
 		})
 	}
@@ -229,19 +333,45 @@ func (s *DefaultOrderService) ReturnToCourier(ctx context.Context, req requests.
 		return err
 	}
 
-	if err := s.orderRepo.Delete(ctx, orderID); err != nil {
-		return apperrors.Newf(apperrors.InternalError, "failed to delete order %d: %v", orderID, err)
+	now := s.clk.Now()
+	actor, err := s.actorSvc.DetermineActor(ctx, models.EventReturnedToWarehouse, o.UserID)
+	if err != nil {
+		return err
 	}
-
+	event := models.KafkaEvent{
+		EventType: models.MapEventTypeToKafkaEvent(models.EventReturnedToWarehouse),
+		Timestamp: now,
+		Actor:     actor,
+		Order:     o,
+		Source:    SourceName,
+	}
+	payloadBytes, err := marshalEvent(event)
+	if err != nil {
+		return err
+	}
 	entry := models.HistoryEntry{
 		OrderID:   orderID,
 		Event:     models.EventReturnedToWarehouse,
-		Timestamp: s.clk.Now(),
-	}
-	if err := s.historySvc.Record(ctx, entry); err != nil {
-		return apperrors.Newf(apperrors.InternalError, "failed to record history for order %d: %v", orderID, err)
+		Timestamp: now,
 	}
 
+	err = s.txRunner.WithTx(ctx, func(tx pgx.Tx) error {
+		txCtx := ctxWithTx(ctx, tx)
+		if err := s.orderRepo.Delete(txCtx, orderID); err != nil {
+			return apperrors.Newf(apperrors.InternalError, "failed to delete order %d: %v", orderID, err)
+		}
+		if err := s.outboxRepo.Create(txCtx, payloadBytes); err != nil {
+			return apperrors.Newf(apperrors.InternalError, "failed to enqueue return-event: %v", err)
+		}
+		if err := s.historySvc.Record(txCtx, entry); err != nil {
+			return apperrors.Newf(apperrors.InternalError, "failed to record history entry for order %d: %v", orderID, err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -284,4 +414,16 @@ func (s *DefaultOrderService) ImportOrders(
 	}
 	wg.Wait()
 	return results, nil
+}
+
+func marshalEvent(e models.KafkaEvent) ([]byte, error) {
+	payloadBytes, err := json.Marshal(e)
+	if err != nil {
+		return nil, apperrors.Newf(apperrors.InternalError, "failed to marshal event: %w", err)
+	}
+	return payloadBytes, nil
+}
+
+func ctxWithTx(ctx context.Context, tx pgx.Tx) context.Context {
+	return db.WithTxContext(ctx, tx)
 }
