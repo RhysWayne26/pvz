@@ -22,3 +22,10 @@ pvz/allure-results/
 pvz/allure-report/
 
 pvz/tests/e2e/standalone/logs
+
+notifier/logs
+
+notifier/.env
+
+notifier/notifier.exe
+notifier/notifier
