@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"pvz-cli/infrastructure/brokers"
 	"pvz-cli/internal/data/repositories"
+	"pvz-cli/internal/models"
 	"time"
 )
 
@@ -19,6 +20,7 @@ type DefaultOutboxDispatcher struct {
 	retryDelay   time.Duration
 	pollInterval time.Duration
 	cancel       context.CancelFunc
+	done         chan struct{}
 }
 
 // NewDefaultOutboxDispatcher creates and returns a new DefaultOutboxDispatcher with the specified configuration and dependencies.
@@ -37,6 +39,7 @@ func NewDefaultOutboxDispatcher(
 		batchSize:    batchSize,
 		retryDelay:   retryDelay,
 		pollInterval: pollInterval,
+		done:         make(chan struct{}),
 	}
 }
 
@@ -46,37 +49,13 @@ func (w *DefaultOutboxDispatcher) Dispatch(ctx context.Context) error {
 
 	ticker := time.NewTicker(w.pollInterval)
 	defer ticker.Stop()
-
+	defer close(w.done)
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-ticker.C:
-			events, err := w.repo.FetchPending(ctx, w.batchSize, w.retryDelay)
-			if err != nil {
-				slog.Error("failed to fetch pending events", "error", err)
-				time.Sleep(w.retryDelay)
-				continue
-			}
-
-			for _, event := range events {
-				if err := w.repo.SetProcessing(ctx, event.EventID); err != nil {
-					slog.Error("failed to mark event as processing", "event_id", event.EventID, "error", err)
-					continue
-				}
-
-				if err := w.producer.Send(ctx, w.topic, []byte(event.Payload)); err != nil {
-					_ = w.repo.SetFailed(ctx, event.EventID, err.Error())
-					slog.Error("failed to send event to Kafka", "event_id", event.EventID, "error", err)
-					time.Sleep(w.retryDelay)
-					continue
-				}
-
-				if err := w.repo.SetCompleted(ctx, event.EventID, time.Now()); err != nil {
-					slog.Error("failed to set event as completed", "event_id", event.EventID, "error", err)
-				}
-				slog.Info("event successfully dispatched", "event_id", event.EventID)
-			}
+			w.processBatch(ctx)
 		}
 	}
 }
@@ -84,5 +63,44 @@ func (w *DefaultOutboxDispatcher) Dispatch(ctx context.Context) error {
 func (w *DefaultOutboxDispatcher) Stop() {
 	if w.cancel != nil {
 		w.cancel()
+		<-w.done
 	}
+}
+
+func (w *DefaultOutboxDispatcher) processBatch(ctx context.Context) {
+	events, err := w.repo.FetchPending(ctx, w.batchSize, w.retryDelay)
+	if err != nil {
+		slog.Error("failed to fetch pending events", "error", err)
+		time.Sleep(w.retryDelay)
+		return
+	}
+
+	for _, ev := range events {
+		if err := w.repo.SetProcessing(ctx, ev.EventID); err != nil {
+			slog.Error("mark processing failed", "id", ev.EventID, "err", err)
+			continue
+		}
+		if retry := w.dispatchEvent(ctx, ev); retry {
+			time.Sleep(w.retryDelay)
+		}
+	}
+}
+
+func (w *DefaultOutboxDispatcher) dispatchEvent(ctx context.Context, ev models.OutboxEvent) (retry bool) {
+	if err := w.producer.Send(ctx, w.topic, []byte(ev.Payload)); err != nil {
+		if ev.Attempts >= 3 {
+			_ = w.repo.SetFailed(ctx, ev.EventID, ErrNoAttemptsLeft)
+		} else {
+			_ = w.repo.UpdateError(ctx, ev.EventID, err.Error())
+		}
+		slog.Error("send to Kafka failed", "id", ev.EventID, "attempt", ev.Attempts, "err", err)
+		return true
+	}
+
+	if err := w.repo.SetCompleted(ctx, ev.EventID, time.Now()); err != nil {
+		slog.Error("mark completed failed", "id", ev.EventID, "err", err)
+	} else {
+		slog.Info("event dispatched", "id", ev.EventID)
+	}
+	return false
 }

@@ -39,3 +39,7 @@ func (r *NoOpOutboxRepository) SetFailed(ctx context.Context, eventID uint64, er
 func (r *NoOpOutboxRepository) Create(ctx context.Context, eventID uint64, payload []byte) error {
 	return nil
 }
+
+func (r *NoOpOutboxRepository) UpdateError(ctx context.Context, eventID uint64, errMsg string) error {
+	return nil
+}

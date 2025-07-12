@@ -106,7 +106,8 @@ func (c *Container) shutdownOutbox() {
 		c.outboxDispatcher.Stop()
 	}
 	if c.kafkaProducer != nil {
-		if err := c.kafkaProducer.Close(); err != nil {
+		err := c.kafkaProducer.Close()
+		if err != nil {
 			slog.Error("failed to close Kafka producer", "error", err)
 		}
 	}

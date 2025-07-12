@@ -43,4 +43,10 @@ update outbox
 set status = 4, error = $2
 where id = $1;
 `
+
+	UpdateErrorSQL = `
+update outbox
+set error = $2
+where id = $1
+`
 )

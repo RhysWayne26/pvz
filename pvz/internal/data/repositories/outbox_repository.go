@@ -13,4 +13,5 @@ type OutboxRepository interface {
 	SetProcessing(ctx context.Context, eventID uint64) error
 	SetCompleted(ctx context.Context, eventID uint64, sentAt time.Time) error
 	SetFailed(ctx context.Context, eventID uint64, errMsg string) error
+	UpdateError(ctx context.Context, eventID uint64, errMsg string) error
 }

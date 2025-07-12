@@ -111,3 +111,17 @@ func (r *PGOutboxRepository) SetFailed(ctx context.Context, eventID uint64, errM
 	}
 	return nil
 }
+
+func (r *PGOutboxRepository) UpdateError(ctx context.Context, eventID uint64, errMsg string) error {
+	_, err := r.client.ExecCtx(
+		ctx,
+		db.WriteMode,
+		queries.UpdateErrorSQL,
+		eventID,
+		errMsg,
+	)
+	if err != nil {
+		return fmt.Errorf("update outbox error text: %w", err)
+	}
+	return nil
+}
