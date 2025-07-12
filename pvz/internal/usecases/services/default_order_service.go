@@ -446,7 +446,7 @@ func (s *DefaultOrderService) ImportOrders(
 func marshalEvent(e models.KafkaEvent) ([]byte, error) {
 	payloadBytes, err := json.Marshal(e)
 	if err != nil {
-		return nil, apperrors.Newf(apperrors.InternalError, "failed to marshal event: %w", err)
+		return nil, apperrors.Newf(apperrors.InternalError, "failed to marshal event: %v", err)
 	}
 	return payloadBytes, nil
 }
