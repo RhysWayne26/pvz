@@ -54,7 +54,11 @@ func NewContainer(pool workerpool.WorkerPool) *Container {
 		orderRepo = repositories.NewPGOrderRepository(client)
 		historyRepo = repositories.NewPGHistoryRepository(client)
 		outboxRepo = repositories.NewPGOutboxRepository(client)
-		producer := brokers.NewDefaultProducer(cfg.Kafka.Brokers)
+		producer, err := brokers.NewKafkaAsyncProducer(cfg.Kafka.Brokers)
+		if err != nil {
+			slog.Error("failed to init Kafka producer", "error", err)
+			os.Exit(1)
+		}
 		dispatcher := workers.NewDefaultOutboxDispatcher(
 			outboxRepo,
 			producer,
