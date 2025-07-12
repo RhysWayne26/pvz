@@ -11,7 +11,6 @@ import (
 
 var _ OutboxDispatcher = (*DefaultOutboxDispatcher)(nil)
 
-// DefaultOutboxDispatcher is a default implementation of the OutboxDispatcher interface for handling message dispatching.
 type DefaultOutboxDispatcher struct {
 	repo         repositories.OutboxRepository
 	producer     brokers.KafkaProducer
@@ -68,21 +67,19 @@ func (w *DefaultOutboxDispatcher) Stop() {
 }
 
 func (w *DefaultOutboxDispatcher) processBatch(ctx context.Context) {
-	events, err := w.repo.FetchPending(ctx, w.batchSize, w.retryDelay)
+	events, err := w.repo.MarkAsProcessing(ctx, w.batchSize, w.retryDelay)
 	if err != nil {
-		slog.Error("failed to fetch pending events", "error", err)
-		time.Sleep(w.retryDelay)
+		slog.Error("failed to mark events as processing", "error", err)
 		return
 	}
-
+	hasErrors := false
 	for _, ev := range events {
-		if err := w.repo.SetProcessing(ctx, ev.EventID); err != nil {
-			slog.Error("mark processing failed", "id", ev.EventID, "err", err)
-			continue
-		}
 		if retry := w.dispatchEvent(ctx, ev); retry {
-			time.Sleep(w.retryDelay)
+			hasErrors = true
 		}
+	}
+	if hasErrors {
+		time.Sleep(w.retryDelay)
 	}
 }
 
