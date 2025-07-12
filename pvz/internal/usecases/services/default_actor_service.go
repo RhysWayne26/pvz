@@ -2,8 +2,8 @@ package services
 
 import (
 	"context"
-	"math/rand"
 	"pvz-cli/internal/common/apperrors"
+	"pvz-cli/internal/common/utils"
 	"pvz-cli/internal/models"
 )
 
@@ -45,9 +45,9 @@ func (s *DefaultActorService) FindFreeCourier(ctx context.Context) (uint64, erro
 	if ctx.Err() != nil {
 		return 0, ctx.Err()
 	}
-	courierID := rand.Uint64() // hw7 condition, placeholder
-	if courierID == 0 {
-		courierID = 1
+	courierID, err := utils.GenerateID() // hw7 condition, placeholder
+	if err != nil {
+		return 0, apperrors.Newf(apperrors.InternalError, "failed to generate courier id for assignment: %v", err)
 	}
 	return courierID, nil
 }

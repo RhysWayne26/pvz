@@ -3,7 +3,7 @@ package queries
 const (
 	// CreateOutboxEventSQL is an SQL query string that inserts a payload into the `outbox` table.
 	CreateOutboxEventSQL = `
-insert into outbox (payload) values ($1)
+insert into outbox (id,payload) values ($1, $2)
 `
 
 	// FetchPendingSQL is an SQL query string for retrieving pending events from the outbox table based on status and retry logic.

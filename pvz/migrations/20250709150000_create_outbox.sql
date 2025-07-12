@@ -1,6 +1,6 @@
 -- +goose Up
 create table if not exists outbox(
-    id bigserial primary key,
+    id bigint primary key,
     payload jsonb not null,
     status integer not null default 1,
     error text not null default '',

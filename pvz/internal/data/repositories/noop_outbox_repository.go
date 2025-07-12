@@ -36,6 +36,6 @@ func (r *NoOpOutboxRepository) SetFailed(ctx context.Context, eventID uint64, er
 }
 
 // Create inserts a new outbox event with the provided payload in the no-operation outbox repository implementation.
-func (r *NoOpOutboxRepository) Create(ctx context.Context, payload []byte) error {
+func (r *NoOpOutboxRepository) Create(ctx context.Context, eventID uint64, payload []byte) error {
 	return nil
 }

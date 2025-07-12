@@ -21,11 +21,12 @@ func NewPGOutboxRepository(client db.PGXClient) *PGOutboxRepository {
 	}
 }
 
-func (r *PGOutboxRepository) Create(ctx context.Context, payload []byte) error {
+func (r *PGOutboxRepository) Create(ctx context.Context, eventID uint64, payload []byte) error {
 	_, err := r.client.ExecCtx(
 		ctx,
 		db.WriteMode,
 		queries.CreateOutboxEventSQL,
+		eventID,
 		payload,
 	)
 	if err != nil {
