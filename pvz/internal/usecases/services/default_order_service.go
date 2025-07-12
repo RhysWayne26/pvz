@@ -15,7 +15,7 @@ import (
 	"sync"
 )
 
-const SourceName = "order-service"
+const SourceName = "pvz-api"
 
 var _ OrderService = (*DefaultOrderService)(nil)
 

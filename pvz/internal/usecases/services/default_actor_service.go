@@ -21,7 +21,7 @@ func (s *DefaultActorService) DetermineActor(ctx context.Context, event models.E
 		return models.Actor{}, ctx.Err()
 	}
 	switch event {
-	case models.EventIssued, models.EventReturnedByClient:
+	case models.EventAccepted, models.EventReturnedToWarehouse:
 		courierID, err := s.FindFreeCourier(ctx)
 		if err != nil {
 			return models.Actor{}, err
@@ -30,7 +30,7 @@ func (s *DefaultActorService) DetermineActor(ctx context.Context, event models.E
 			Type: models.ActorCourier,
 			ID:   courierID,
 		}, nil
-	case models.EventAccepted, models.EventReturnedToWarehouse:
+	case models.EventIssued, models.EventReturnedByClient:
 		return models.Actor{
 			Type: models.ActorClient,
 			ID:   userID,
