@@ -174,3 +174,67 @@ func TestDispatch_ContextCanceled(t *testing.T) {
 	err := dispatcher.Dispatch(ctx)
 	assert.Equal(t, context.Canceled, err)
 }
+
+func TestAcquireLoop_MarksAsProcessing(t *testing.T) {
+	t.Parallel()
+	mockRepo := repmocks.NewOutboxRepositoryMock(t)
+	mockProducer := brockermocks.NewKafkaProducerMock(t)
+	dispatcher := NewDefaultOutboxDispatcher(
+		mockRepo,
+		mockProducer,
+		"test-topic",
+		1,
+		time.Millisecond,
+		time.Millisecond*10,
+	)
+	mockRepo.SetProcessingMock.Return(nil)
+	ctx, cancel := context.WithCancel(context.Background())
+	go dispatcher.acquireLoop(ctx)
+	time.Sleep(time.Millisecond * 50)
+	cancel()
+	assert.GreaterOrEqual(t, len(mockRepo.SetProcessingMock.Calls()), 1)
+}
+
+func TestProcessLoop_DispatchesEvents(t *testing.T) {
+	t.Parallel()
+	mockRepo := repmocks.NewOutboxRepositoryMock(t)
+	mockProducer := brockermocks.NewKafkaProducerMock(t)
+	dispatcher := NewDefaultOutboxDispatcher(
+		mockRepo,
+		mockProducer,
+		"test-topic",
+		5,
+		time.Second,
+		time.Millisecond*10,
+	)
+	mockRepo.GetProcessingEventsMock.Return([]models.OutboxEvent{
+		{EventID: 1, Payload: "test", Attempts: 1},
+	}, nil)
+	mockProducer.SendMock.Return(nil)
+	mockRepo.SetCompletedMock.Return(nil)
+	ctx, cancel := context.WithCancel(context.Background())
+	go dispatcher.processLoop(ctx)
+	time.Sleep(time.Millisecond * 50)
+	cancel()
+	assert.GreaterOrEqual(t, len(mockProducer.SendMock.Calls()), 1)
+}
+
+func TestProcessLoop_GetProcessingEventsFails(t *testing.T) {
+	t.Parallel()
+	mockRepo := repmocks.NewOutboxRepositoryMock(t)
+	mockProducer := brockermocks.NewKafkaProducerMock(t)
+	dispatcher := NewDefaultOutboxDispatcher(
+		mockRepo,
+		mockProducer,
+		"test-topic",
+		5,
+		time.Second,
+		time.Millisecond*10,
+	)
+	mockRepo.GetProcessingEventsMock.Return(nil, errors.New("db failure"))
+	ctx, cancel := context.WithCancel(context.Background())
+	go dispatcher.processLoop(ctx)
+	time.Sleep(time.Millisecond * 50)
+	cancel()
+	assert.GreaterOrEqual(t, len(mockRepo.GetProcessingEventsMock.Calls()), 1)
+}
