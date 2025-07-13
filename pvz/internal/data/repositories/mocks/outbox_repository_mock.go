@@ -25,12 +25,12 @@ type OutboxRepositoryMock struct {
 	beforeCreateCounter uint64
 	CreateMock          mOutboxRepositoryMockCreate
 
-	funcMarkAsProcessing          func(ctx context.Context, limit int, retryDelay time.Duration) (oa1 []models.OutboxEvent, err error)
-	funcMarkAsProcessingOrigin    string
-	inspectFuncMarkAsProcessing   func(ctx context.Context, limit int, retryDelay time.Duration)
-	afterMarkAsProcessingCounter  uint64
-	beforeMarkAsProcessingCounter uint64
-	MarkAsProcessingMock          mOutboxRepositoryMockMarkAsProcessing
+	funcGetProcessingEvents          func(ctx context.Context, limit int, retryDelay time.Duration) (oa1 []models.OutboxEvent, err error)
+	funcGetProcessingEventsOrigin    string
+	inspectFuncGetProcessingEvents   func(ctx context.Context, limit int, retryDelay time.Duration)
+	afterGetProcessingEventsCounter  uint64
+	beforeGetProcessingEventsCounter uint64
+	GetProcessingEventsMock          mOutboxRepositoryMockGetProcessingEvents
 
 	funcSetCompleted          func(ctx context.Context, eventID uint64, sentAt time.Time) (err error)
 	funcSetCompletedOrigin    string
@@ -45,6 +45,13 @@ type OutboxRepositoryMock struct {
 	afterSetFailedCounter  uint64
 	beforeSetFailedCounter uint64
 	SetFailedMock          mOutboxRepositoryMockSetFailed
+
+	funcSetProcessing          func(ctx context.Context, limit int, retryDelay time.Duration) (err error)
+	funcSetProcessingOrigin    string
+	inspectFuncSetProcessing   func(ctx context.Context, limit int, retryDelay time.Duration)
+	afterSetProcessingCounter  uint64
+	beforeSetProcessingCounter uint64
+	SetProcessingMock          mOutboxRepositoryMockSetProcessing
 
 	funcUpdateError          func(ctx context.Context, eventID uint64, errMsg string) (err error)
 	funcUpdateErrorOrigin    string
@@ -65,14 +72,17 @@ func NewOutboxRepositoryMock(t minimock.Tester) *OutboxRepositoryMock {
 	m.CreateMock = mOutboxRepositoryMockCreate{mock: m}
 	m.CreateMock.callArgs = []*OutboxRepositoryMockCreateParams{}
 
-	m.MarkAsProcessingMock = mOutboxRepositoryMockMarkAsProcessing{mock: m}
-	m.MarkAsProcessingMock.callArgs = []*OutboxRepositoryMockMarkAsProcessingParams{}
+	m.GetProcessingEventsMock = mOutboxRepositoryMockGetProcessingEvents{mock: m}
+	m.GetProcessingEventsMock.callArgs = []*OutboxRepositoryMockGetProcessingEventsParams{}
 
 	m.SetCompletedMock = mOutboxRepositoryMockSetCompleted{mock: m}
 	m.SetCompletedMock.callArgs = []*OutboxRepositoryMockSetCompletedParams{}
 
 	m.SetFailedMock = mOutboxRepositoryMockSetFailed{mock: m}
 	m.SetFailedMock.callArgs = []*OutboxRepositoryMockSetFailedParams{}
+
+	m.SetProcessingMock = mOutboxRepositoryMockSetProcessing{mock: m}
+	m.SetProcessingMock.callArgs = []*OutboxRepositoryMockSetProcessingParams{}
 
 	m.UpdateErrorMock = mOutboxRepositoryMockUpdateError{mock: m}
 	m.UpdateErrorMock.callArgs = []*OutboxRepositoryMockUpdateErrorParams{}
@@ -455,52 +465,52 @@ func (m *OutboxRepositoryMock) MinimockCreateInspect() {
 	}
 }
 
-type mOutboxRepositoryMockMarkAsProcessing struct {
+type mOutboxRepositoryMockGetProcessingEvents struct {
 	optional           bool
 	mock               *OutboxRepositoryMock
-	defaultExpectation *OutboxRepositoryMockMarkAsProcessingExpectation
-	expectations       []*OutboxRepositoryMockMarkAsProcessingExpectation
+	defaultExpectation *OutboxRepositoryMockGetProcessingEventsExpectation
+	expectations       []*OutboxRepositoryMockGetProcessingEventsExpectation
 
-	callArgs []*OutboxRepositoryMockMarkAsProcessingParams
+	callArgs []*OutboxRepositoryMockGetProcessingEventsParams
 	mutex    sync.RWMutex
 
 	expectedInvocations       uint64
 	expectedInvocationsOrigin string
 }
 
-// OutboxRepositoryMockMarkAsProcessingExpectation specifies expectation struct of the OutboxRepository.MarkAsProcessing
-type OutboxRepositoryMockMarkAsProcessingExpectation struct {
+// OutboxRepositoryMockGetProcessingEventsExpectation specifies expectation struct of the OutboxRepository.GetProcessingEvents
+type OutboxRepositoryMockGetProcessingEventsExpectation struct {
 	mock               *OutboxRepositoryMock
-	params             *OutboxRepositoryMockMarkAsProcessingParams
-	paramPtrs          *OutboxRepositoryMockMarkAsProcessingParamPtrs
-	expectationOrigins OutboxRepositoryMockMarkAsProcessingExpectationOrigins
-	results            *OutboxRepositoryMockMarkAsProcessingResults
+	params             *OutboxRepositoryMockGetProcessingEventsParams
+	paramPtrs          *OutboxRepositoryMockGetProcessingEventsParamPtrs
+	expectationOrigins OutboxRepositoryMockGetProcessingEventsExpectationOrigins
+	results            *OutboxRepositoryMockGetProcessingEventsResults
 	returnOrigin       string
 	Counter            uint64
 }
 
-// OutboxRepositoryMockMarkAsProcessingParams contains parameters of the OutboxRepository.MarkAsProcessing
-type OutboxRepositoryMockMarkAsProcessingParams struct {
+// OutboxRepositoryMockGetProcessingEventsParams contains parameters of the OutboxRepository.GetProcessingEvents
+type OutboxRepositoryMockGetProcessingEventsParams struct {
 	ctx        context.Context
 	limit      int
 	retryDelay time.Duration
 }
 
-// OutboxRepositoryMockMarkAsProcessingParamPtrs contains pointers to parameters of the OutboxRepository.MarkAsProcessing
-type OutboxRepositoryMockMarkAsProcessingParamPtrs struct {
+// OutboxRepositoryMockGetProcessingEventsParamPtrs contains pointers to parameters of the OutboxRepository.GetProcessingEvents
+type OutboxRepositoryMockGetProcessingEventsParamPtrs struct {
 	ctx        *context.Context
 	limit      *int
 	retryDelay *time.Duration
 }
 
-// OutboxRepositoryMockMarkAsProcessingResults contains results of the OutboxRepository.MarkAsProcessing
-type OutboxRepositoryMockMarkAsProcessingResults struct {
+// OutboxRepositoryMockGetProcessingEventsResults contains results of the OutboxRepository.GetProcessingEvents
+type OutboxRepositoryMockGetProcessingEventsResults struct {
 	oa1 []models.OutboxEvent
 	err error
 }
 
-// OutboxRepositoryMockMarkAsProcessingOrigins contains origins of expectations of the OutboxRepository.MarkAsProcessing
-type OutboxRepositoryMockMarkAsProcessingExpectationOrigins struct {
+// OutboxRepositoryMockGetProcessingEventsOrigins contains origins of expectations of the OutboxRepository.GetProcessingEvents
+type OutboxRepositoryMockGetProcessingEventsExpectationOrigins struct {
 	origin           string
 	originCtx        string
 	originLimit      string
@@ -512,320 +522,320 @@ type OutboxRepositoryMockMarkAsProcessingExpectationOrigins struct {
 // Optional() makes method check to work in '0 or more' mode.
 // It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
 // catch the problems when the expected method call is totally skipped during test run.
-func (mmMarkAsProcessing *mOutboxRepositoryMockMarkAsProcessing) Optional() *mOutboxRepositoryMockMarkAsProcessing {
-	mmMarkAsProcessing.optional = true
-	return mmMarkAsProcessing
+func (mmGetProcessingEvents *mOutboxRepositoryMockGetProcessingEvents) Optional() *mOutboxRepositoryMockGetProcessingEvents {
+	mmGetProcessingEvents.optional = true
+	return mmGetProcessingEvents
 }
 
-// Expect sets up expected params for OutboxRepository.MarkAsProcessing
-func (mmMarkAsProcessing *mOutboxRepositoryMockMarkAsProcessing) Expect(ctx context.Context, limit int, retryDelay time.Duration) *mOutboxRepositoryMockMarkAsProcessing {
-	if mmMarkAsProcessing.mock.funcMarkAsProcessing != nil {
-		mmMarkAsProcessing.mock.t.Fatalf("OutboxRepositoryMock.MarkAsProcessing mock is already set by Set")
+// Expect sets up expected params for OutboxRepository.GetProcessingEvents
+func (mmGetProcessingEvents *mOutboxRepositoryMockGetProcessingEvents) Expect(ctx context.Context, limit int, retryDelay time.Duration) *mOutboxRepositoryMockGetProcessingEvents {
+	if mmGetProcessingEvents.mock.funcGetProcessingEvents != nil {
+		mmGetProcessingEvents.mock.t.Fatalf("OutboxRepositoryMock.GetProcessingEvents mock is already set by Set")
 	}
 
-	if mmMarkAsProcessing.defaultExpectation == nil {
-		mmMarkAsProcessing.defaultExpectation = &OutboxRepositoryMockMarkAsProcessingExpectation{}
+	if mmGetProcessingEvents.defaultExpectation == nil {
+		mmGetProcessingEvents.defaultExpectation = &OutboxRepositoryMockGetProcessingEventsExpectation{}
 	}
 
-	if mmMarkAsProcessing.defaultExpectation.paramPtrs != nil {
-		mmMarkAsProcessing.mock.t.Fatalf("OutboxRepositoryMock.MarkAsProcessing mock is already set by ExpectParams functions")
+	if mmGetProcessingEvents.defaultExpectation.paramPtrs != nil {
+		mmGetProcessingEvents.mock.t.Fatalf("OutboxRepositoryMock.GetProcessingEvents mock is already set by ExpectParams functions")
 	}
 
-	mmMarkAsProcessing.defaultExpectation.params = &OutboxRepositoryMockMarkAsProcessingParams{ctx, limit, retryDelay}
-	mmMarkAsProcessing.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
-	for _, e := range mmMarkAsProcessing.expectations {
-		if minimock.Equal(e.params, mmMarkAsProcessing.defaultExpectation.params) {
-			mmMarkAsProcessing.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmMarkAsProcessing.defaultExpectation.params)
+	mmGetProcessingEvents.defaultExpectation.params = &OutboxRepositoryMockGetProcessingEventsParams{ctx, limit, retryDelay}
+	mmGetProcessingEvents.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmGetProcessingEvents.expectations {
+		if minimock.Equal(e.params, mmGetProcessingEvents.defaultExpectation.params) {
+			mmGetProcessingEvents.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmGetProcessingEvents.defaultExpectation.params)
 		}
 	}
 
-	return mmMarkAsProcessing
+	return mmGetProcessingEvents
 }
 
-// ExpectCtxParam1 sets up expected param ctx for OutboxRepository.MarkAsProcessing
-func (mmMarkAsProcessing *mOutboxRepositoryMockMarkAsProcessing) ExpectCtxParam1(ctx context.Context) *mOutboxRepositoryMockMarkAsProcessing {
-	if mmMarkAsProcessing.mock.funcMarkAsProcessing != nil {
-		mmMarkAsProcessing.mock.t.Fatalf("OutboxRepositoryMock.MarkAsProcessing mock is already set by Set")
+// ExpectCtxParam1 sets up expected param ctx for OutboxRepository.GetProcessingEvents
+func (mmGetProcessingEvents *mOutboxRepositoryMockGetProcessingEvents) ExpectCtxParam1(ctx context.Context) *mOutboxRepositoryMockGetProcessingEvents {
+	if mmGetProcessingEvents.mock.funcGetProcessingEvents != nil {
+		mmGetProcessingEvents.mock.t.Fatalf("OutboxRepositoryMock.GetProcessingEvents mock is already set by Set")
 	}
 
-	if mmMarkAsProcessing.defaultExpectation == nil {
-		mmMarkAsProcessing.defaultExpectation = &OutboxRepositoryMockMarkAsProcessingExpectation{}
+	if mmGetProcessingEvents.defaultExpectation == nil {
+		mmGetProcessingEvents.defaultExpectation = &OutboxRepositoryMockGetProcessingEventsExpectation{}
 	}
 
-	if mmMarkAsProcessing.defaultExpectation.params != nil {
-		mmMarkAsProcessing.mock.t.Fatalf("OutboxRepositoryMock.MarkAsProcessing mock is already set by Expect")
+	if mmGetProcessingEvents.defaultExpectation.params != nil {
+		mmGetProcessingEvents.mock.t.Fatalf("OutboxRepositoryMock.GetProcessingEvents mock is already set by Expect")
 	}
 
-	if mmMarkAsProcessing.defaultExpectation.paramPtrs == nil {
-		mmMarkAsProcessing.defaultExpectation.paramPtrs = &OutboxRepositoryMockMarkAsProcessingParamPtrs{}
+	if mmGetProcessingEvents.defaultExpectation.paramPtrs == nil {
+		mmGetProcessingEvents.defaultExpectation.paramPtrs = &OutboxRepositoryMockGetProcessingEventsParamPtrs{}
 	}
-	mmMarkAsProcessing.defaultExpectation.paramPtrs.ctx = &ctx
-	mmMarkAsProcessing.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+	mmGetProcessingEvents.defaultExpectation.paramPtrs.ctx = &ctx
+	mmGetProcessingEvents.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
 
-	return mmMarkAsProcessing
+	return mmGetProcessingEvents
 }
 
-// ExpectLimitParam2 sets up expected param limit for OutboxRepository.MarkAsProcessing
-func (mmMarkAsProcessing *mOutboxRepositoryMockMarkAsProcessing) ExpectLimitParam2(limit int) *mOutboxRepositoryMockMarkAsProcessing {
-	if mmMarkAsProcessing.mock.funcMarkAsProcessing != nil {
-		mmMarkAsProcessing.mock.t.Fatalf("OutboxRepositoryMock.MarkAsProcessing mock is already set by Set")
+// ExpectLimitParam2 sets up expected param limit for OutboxRepository.GetProcessingEvents
+func (mmGetProcessingEvents *mOutboxRepositoryMockGetProcessingEvents) ExpectLimitParam2(limit int) *mOutboxRepositoryMockGetProcessingEvents {
+	if mmGetProcessingEvents.mock.funcGetProcessingEvents != nil {
+		mmGetProcessingEvents.mock.t.Fatalf("OutboxRepositoryMock.GetProcessingEvents mock is already set by Set")
 	}
 
-	if mmMarkAsProcessing.defaultExpectation == nil {
-		mmMarkAsProcessing.defaultExpectation = &OutboxRepositoryMockMarkAsProcessingExpectation{}
+	if mmGetProcessingEvents.defaultExpectation == nil {
+		mmGetProcessingEvents.defaultExpectation = &OutboxRepositoryMockGetProcessingEventsExpectation{}
 	}
 
-	if mmMarkAsProcessing.defaultExpectation.params != nil {
-		mmMarkAsProcessing.mock.t.Fatalf("OutboxRepositoryMock.MarkAsProcessing mock is already set by Expect")
+	if mmGetProcessingEvents.defaultExpectation.params != nil {
+		mmGetProcessingEvents.mock.t.Fatalf("OutboxRepositoryMock.GetProcessingEvents mock is already set by Expect")
 	}
 
-	if mmMarkAsProcessing.defaultExpectation.paramPtrs == nil {
-		mmMarkAsProcessing.defaultExpectation.paramPtrs = &OutboxRepositoryMockMarkAsProcessingParamPtrs{}
+	if mmGetProcessingEvents.defaultExpectation.paramPtrs == nil {
+		mmGetProcessingEvents.defaultExpectation.paramPtrs = &OutboxRepositoryMockGetProcessingEventsParamPtrs{}
 	}
-	mmMarkAsProcessing.defaultExpectation.paramPtrs.limit = &limit
-	mmMarkAsProcessing.defaultExpectation.expectationOrigins.originLimit = minimock.CallerInfo(1)
+	mmGetProcessingEvents.defaultExpectation.paramPtrs.limit = &limit
+	mmGetProcessingEvents.defaultExpectation.expectationOrigins.originLimit = minimock.CallerInfo(1)
 
-	return mmMarkAsProcessing
+	return mmGetProcessingEvents
 }
 
-// ExpectRetryDelayParam3 sets up expected param retryDelay for OutboxRepository.MarkAsProcessing
-func (mmMarkAsProcessing *mOutboxRepositoryMockMarkAsProcessing) ExpectRetryDelayParam3(retryDelay time.Duration) *mOutboxRepositoryMockMarkAsProcessing {
-	if mmMarkAsProcessing.mock.funcMarkAsProcessing != nil {
-		mmMarkAsProcessing.mock.t.Fatalf("OutboxRepositoryMock.MarkAsProcessing mock is already set by Set")
+// ExpectRetryDelayParam3 sets up expected param retryDelay for OutboxRepository.GetProcessingEvents
+func (mmGetProcessingEvents *mOutboxRepositoryMockGetProcessingEvents) ExpectRetryDelayParam3(retryDelay time.Duration) *mOutboxRepositoryMockGetProcessingEvents {
+	if mmGetProcessingEvents.mock.funcGetProcessingEvents != nil {
+		mmGetProcessingEvents.mock.t.Fatalf("OutboxRepositoryMock.GetProcessingEvents mock is already set by Set")
 	}
 
-	if mmMarkAsProcessing.defaultExpectation == nil {
-		mmMarkAsProcessing.defaultExpectation = &OutboxRepositoryMockMarkAsProcessingExpectation{}
+	if mmGetProcessingEvents.defaultExpectation == nil {
+		mmGetProcessingEvents.defaultExpectation = &OutboxRepositoryMockGetProcessingEventsExpectation{}
 	}
 
-	if mmMarkAsProcessing.defaultExpectation.params != nil {
-		mmMarkAsProcessing.mock.t.Fatalf("OutboxRepositoryMock.MarkAsProcessing mock is already set by Expect")
+	if mmGetProcessingEvents.defaultExpectation.params != nil {
+		mmGetProcessingEvents.mock.t.Fatalf("OutboxRepositoryMock.GetProcessingEvents mock is already set by Expect")
 	}
 
-	if mmMarkAsProcessing.defaultExpectation.paramPtrs == nil {
-		mmMarkAsProcessing.defaultExpectation.paramPtrs = &OutboxRepositoryMockMarkAsProcessingParamPtrs{}
+	if mmGetProcessingEvents.defaultExpectation.paramPtrs == nil {
+		mmGetProcessingEvents.defaultExpectation.paramPtrs = &OutboxRepositoryMockGetProcessingEventsParamPtrs{}
 	}
-	mmMarkAsProcessing.defaultExpectation.paramPtrs.retryDelay = &retryDelay
-	mmMarkAsProcessing.defaultExpectation.expectationOrigins.originRetryDelay = minimock.CallerInfo(1)
+	mmGetProcessingEvents.defaultExpectation.paramPtrs.retryDelay = &retryDelay
+	mmGetProcessingEvents.defaultExpectation.expectationOrigins.originRetryDelay = minimock.CallerInfo(1)
 
-	return mmMarkAsProcessing
+	return mmGetProcessingEvents
 }
 
-// Inspect accepts an inspector function that has same arguments as the OutboxRepository.MarkAsProcessing
-func (mmMarkAsProcessing *mOutboxRepositoryMockMarkAsProcessing) Inspect(f func(ctx context.Context, limit int, retryDelay time.Duration)) *mOutboxRepositoryMockMarkAsProcessing {
-	if mmMarkAsProcessing.mock.inspectFuncMarkAsProcessing != nil {
-		mmMarkAsProcessing.mock.t.Fatalf("Inspect function is already set for OutboxRepositoryMock.MarkAsProcessing")
+// Inspect accepts an inspector function that has same arguments as the OutboxRepository.GetProcessingEvents
+func (mmGetProcessingEvents *mOutboxRepositoryMockGetProcessingEvents) Inspect(f func(ctx context.Context, limit int, retryDelay time.Duration)) *mOutboxRepositoryMockGetProcessingEvents {
+	if mmGetProcessingEvents.mock.inspectFuncGetProcessingEvents != nil {
+		mmGetProcessingEvents.mock.t.Fatalf("Inspect function is already set for OutboxRepositoryMock.GetProcessingEvents")
 	}
 
-	mmMarkAsProcessing.mock.inspectFuncMarkAsProcessing = f
+	mmGetProcessingEvents.mock.inspectFuncGetProcessingEvents = f
 
-	return mmMarkAsProcessing
+	return mmGetProcessingEvents
 }
 
-// Return sets up results that will be returned by OutboxRepository.MarkAsProcessing
-func (mmMarkAsProcessing *mOutboxRepositoryMockMarkAsProcessing) Return(oa1 []models.OutboxEvent, err error) *OutboxRepositoryMock {
-	if mmMarkAsProcessing.mock.funcMarkAsProcessing != nil {
-		mmMarkAsProcessing.mock.t.Fatalf("OutboxRepositoryMock.MarkAsProcessing mock is already set by Set")
+// Return sets up results that will be returned by OutboxRepository.GetProcessingEvents
+func (mmGetProcessingEvents *mOutboxRepositoryMockGetProcessingEvents) Return(oa1 []models.OutboxEvent, err error) *OutboxRepositoryMock {
+	if mmGetProcessingEvents.mock.funcGetProcessingEvents != nil {
+		mmGetProcessingEvents.mock.t.Fatalf("OutboxRepositoryMock.GetProcessingEvents mock is already set by Set")
 	}
 
-	if mmMarkAsProcessing.defaultExpectation == nil {
-		mmMarkAsProcessing.defaultExpectation = &OutboxRepositoryMockMarkAsProcessingExpectation{mock: mmMarkAsProcessing.mock}
+	if mmGetProcessingEvents.defaultExpectation == nil {
+		mmGetProcessingEvents.defaultExpectation = &OutboxRepositoryMockGetProcessingEventsExpectation{mock: mmGetProcessingEvents.mock}
 	}
-	mmMarkAsProcessing.defaultExpectation.results = &OutboxRepositoryMockMarkAsProcessingResults{oa1, err}
-	mmMarkAsProcessing.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
-	return mmMarkAsProcessing.mock
+	mmGetProcessingEvents.defaultExpectation.results = &OutboxRepositoryMockGetProcessingEventsResults{oa1, err}
+	mmGetProcessingEvents.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmGetProcessingEvents.mock
 }
 
-// Set uses given function f to mock the OutboxRepository.MarkAsProcessing method
-func (mmMarkAsProcessing *mOutboxRepositoryMockMarkAsProcessing) Set(f func(ctx context.Context, limit int, retryDelay time.Duration) (oa1 []models.OutboxEvent, err error)) *OutboxRepositoryMock {
-	if mmMarkAsProcessing.defaultExpectation != nil {
-		mmMarkAsProcessing.mock.t.Fatalf("Default expectation is already set for the OutboxRepository.MarkAsProcessing method")
+// Set uses given function f to mock the OutboxRepository.GetProcessingEvents method
+func (mmGetProcessingEvents *mOutboxRepositoryMockGetProcessingEvents) Set(f func(ctx context.Context, limit int, retryDelay time.Duration) (oa1 []models.OutboxEvent, err error)) *OutboxRepositoryMock {
+	if mmGetProcessingEvents.defaultExpectation != nil {
+		mmGetProcessingEvents.mock.t.Fatalf("Default expectation is already set for the OutboxRepository.GetProcessingEvents method")
 	}
 
-	if len(mmMarkAsProcessing.expectations) > 0 {
-		mmMarkAsProcessing.mock.t.Fatalf("Some expectations are already set for the OutboxRepository.MarkAsProcessing method")
+	if len(mmGetProcessingEvents.expectations) > 0 {
+		mmGetProcessingEvents.mock.t.Fatalf("Some expectations are already set for the OutboxRepository.GetProcessingEvents method")
 	}
 
-	mmMarkAsProcessing.mock.funcMarkAsProcessing = f
-	mmMarkAsProcessing.mock.funcMarkAsProcessingOrigin = minimock.CallerInfo(1)
-	return mmMarkAsProcessing.mock
+	mmGetProcessingEvents.mock.funcGetProcessingEvents = f
+	mmGetProcessingEvents.mock.funcGetProcessingEventsOrigin = minimock.CallerInfo(1)
+	return mmGetProcessingEvents.mock
 }
 
-// When sets expectation for the OutboxRepository.MarkAsProcessing which will trigger the result defined by the following
+// When sets expectation for the OutboxRepository.GetProcessingEvents which will trigger the result defined by the following
 // Then helper
-func (mmMarkAsProcessing *mOutboxRepositoryMockMarkAsProcessing) When(ctx context.Context, limit int, retryDelay time.Duration) *OutboxRepositoryMockMarkAsProcessingExpectation {
-	if mmMarkAsProcessing.mock.funcMarkAsProcessing != nil {
-		mmMarkAsProcessing.mock.t.Fatalf("OutboxRepositoryMock.MarkAsProcessing mock is already set by Set")
+func (mmGetProcessingEvents *mOutboxRepositoryMockGetProcessingEvents) When(ctx context.Context, limit int, retryDelay time.Duration) *OutboxRepositoryMockGetProcessingEventsExpectation {
+	if mmGetProcessingEvents.mock.funcGetProcessingEvents != nil {
+		mmGetProcessingEvents.mock.t.Fatalf("OutboxRepositoryMock.GetProcessingEvents mock is already set by Set")
 	}
 
-	expectation := &OutboxRepositoryMockMarkAsProcessingExpectation{
-		mock:               mmMarkAsProcessing.mock,
-		params:             &OutboxRepositoryMockMarkAsProcessingParams{ctx, limit, retryDelay},
-		expectationOrigins: OutboxRepositoryMockMarkAsProcessingExpectationOrigins{origin: minimock.CallerInfo(1)},
+	expectation := &OutboxRepositoryMockGetProcessingEventsExpectation{
+		mock:               mmGetProcessingEvents.mock,
+		params:             &OutboxRepositoryMockGetProcessingEventsParams{ctx, limit, retryDelay},
+		expectationOrigins: OutboxRepositoryMockGetProcessingEventsExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
-	mmMarkAsProcessing.expectations = append(mmMarkAsProcessing.expectations, expectation)
+	mmGetProcessingEvents.expectations = append(mmGetProcessingEvents.expectations, expectation)
 	return expectation
 }
 
-// Then sets up OutboxRepository.MarkAsProcessing return parameters for the expectation previously defined by the When method
-func (e *OutboxRepositoryMockMarkAsProcessingExpectation) Then(oa1 []models.OutboxEvent, err error) *OutboxRepositoryMock {
-	e.results = &OutboxRepositoryMockMarkAsProcessingResults{oa1, err}
+// Then sets up OutboxRepository.GetProcessingEvents return parameters for the expectation previously defined by the When method
+func (e *OutboxRepositoryMockGetProcessingEventsExpectation) Then(oa1 []models.OutboxEvent, err error) *OutboxRepositoryMock {
+	e.results = &OutboxRepositoryMockGetProcessingEventsResults{oa1, err}
 	return e.mock
 }
 
-// Times sets number of times OutboxRepository.MarkAsProcessing should be invoked
-func (mmMarkAsProcessing *mOutboxRepositoryMockMarkAsProcessing) Times(n uint64) *mOutboxRepositoryMockMarkAsProcessing {
+// Times sets number of times OutboxRepository.GetProcessingEvents should be invoked
+func (mmGetProcessingEvents *mOutboxRepositoryMockGetProcessingEvents) Times(n uint64) *mOutboxRepositoryMockGetProcessingEvents {
 	if n == 0 {
-		mmMarkAsProcessing.mock.t.Fatalf("Times of OutboxRepositoryMock.MarkAsProcessing mock can not be zero")
+		mmGetProcessingEvents.mock.t.Fatalf("Times of OutboxRepositoryMock.GetProcessingEvents mock can not be zero")
 	}
-	mm_atomic.StoreUint64(&mmMarkAsProcessing.expectedInvocations, n)
-	mmMarkAsProcessing.expectedInvocationsOrigin = minimock.CallerInfo(1)
-	return mmMarkAsProcessing
+	mm_atomic.StoreUint64(&mmGetProcessingEvents.expectedInvocations, n)
+	mmGetProcessingEvents.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmGetProcessingEvents
 }
 
-func (mmMarkAsProcessing *mOutboxRepositoryMockMarkAsProcessing) invocationsDone() bool {
-	if len(mmMarkAsProcessing.expectations) == 0 && mmMarkAsProcessing.defaultExpectation == nil && mmMarkAsProcessing.mock.funcMarkAsProcessing == nil {
+func (mmGetProcessingEvents *mOutboxRepositoryMockGetProcessingEvents) invocationsDone() bool {
+	if len(mmGetProcessingEvents.expectations) == 0 && mmGetProcessingEvents.defaultExpectation == nil && mmGetProcessingEvents.mock.funcGetProcessingEvents == nil {
 		return true
 	}
 
-	totalInvocations := mm_atomic.LoadUint64(&mmMarkAsProcessing.mock.afterMarkAsProcessingCounter)
-	expectedInvocations := mm_atomic.LoadUint64(&mmMarkAsProcessing.expectedInvocations)
+	totalInvocations := mm_atomic.LoadUint64(&mmGetProcessingEvents.mock.afterGetProcessingEventsCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmGetProcessingEvents.expectedInvocations)
 
 	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
 }
 
-// MarkAsProcessing implements mm_repositories.OutboxRepository
-func (mmMarkAsProcessing *OutboxRepositoryMock) MarkAsProcessing(ctx context.Context, limit int, retryDelay time.Duration) (oa1 []models.OutboxEvent, err error) {
-	mm_atomic.AddUint64(&mmMarkAsProcessing.beforeMarkAsProcessingCounter, 1)
-	defer mm_atomic.AddUint64(&mmMarkAsProcessing.afterMarkAsProcessingCounter, 1)
+// GetProcessingEvents implements mm_repositories.OutboxRepository
+func (mmGetProcessingEvents *OutboxRepositoryMock) GetProcessingEvents(ctx context.Context, limit int, retryDelay time.Duration) (oa1 []models.OutboxEvent, err error) {
+	mm_atomic.AddUint64(&mmGetProcessingEvents.beforeGetProcessingEventsCounter, 1)
+	defer mm_atomic.AddUint64(&mmGetProcessingEvents.afterGetProcessingEventsCounter, 1)
 
-	mmMarkAsProcessing.t.Helper()
+	mmGetProcessingEvents.t.Helper()
 
-	if mmMarkAsProcessing.inspectFuncMarkAsProcessing != nil {
-		mmMarkAsProcessing.inspectFuncMarkAsProcessing(ctx, limit, retryDelay)
+	if mmGetProcessingEvents.inspectFuncGetProcessingEvents != nil {
+		mmGetProcessingEvents.inspectFuncGetProcessingEvents(ctx, limit, retryDelay)
 	}
 
-	mm_params := OutboxRepositoryMockMarkAsProcessingParams{ctx, limit, retryDelay}
+	mm_params := OutboxRepositoryMockGetProcessingEventsParams{ctx, limit, retryDelay}
 
 	// Record call args
-	mmMarkAsProcessing.MarkAsProcessingMock.mutex.Lock()
-	mmMarkAsProcessing.MarkAsProcessingMock.callArgs = append(mmMarkAsProcessing.MarkAsProcessingMock.callArgs, &mm_params)
-	mmMarkAsProcessing.MarkAsProcessingMock.mutex.Unlock()
+	mmGetProcessingEvents.GetProcessingEventsMock.mutex.Lock()
+	mmGetProcessingEvents.GetProcessingEventsMock.callArgs = append(mmGetProcessingEvents.GetProcessingEventsMock.callArgs, &mm_params)
+	mmGetProcessingEvents.GetProcessingEventsMock.mutex.Unlock()
 
-	for _, e := range mmMarkAsProcessing.MarkAsProcessingMock.expectations {
+	for _, e := range mmGetProcessingEvents.GetProcessingEventsMock.expectations {
 		if minimock.Equal(*e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
 			return e.results.oa1, e.results.err
 		}
 	}
 
-	if mmMarkAsProcessing.MarkAsProcessingMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmMarkAsProcessing.MarkAsProcessingMock.defaultExpectation.Counter, 1)
-		mm_want := mmMarkAsProcessing.MarkAsProcessingMock.defaultExpectation.params
-		mm_want_ptrs := mmMarkAsProcessing.MarkAsProcessingMock.defaultExpectation.paramPtrs
+	if mmGetProcessingEvents.GetProcessingEventsMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmGetProcessingEvents.GetProcessingEventsMock.defaultExpectation.Counter, 1)
+		mm_want := mmGetProcessingEvents.GetProcessingEventsMock.defaultExpectation.params
+		mm_want_ptrs := mmGetProcessingEvents.GetProcessingEventsMock.defaultExpectation.paramPtrs
 
-		mm_got := OutboxRepositoryMockMarkAsProcessingParams{ctx, limit, retryDelay}
+		mm_got := OutboxRepositoryMockGetProcessingEventsParams{ctx, limit, retryDelay}
 
 		if mm_want_ptrs != nil {
 
 			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
-				mmMarkAsProcessing.t.Errorf("OutboxRepositoryMock.MarkAsProcessing got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-					mmMarkAsProcessing.MarkAsProcessingMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+				mmGetProcessingEvents.t.Errorf("OutboxRepositoryMock.GetProcessingEvents got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmGetProcessingEvents.GetProcessingEventsMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
 			}
 
 			if mm_want_ptrs.limit != nil && !minimock.Equal(*mm_want_ptrs.limit, mm_got.limit) {
-				mmMarkAsProcessing.t.Errorf("OutboxRepositoryMock.MarkAsProcessing got unexpected parameter limit, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-					mmMarkAsProcessing.MarkAsProcessingMock.defaultExpectation.expectationOrigins.originLimit, *mm_want_ptrs.limit, mm_got.limit, minimock.Diff(*mm_want_ptrs.limit, mm_got.limit))
+				mmGetProcessingEvents.t.Errorf("OutboxRepositoryMock.GetProcessingEvents got unexpected parameter limit, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmGetProcessingEvents.GetProcessingEventsMock.defaultExpectation.expectationOrigins.originLimit, *mm_want_ptrs.limit, mm_got.limit, minimock.Diff(*mm_want_ptrs.limit, mm_got.limit))
 			}
 
 			if mm_want_ptrs.retryDelay != nil && !minimock.Equal(*mm_want_ptrs.retryDelay, mm_got.retryDelay) {
-				mmMarkAsProcessing.t.Errorf("OutboxRepositoryMock.MarkAsProcessing got unexpected parameter retryDelay, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-					mmMarkAsProcessing.MarkAsProcessingMock.defaultExpectation.expectationOrigins.originRetryDelay, *mm_want_ptrs.retryDelay, mm_got.retryDelay, minimock.Diff(*mm_want_ptrs.retryDelay, mm_got.retryDelay))
+				mmGetProcessingEvents.t.Errorf("OutboxRepositoryMock.GetProcessingEvents got unexpected parameter retryDelay, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmGetProcessingEvents.GetProcessingEventsMock.defaultExpectation.expectationOrigins.originRetryDelay, *mm_want_ptrs.retryDelay, mm_got.retryDelay, minimock.Diff(*mm_want_ptrs.retryDelay, mm_got.retryDelay))
 			}
 
 		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmMarkAsProcessing.t.Errorf("OutboxRepositoryMock.MarkAsProcessing got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-				mmMarkAsProcessing.MarkAsProcessingMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+			mmGetProcessingEvents.t.Errorf("OutboxRepositoryMock.GetProcessingEvents got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmGetProcessingEvents.GetProcessingEventsMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
 
-		mm_results := mmMarkAsProcessing.MarkAsProcessingMock.defaultExpectation.results
+		mm_results := mmGetProcessingEvents.GetProcessingEventsMock.defaultExpectation.results
 		if mm_results == nil {
-			mmMarkAsProcessing.t.Fatal("No results are set for the OutboxRepositoryMock.MarkAsProcessing")
+			mmGetProcessingEvents.t.Fatal("No results are set for the OutboxRepositoryMock.GetProcessingEvents")
 		}
 		return (*mm_results).oa1, (*mm_results).err
 	}
-	if mmMarkAsProcessing.funcMarkAsProcessing != nil {
-		return mmMarkAsProcessing.funcMarkAsProcessing(ctx, limit, retryDelay)
+	if mmGetProcessingEvents.funcGetProcessingEvents != nil {
+		return mmGetProcessingEvents.funcGetProcessingEvents(ctx, limit, retryDelay)
 	}
-	mmMarkAsProcessing.t.Fatalf("Unexpected call to OutboxRepositoryMock.MarkAsProcessing. %v %v %v", ctx, limit, retryDelay)
+	mmGetProcessingEvents.t.Fatalf("Unexpected call to OutboxRepositoryMock.GetProcessingEvents. %v %v %v", ctx, limit, retryDelay)
 	return
 }
 
-// MarkAsProcessingAfterCounter returns a count of finished OutboxRepositoryMock.MarkAsProcessing invocations
-func (mmMarkAsProcessing *OutboxRepositoryMock) MarkAsProcessingAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmMarkAsProcessing.afterMarkAsProcessingCounter)
+// GetProcessingEventsAfterCounter returns a count of finished OutboxRepositoryMock.GetProcessingEvents invocations
+func (mmGetProcessingEvents *OutboxRepositoryMock) GetProcessingEventsAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetProcessingEvents.afterGetProcessingEventsCounter)
 }
 
-// MarkAsProcessingBeforeCounter returns a count of OutboxRepositoryMock.MarkAsProcessing invocations
-func (mmMarkAsProcessing *OutboxRepositoryMock) MarkAsProcessingBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmMarkAsProcessing.beforeMarkAsProcessingCounter)
+// GetProcessingEventsBeforeCounter returns a count of OutboxRepositoryMock.GetProcessingEvents invocations
+func (mmGetProcessingEvents *OutboxRepositoryMock) GetProcessingEventsBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetProcessingEvents.beforeGetProcessingEventsCounter)
 }
 
-// Calls returns a list of arguments used in each call to OutboxRepositoryMock.MarkAsProcessing.
+// Calls returns a list of arguments used in each call to OutboxRepositoryMock.GetProcessingEvents.
 // The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmMarkAsProcessing *mOutboxRepositoryMockMarkAsProcessing) Calls() []*OutboxRepositoryMockMarkAsProcessingParams {
-	mmMarkAsProcessing.mutex.RLock()
+func (mmGetProcessingEvents *mOutboxRepositoryMockGetProcessingEvents) Calls() []*OutboxRepositoryMockGetProcessingEventsParams {
+	mmGetProcessingEvents.mutex.RLock()
 
-	argCopy := make([]*OutboxRepositoryMockMarkAsProcessingParams, len(mmMarkAsProcessing.callArgs))
-	copy(argCopy, mmMarkAsProcessing.callArgs)
+	argCopy := make([]*OutboxRepositoryMockGetProcessingEventsParams, len(mmGetProcessingEvents.callArgs))
+	copy(argCopy, mmGetProcessingEvents.callArgs)
 
-	mmMarkAsProcessing.mutex.RUnlock()
+	mmGetProcessingEvents.mutex.RUnlock()
 
 	return argCopy
 }
 
-// MinimockMarkAsProcessingDone returns true if the count of the MarkAsProcessing invocations corresponds
+// MinimockGetProcessingEventsDone returns true if the count of the GetProcessingEvents invocations corresponds
 // the number of defined expectations
-func (m *OutboxRepositoryMock) MinimockMarkAsProcessingDone() bool {
-	if m.MarkAsProcessingMock.optional {
+func (m *OutboxRepositoryMock) MinimockGetProcessingEventsDone() bool {
+	if m.GetProcessingEventsMock.optional {
 		// Optional methods provide '0 or more' call count restriction.
 		return true
 	}
 
-	for _, e := range m.MarkAsProcessingMock.expectations {
+	for _, e := range m.GetProcessingEventsMock.expectations {
 		if mm_atomic.LoadUint64(&e.Counter) < 1 {
 			return false
 		}
 	}
 
-	return m.MarkAsProcessingMock.invocationsDone()
+	return m.GetProcessingEventsMock.invocationsDone()
 }
 
-// MinimockMarkAsProcessingInspect logs each unmet expectation
-func (m *OutboxRepositoryMock) MinimockMarkAsProcessingInspect() {
-	for _, e := range m.MarkAsProcessingMock.expectations {
+// MinimockGetProcessingEventsInspect logs each unmet expectation
+func (m *OutboxRepositoryMock) MinimockGetProcessingEventsInspect() {
+	for _, e := range m.GetProcessingEventsMock.expectations {
 		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to OutboxRepositoryMock.MarkAsProcessing at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+			m.t.Errorf("Expected call to OutboxRepositoryMock.GetProcessingEvents at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
 		}
 	}
 
-	afterMarkAsProcessingCounter := mm_atomic.LoadUint64(&m.afterMarkAsProcessingCounter)
+	afterGetProcessingEventsCounter := mm_atomic.LoadUint64(&m.afterGetProcessingEventsCounter)
 	// if default expectation was set then invocations count should be greater than zero
-	if m.MarkAsProcessingMock.defaultExpectation != nil && afterMarkAsProcessingCounter < 1 {
-		if m.MarkAsProcessingMock.defaultExpectation.params == nil {
-			m.t.Errorf("Expected call to OutboxRepositoryMock.MarkAsProcessing at\n%s", m.MarkAsProcessingMock.defaultExpectation.returnOrigin)
+	if m.GetProcessingEventsMock.defaultExpectation != nil && afterGetProcessingEventsCounter < 1 {
+		if m.GetProcessingEventsMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to OutboxRepositoryMock.GetProcessingEvents at\n%s", m.GetProcessingEventsMock.defaultExpectation.returnOrigin)
 		} else {
-			m.t.Errorf("Expected call to OutboxRepositoryMock.MarkAsProcessing at\n%s with params: %#v", m.MarkAsProcessingMock.defaultExpectation.expectationOrigins.origin, *m.MarkAsProcessingMock.defaultExpectation.params)
+			m.t.Errorf("Expected call to OutboxRepositoryMock.GetProcessingEvents at\n%s with params: %#v", m.GetProcessingEventsMock.defaultExpectation.expectationOrigins.origin, *m.GetProcessingEventsMock.defaultExpectation.params)
 		}
 	}
 	// if func was set then invocations count should be greater than zero
-	if m.funcMarkAsProcessing != nil && afterMarkAsProcessingCounter < 1 {
-		m.t.Errorf("Expected call to OutboxRepositoryMock.MarkAsProcessing at\n%s", m.funcMarkAsProcessingOrigin)
+	if m.funcGetProcessingEvents != nil && afterGetProcessingEventsCounter < 1 {
+		m.t.Errorf("Expected call to OutboxRepositoryMock.GetProcessingEvents at\n%s", m.funcGetProcessingEventsOrigin)
 	}
 
-	if !m.MarkAsProcessingMock.invocationsDone() && afterMarkAsProcessingCounter > 0 {
-		m.t.Errorf("Expected %d calls to OutboxRepositoryMock.MarkAsProcessing at\n%s but found %d calls",
-			mm_atomic.LoadUint64(&m.MarkAsProcessingMock.expectedInvocations), m.MarkAsProcessingMock.expectedInvocationsOrigin, afterMarkAsProcessingCounter)
+	if !m.GetProcessingEventsMock.invocationsDone() && afterGetProcessingEventsCounter > 0 {
+		m.t.Errorf("Expected %d calls to OutboxRepositoryMock.GetProcessingEvents at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.GetProcessingEventsMock.expectedInvocations), m.GetProcessingEventsMock.expectedInvocationsOrigin, afterGetProcessingEventsCounter)
 	}
 }
 
@@ -1575,6 +1585,379 @@ func (m *OutboxRepositoryMock) MinimockSetFailedInspect() {
 	}
 }
 
+type mOutboxRepositoryMockSetProcessing struct {
+	optional           bool
+	mock               *OutboxRepositoryMock
+	defaultExpectation *OutboxRepositoryMockSetProcessingExpectation
+	expectations       []*OutboxRepositoryMockSetProcessingExpectation
+
+	callArgs []*OutboxRepositoryMockSetProcessingParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// OutboxRepositoryMockSetProcessingExpectation specifies expectation struct of the OutboxRepository.SetProcessing
+type OutboxRepositoryMockSetProcessingExpectation struct {
+	mock               *OutboxRepositoryMock
+	params             *OutboxRepositoryMockSetProcessingParams
+	paramPtrs          *OutboxRepositoryMockSetProcessingParamPtrs
+	expectationOrigins OutboxRepositoryMockSetProcessingExpectationOrigins
+	results            *OutboxRepositoryMockSetProcessingResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// OutboxRepositoryMockSetProcessingParams contains parameters of the OutboxRepository.SetProcessing
+type OutboxRepositoryMockSetProcessingParams struct {
+	ctx        context.Context
+	limit      int
+	retryDelay time.Duration
+}
+
+// OutboxRepositoryMockSetProcessingParamPtrs contains pointers to parameters of the OutboxRepository.SetProcessing
+type OutboxRepositoryMockSetProcessingParamPtrs struct {
+	ctx        *context.Context
+	limit      *int
+	retryDelay *time.Duration
+}
+
+// OutboxRepositoryMockSetProcessingResults contains results of the OutboxRepository.SetProcessing
+type OutboxRepositoryMockSetProcessingResults struct {
+	err error
+}
+
+// OutboxRepositoryMockSetProcessingOrigins contains origins of expectations of the OutboxRepository.SetProcessing
+type OutboxRepositoryMockSetProcessingExpectationOrigins struct {
+	origin           string
+	originCtx        string
+	originLimit      string
+	originRetryDelay string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmSetProcessing *mOutboxRepositoryMockSetProcessing) Optional() *mOutboxRepositoryMockSetProcessing {
+	mmSetProcessing.optional = true
+	return mmSetProcessing
+}
+
+// Expect sets up expected params for OutboxRepository.SetProcessing
+func (mmSetProcessing *mOutboxRepositoryMockSetProcessing) Expect(ctx context.Context, limit int, retryDelay time.Duration) *mOutboxRepositoryMockSetProcessing {
+	if mmSetProcessing.mock.funcSetProcessing != nil {
+		mmSetProcessing.mock.t.Fatalf("OutboxRepositoryMock.SetProcessing mock is already set by Set")
+	}
+
+	if mmSetProcessing.defaultExpectation == nil {
+		mmSetProcessing.defaultExpectation = &OutboxRepositoryMockSetProcessingExpectation{}
+	}
+
+	if mmSetProcessing.defaultExpectation.paramPtrs != nil {
+		mmSetProcessing.mock.t.Fatalf("OutboxRepositoryMock.SetProcessing mock is already set by ExpectParams functions")
+	}
+
+	mmSetProcessing.defaultExpectation.params = &OutboxRepositoryMockSetProcessingParams{ctx, limit, retryDelay}
+	mmSetProcessing.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmSetProcessing.expectations {
+		if minimock.Equal(e.params, mmSetProcessing.defaultExpectation.params) {
+			mmSetProcessing.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmSetProcessing.defaultExpectation.params)
+		}
+	}
+
+	return mmSetProcessing
+}
+
+// ExpectCtxParam1 sets up expected param ctx for OutboxRepository.SetProcessing
+func (mmSetProcessing *mOutboxRepositoryMockSetProcessing) ExpectCtxParam1(ctx context.Context) *mOutboxRepositoryMockSetProcessing {
+	if mmSetProcessing.mock.funcSetProcessing != nil {
+		mmSetProcessing.mock.t.Fatalf("OutboxRepositoryMock.SetProcessing mock is already set by Set")
+	}
+
+	if mmSetProcessing.defaultExpectation == nil {
+		mmSetProcessing.defaultExpectation = &OutboxRepositoryMockSetProcessingExpectation{}
+	}
+
+	if mmSetProcessing.defaultExpectation.params != nil {
+		mmSetProcessing.mock.t.Fatalf("OutboxRepositoryMock.SetProcessing mock is already set by Expect")
+	}
+
+	if mmSetProcessing.defaultExpectation.paramPtrs == nil {
+		mmSetProcessing.defaultExpectation.paramPtrs = &OutboxRepositoryMockSetProcessingParamPtrs{}
+	}
+	mmSetProcessing.defaultExpectation.paramPtrs.ctx = &ctx
+	mmSetProcessing.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmSetProcessing
+}
+
+// ExpectLimitParam2 sets up expected param limit for OutboxRepository.SetProcessing
+func (mmSetProcessing *mOutboxRepositoryMockSetProcessing) ExpectLimitParam2(limit int) *mOutboxRepositoryMockSetProcessing {
+	if mmSetProcessing.mock.funcSetProcessing != nil {
+		mmSetProcessing.mock.t.Fatalf("OutboxRepositoryMock.SetProcessing mock is already set by Set")
+	}
+
+	if mmSetProcessing.defaultExpectation == nil {
+		mmSetProcessing.defaultExpectation = &OutboxRepositoryMockSetProcessingExpectation{}
+	}
+
+	if mmSetProcessing.defaultExpectation.params != nil {
+		mmSetProcessing.mock.t.Fatalf("OutboxRepositoryMock.SetProcessing mock is already set by Expect")
+	}
+
+	if mmSetProcessing.defaultExpectation.paramPtrs == nil {
+		mmSetProcessing.defaultExpectation.paramPtrs = &OutboxRepositoryMockSetProcessingParamPtrs{}
+	}
+	mmSetProcessing.defaultExpectation.paramPtrs.limit = &limit
+	mmSetProcessing.defaultExpectation.expectationOrigins.originLimit = minimock.CallerInfo(1)
+
+	return mmSetProcessing
+}
+
+// ExpectRetryDelayParam3 sets up expected param retryDelay for OutboxRepository.SetProcessing
+func (mmSetProcessing *mOutboxRepositoryMockSetProcessing) ExpectRetryDelayParam3(retryDelay time.Duration) *mOutboxRepositoryMockSetProcessing {
+	if mmSetProcessing.mock.funcSetProcessing != nil {
+		mmSetProcessing.mock.t.Fatalf("OutboxRepositoryMock.SetProcessing mock is already set by Set")
+	}
+
+	if mmSetProcessing.defaultExpectation == nil {
+		mmSetProcessing.defaultExpectation = &OutboxRepositoryMockSetProcessingExpectation{}
+	}
+
+	if mmSetProcessing.defaultExpectation.params != nil {
+		mmSetProcessing.mock.t.Fatalf("OutboxRepositoryMock.SetProcessing mock is already set by Expect")
+	}
+
+	if mmSetProcessing.defaultExpectation.paramPtrs == nil {
+		mmSetProcessing.defaultExpectation.paramPtrs = &OutboxRepositoryMockSetProcessingParamPtrs{}
+	}
+	mmSetProcessing.defaultExpectation.paramPtrs.retryDelay = &retryDelay
+	mmSetProcessing.defaultExpectation.expectationOrigins.originRetryDelay = minimock.CallerInfo(1)
+
+	return mmSetProcessing
+}
+
+// Inspect accepts an inspector function that has same arguments as the OutboxRepository.SetProcessing
+func (mmSetProcessing *mOutboxRepositoryMockSetProcessing) Inspect(f func(ctx context.Context, limit int, retryDelay time.Duration)) *mOutboxRepositoryMockSetProcessing {
+	if mmSetProcessing.mock.inspectFuncSetProcessing != nil {
+		mmSetProcessing.mock.t.Fatalf("Inspect function is already set for OutboxRepositoryMock.SetProcessing")
+	}
+
+	mmSetProcessing.mock.inspectFuncSetProcessing = f
+
+	return mmSetProcessing
+}
+
+// Return sets up results that will be returned by OutboxRepository.SetProcessing
+func (mmSetProcessing *mOutboxRepositoryMockSetProcessing) Return(err error) *OutboxRepositoryMock {
+	if mmSetProcessing.mock.funcSetProcessing != nil {
+		mmSetProcessing.mock.t.Fatalf("OutboxRepositoryMock.SetProcessing mock is already set by Set")
+	}
+
+	if mmSetProcessing.defaultExpectation == nil {
+		mmSetProcessing.defaultExpectation = &OutboxRepositoryMockSetProcessingExpectation{mock: mmSetProcessing.mock}
+	}
+	mmSetProcessing.defaultExpectation.results = &OutboxRepositoryMockSetProcessingResults{err}
+	mmSetProcessing.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmSetProcessing.mock
+}
+
+// Set uses given function f to mock the OutboxRepository.SetProcessing method
+func (mmSetProcessing *mOutboxRepositoryMockSetProcessing) Set(f func(ctx context.Context, limit int, retryDelay time.Duration) (err error)) *OutboxRepositoryMock {
+	if mmSetProcessing.defaultExpectation != nil {
+		mmSetProcessing.mock.t.Fatalf("Default expectation is already set for the OutboxRepository.SetProcessing method")
+	}
+
+	if len(mmSetProcessing.expectations) > 0 {
+		mmSetProcessing.mock.t.Fatalf("Some expectations are already set for the OutboxRepository.SetProcessing method")
+	}
+
+	mmSetProcessing.mock.funcSetProcessing = f
+	mmSetProcessing.mock.funcSetProcessingOrigin = minimock.CallerInfo(1)
+	return mmSetProcessing.mock
+}
+
+// When sets expectation for the OutboxRepository.SetProcessing which will trigger the result defined by the following
+// Then helper
+func (mmSetProcessing *mOutboxRepositoryMockSetProcessing) When(ctx context.Context, limit int, retryDelay time.Duration) *OutboxRepositoryMockSetProcessingExpectation {
+	if mmSetProcessing.mock.funcSetProcessing != nil {
+		mmSetProcessing.mock.t.Fatalf("OutboxRepositoryMock.SetProcessing mock is already set by Set")
+	}
+
+	expectation := &OutboxRepositoryMockSetProcessingExpectation{
+		mock:               mmSetProcessing.mock,
+		params:             &OutboxRepositoryMockSetProcessingParams{ctx, limit, retryDelay},
+		expectationOrigins: OutboxRepositoryMockSetProcessingExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmSetProcessing.expectations = append(mmSetProcessing.expectations, expectation)
+	return expectation
+}
+
+// Then sets up OutboxRepository.SetProcessing return parameters for the expectation previously defined by the When method
+func (e *OutboxRepositoryMockSetProcessingExpectation) Then(err error) *OutboxRepositoryMock {
+	e.results = &OutboxRepositoryMockSetProcessingResults{err}
+	return e.mock
+}
+
+// Times sets number of times OutboxRepository.SetProcessing should be invoked
+func (mmSetProcessing *mOutboxRepositoryMockSetProcessing) Times(n uint64) *mOutboxRepositoryMockSetProcessing {
+	if n == 0 {
+		mmSetProcessing.mock.t.Fatalf("Times of OutboxRepositoryMock.SetProcessing mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmSetProcessing.expectedInvocations, n)
+	mmSetProcessing.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmSetProcessing
+}
+
+func (mmSetProcessing *mOutboxRepositoryMockSetProcessing) invocationsDone() bool {
+	if len(mmSetProcessing.expectations) == 0 && mmSetProcessing.defaultExpectation == nil && mmSetProcessing.mock.funcSetProcessing == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmSetProcessing.mock.afterSetProcessingCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmSetProcessing.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// SetProcessing implements mm_repositories.OutboxRepository
+func (mmSetProcessing *OutboxRepositoryMock) SetProcessing(ctx context.Context, limit int, retryDelay time.Duration) (err error) {
+	mm_atomic.AddUint64(&mmSetProcessing.beforeSetProcessingCounter, 1)
+	defer mm_atomic.AddUint64(&mmSetProcessing.afterSetProcessingCounter, 1)
+
+	mmSetProcessing.t.Helper()
+
+	if mmSetProcessing.inspectFuncSetProcessing != nil {
+		mmSetProcessing.inspectFuncSetProcessing(ctx, limit, retryDelay)
+	}
+
+	mm_params := OutboxRepositoryMockSetProcessingParams{ctx, limit, retryDelay}
+
+	// Record call args
+	mmSetProcessing.SetProcessingMock.mutex.Lock()
+	mmSetProcessing.SetProcessingMock.callArgs = append(mmSetProcessing.SetProcessingMock.callArgs, &mm_params)
+	mmSetProcessing.SetProcessingMock.mutex.Unlock()
+
+	for _, e := range mmSetProcessing.SetProcessingMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.err
+		}
+	}
+
+	if mmSetProcessing.SetProcessingMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmSetProcessing.SetProcessingMock.defaultExpectation.Counter, 1)
+		mm_want := mmSetProcessing.SetProcessingMock.defaultExpectation.params
+		mm_want_ptrs := mmSetProcessing.SetProcessingMock.defaultExpectation.paramPtrs
+
+		mm_got := OutboxRepositoryMockSetProcessingParams{ctx, limit, retryDelay}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmSetProcessing.t.Errorf("OutboxRepositoryMock.SetProcessing got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetProcessing.SetProcessingMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.limit != nil && !minimock.Equal(*mm_want_ptrs.limit, mm_got.limit) {
+				mmSetProcessing.t.Errorf("OutboxRepositoryMock.SetProcessing got unexpected parameter limit, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetProcessing.SetProcessingMock.defaultExpectation.expectationOrigins.originLimit, *mm_want_ptrs.limit, mm_got.limit, minimock.Diff(*mm_want_ptrs.limit, mm_got.limit))
+			}
+
+			if mm_want_ptrs.retryDelay != nil && !minimock.Equal(*mm_want_ptrs.retryDelay, mm_got.retryDelay) {
+				mmSetProcessing.t.Errorf("OutboxRepositoryMock.SetProcessing got unexpected parameter retryDelay, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetProcessing.SetProcessingMock.defaultExpectation.expectationOrigins.originRetryDelay, *mm_want_ptrs.retryDelay, mm_got.retryDelay, minimock.Diff(*mm_want_ptrs.retryDelay, mm_got.retryDelay))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmSetProcessing.t.Errorf("OutboxRepositoryMock.SetProcessing got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmSetProcessing.SetProcessingMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmSetProcessing.SetProcessingMock.defaultExpectation.results
+		if mm_results == nil {
+			mmSetProcessing.t.Fatal("No results are set for the OutboxRepositoryMock.SetProcessing")
+		}
+		return (*mm_results).err
+	}
+	if mmSetProcessing.funcSetProcessing != nil {
+		return mmSetProcessing.funcSetProcessing(ctx, limit, retryDelay)
+	}
+	mmSetProcessing.t.Fatalf("Unexpected call to OutboxRepositoryMock.SetProcessing. %v %v %v", ctx, limit, retryDelay)
+	return
+}
+
+// SetProcessingAfterCounter returns a count of finished OutboxRepositoryMock.SetProcessing invocations
+func (mmSetProcessing *OutboxRepositoryMock) SetProcessingAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmSetProcessing.afterSetProcessingCounter)
+}
+
+// SetProcessingBeforeCounter returns a count of OutboxRepositoryMock.SetProcessing invocations
+func (mmSetProcessing *OutboxRepositoryMock) SetProcessingBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmSetProcessing.beforeSetProcessingCounter)
+}
+
+// Calls returns a list of arguments used in each call to OutboxRepositoryMock.SetProcessing.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmSetProcessing *mOutboxRepositoryMockSetProcessing) Calls() []*OutboxRepositoryMockSetProcessingParams {
+	mmSetProcessing.mutex.RLock()
+
+	argCopy := make([]*OutboxRepositoryMockSetProcessingParams, len(mmSetProcessing.callArgs))
+	copy(argCopy, mmSetProcessing.callArgs)
+
+	mmSetProcessing.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockSetProcessingDone returns true if the count of the SetProcessing invocations corresponds
+// the number of defined expectations
+func (m *OutboxRepositoryMock) MinimockSetProcessingDone() bool {
+	if m.SetProcessingMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.SetProcessingMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.SetProcessingMock.invocationsDone()
+}
+
+// MinimockSetProcessingInspect logs each unmet expectation
+func (m *OutboxRepositoryMock) MinimockSetProcessingInspect() {
+	for _, e := range m.SetProcessingMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to OutboxRepositoryMock.SetProcessing at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterSetProcessingCounter := mm_atomic.LoadUint64(&m.afterSetProcessingCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.SetProcessingMock.defaultExpectation != nil && afterSetProcessingCounter < 1 {
+		if m.SetProcessingMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to OutboxRepositoryMock.SetProcessing at\n%s", m.SetProcessingMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to OutboxRepositoryMock.SetProcessing at\n%s with params: %#v", m.SetProcessingMock.defaultExpectation.expectationOrigins.origin, *m.SetProcessingMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcSetProcessing != nil && afterSetProcessingCounter < 1 {
+		m.t.Errorf("Expected call to OutboxRepositoryMock.SetProcessing at\n%s", m.funcSetProcessingOrigin)
+	}
+
+	if !m.SetProcessingMock.invocationsDone() && afterSetProcessingCounter > 0 {
+		m.t.Errorf("Expected %d calls to OutboxRepositoryMock.SetProcessing at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.SetProcessingMock.expectedInvocations), m.SetProcessingMock.expectedInvocationsOrigin, afterSetProcessingCounter)
+	}
+}
+
 type mOutboxRepositoryMockUpdateError struct {
 	optional           bool
 	mock               *OutboxRepositoryMock
@@ -1954,11 +2337,13 @@ func (m *OutboxRepositoryMock) MinimockFinish() {
 		if !m.minimockDone() {
 			m.MinimockCreateInspect()
 
-			m.MinimockMarkAsProcessingInspect()
+			m.MinimockGetProcessingEventsInspect()
 
 			m.MinimockSetCompletedInspect()
 
 			m.MinimockSetFailedInspect()
+
+			m.MinimockSetProcessingInspect()
 
 			m.MinimockUpdateErrorInspect()
 		}
@@ -1985,8 +2370,9 @@ func (m *OutboxRepositoryMock) minimockDone() bool {
 	done := true
 	return done &&
 		m.MinimockCreateDone() &&
-		m.MinimockMarkAsProcessingDone() &&
+		m.MinimockGetProcessingEventsDone() &&
 		m.MinimockSetCompletedDone() &&
 		m.MinimockSetFailedDone() &&
+		m.MinimockSetProcessingDone() &&
 		m.MinimockUpdateErrorDone()
 }

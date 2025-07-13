@@ -15,7 +15,11 @@ func NewNoOpOutboxRepository() *NoOpOutboxRepository {
 	return &NoOpOutboxRepository{}
 }
 
-func (r *NoOpOutboxRepository) MarkAsProcessing(ctx context.Context, limit int, retryDelay time.Duration) ([]models.OutboxEvent, error) {
+func (r *NoOpOutboxRepository) SetProcessing(ctx context.Context, limit int, retryDelay time.Duration) error {
+	return nil
+}
+
+func (r *NoOpOutboxRepository) GetProcessingEvents(ctx context.Context, limit int, retryDelay time.Duration) ([]models.OutboxEvent, error) {
 	return nil, nil
 }
 

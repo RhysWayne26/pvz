@@ -35,20 +35,34 @@ func (r *PGOutboxRepository) Create(ctx context.Context, eventID uint64, payload
 	return nil
 }
 
-func (r *PGOutboxRepository) MarkAsProcessing(ctx context.Context, limit int, retryDelay time.Duration) ([]models.OutboxEvent, error) {
+func (r *PGOutboxRepository) SetProcessing(ctx context.Context, limit int, retryDelay time.Duration) error {
 	rows, err := r.client.QueryCtx(
 		ctx,
 		db.WriteMode,
-		queries.MarkAsProcessingSQL,
+		queries.SetProcessingSQL,
 		int(retryDelay.Seconds()),
 		limit,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("mark as processing: %w", err)
+		return fmt.Errorf("mark as processing: %w", err)
 	}
 	defer rows.Close()
+	return nil
+}
 
-	events := make([]models.OutboxEvent, 0, limit)
+func (r *PGOutboxRepository) GetProcessingEvents(ctx context.Context, limit int, retryDelay time.Duration) ([]models.OutboxEvent, error) {
+	rows, err := r.client.QueryCtx(
+		ctx,
+		db.WriteMode,
+		queries.GetProcessingEventsSQL,
+		int(retryDelay.Seconds()),
+		limit,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get processing events: %w", err)
+	}
+	defer rows.Close()
+	var events []models.OutboxEvent
 	for rows.Next() {
 		var e models.OutboxEvent
 		if err := rows.Scan(
@@ -65,8 +79,8 @@ func (r *PGOutboxRepository) MarkAsProcessing(ctx context.Context, limit int, re
 		}
 		events = append(events, e)
 	}
-	if rows.Err() != nil {
-		return nil, fmt.Errorf("iterate outbox rows: %w", rows.Err())
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate processing events: %w", err)
 	}
 	return events, nil
 }

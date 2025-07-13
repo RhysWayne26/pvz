@@ -10,7 +10,8 @@ import (
 // OutboxRepository defines methods for managing and processing events in the outbox for reliable message delivery.
 type OutboxRepository interface {
 	Create(ctx context.Context, eventID uint64, payload []byte) error
-	MarkAsProcessing(ctx context.Context, limit int, retryDelay time.Duration) ([]models.OutboxEvent, error)
+	SetProcessing(ctx context.Context, limit int, retryDelay time.Duration) error
+	GetProcessingEvents(ctx context.Context, limit int, retryDelay time.Duration) ([]models.OutboxEvent, error)
 	SetCompleted(ctx context.Context, eventID uint64, sentAt time.Time) error
 	SetFailed(ctx context.Context, eventID uint64, errMsg string) error
 	UpdateError(ctx context.Context, eventID uint64, errMsg string) error

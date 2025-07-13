@@ -42,23 +42,18 @@ func NewDefaultOutboxDispatcher(
 	}
 }
 
+// Dispatch initiates the outbox dispatcher, starting acquisition and processing loops until the context is canceled.
 func (w *DefaultOutboxDispatcher) Dispatch(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 	w.cancel = cancel
-
-	ticker := time.NewTicker(w.pollInterval)
-	defer ticker.Stop()
-	defer close(w.done)
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-ticker.C:
-			w.processBatch(ctx)
-		}
-	}
+	go w.acquireLoop(ctx)
+	go w.processLoop(ctx)
+	<-ctx.Done()
+	close(w.done)
+	return ctx.Err()
 }
 
+// Stop gracefully stops the dispatcher by canceling the context and waiting for ongoing processes to finish.
 func (w *DefaultOutboxDispatcher) Stop() {
 	if w.cancel != nil {
 		w.cancel()
@@ -66,20 +61,38 @@ func (w *DefaultOutboxDispatcher) Stop() {
 	}
 }
 
-func (w *DefaultOutboxDispatcher) processBatch(ctx context.Context) {
-	events, err := w.repo.MarkAsProcessing(ctx, w.batchSize, w.retryDelay)
-	if err != nil {
-		slog.Error("failed to mark events as processing", "error", err)
-		return
-	}
-	hasErrors := false
-	for _, ev := range events {
-		if retry := w.dispatchEvent(ctx, ev); retry {
-			hasErrors = true
+func (w *DefaultOutboxDispatcher) acquireLoop(ctx context.Context) {
+	ticker := time.NewTicker(w.pollInterval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			if err := w.repo.SetProcessing(ctx, w.batchSize, w.retryDelay); err != nil {
+				slog.Error("failed to mark events as processing", "error", err)
+			}
 		}
 	}
-	if hasErrors {
-		time.Sleep(w.retryDelay)
+}
+
+func (w *DefaultOutboxDispatcher) processLoop(ctx context.Context) {
+	ticker := time.NewTicker(w.pollInterval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			events, err := w.repo.GetProcessingEvents(ctx, w.batchSize, w.retryDelay)
+			if err != nil {
+				slog.Error("failed to get processing events", "error", err)
+				continue
+			}
+			for _, event := range events {
+				w.dispatchEvent(ctx, event)
+			}
+		}
 	}
 }
 

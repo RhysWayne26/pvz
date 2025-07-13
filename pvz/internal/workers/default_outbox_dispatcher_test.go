@@ -13,6 +13,7 @@ import (
 )
 
 func TestNewDefaultOutboxDispatcher(t *testing.T) {
+	t.Parallel()
 	mockRepo := repmocks.NewOutboxRepositoryMock(t)
 	mockProducer := brockermocks.NewKafkaProducerMock(t)
 	dispatcher := NewDefaultOutboxDispatcher(
@@ -32,6 +33,7 @@ func TestNewDefaultOutboxDispatcher(t *testing.T) {
 }
 
 func TestDispatchEvent_Success(t *testing.T) {
+	t.Parallel()
 	mockRepo := repmocks.NewOutboxRepositoryMock(t)
 	mockProducer := brockermocks.NewKafkaProducerMock(t)
 	dispatcher := NewDefaultOutboxDispatcher(
@@ -54,6 +56,7 @@ func TestDispatchEvent_Success(t *testing.T) {
 }
 
 func TestDispatchEvent_KafkaFailure_RetryableError(t *testing.T) {
+	t.Parallel()
 	mockRepo := repmocks.NewOutboxRepositoryMock(t)
 	mockProducer := brockermocks.NewKafkaProducerMock(t)
 	dispatcher := NewDefaultOutboxDispatcher(
@@ -77,6 +80,7 @@ func TestDispatchEvent_KafkaFailure_RetryableError(t *testing.T) {
 }
 
 func TestDispatchEvent_KafkaFailure_MaxAttemptsReached(t *testing.T) {
+	t.Parallel()
 	mockRepo := repmocks.NewOutboxRepositoryMock(t)
 	mockProducer := brockermocks.NewKafkaProducerMock(t)
 	dispatcher := NewDefaultOutboxDispatcher(
@@ -100,6 +104,7 @@ func TestDispatchEvent_KafkaFailure_MaxAttemptsReached(t *testing.T) {
 }
 
 func TestDispatchEvent_SetCompletedFails(t *testing.T) {
+	t.Parallel()
 	mockRepo := repmocks.NewOutboxRepositoryMock(t)
 	mockProducer := brockermocks.NewKafkaProducerMock(t)
 	dispatcher := NewDefaultOutboxDispatcher(
@@ -122,70 +127,8 @@ func TestDispatchEvent_SetCompletedFails(t *testing.T) {
 	assert.False(t, retry)
 }
 
-func TestProcessBatch_Success(t *testing.T) {
-	mockRepo := repmocks.NewOutboxRepositoryMock(t)
-	mockProducer := brockermocks.NewKafkaProducerMock(t)
-	dispatcher := NewDefaultOutboxDispatcher(
-		mockRepo,
-		mockProducer,
-		"test-topic",
-		10,
-		time.Second,
-		time.Minute,
-	)
-	events := []models.OutboxEvent{
-		{EventID: 1, Payload: "payload1", Attempts: 1},
-		{EventID: 2, Payload: "payload2", Attempts: 1},
-	}
-	mockRepo.MarkAsProcessingMock.Return(events, nil)
-	mockProducer.SendMock.Return(nil)
-	mockRepo.SetCompletedMock.Return(nil)
-	dispatcher.processBatch(context.Background())
-}
-
-func TestProcessBatch_MarkAsProcessingFails(t *testing.T) {
-	mockRepo := repmocks.NewOutboxRepositoryMock(t)
-	mockProducer := brockermocks.NewKafkaProducerMock(t)
-	dispatcher := NewDefaultOutboxDispatcher(
-		mockRepo,
-		mockProducer,
-		"test-topic",
-		10,
-		time.Second,
-		time.Minute,
-	)
-	mockRepo.MarkAsProcessingMock.Return([]models.OutboxEvent{}, errors.New("db error"))
-	dispatcher.processBatch(context.Background())
-}
-
-func TestProcessBatch_WithErrors(t *testing.T) {
-	mockRepo := repmocks.NewOutboxRepositoryMock(t)
-	mockProducer := brockermocks.NewKafkaProducerMock(t)
-	dispatcher := NewDefaultOutboxDispatcher(
-		mockRepo,
-		mockProducer,
-		"test-topic",
-		10,
-		time.Millisecond*10,
-		time.Minute,
-	)
-
-	events := []models.OutboxEvent{
-		{EventID: 1, Payload: "payload1", Attempts: 1},
-		{EventID: 2, Payload: "payload2", Attempts: 1},
-	}
-	mockRepo.MarkAsProcessingMock.Return(events, nil)
-	mockProducer.SendMock.When(context.Background(), "test-topic", []byte("payload1")).Then(nil)
-	mockProducer.SendMock.When(context.Background(), "test-topic", []byte("payload2")).Then(errors.New("kafka error"))
-	mockRepo.SetCompletedMock.Return(nil)
-	mockRepo.UpdateErrorMock.Return(nil)
-	start := time.Now()
-	dispatcher.processBatch(context.Background())
-	duration := time.Since(start)
-	assert.True(t, duration >= time.Millisecond*10)
-}
-
 func TestStop(t *testing.T) {
+	t.Parallel()
 	mockRepo := repmocks.NewOutboxRepositoryMock(t)
 	mockProducer := brockermocks.NewKafkaProducerMock(t)
 	dispatcher := NewDefaultOutboxDispatcher(
@@ -215,6 +158,7 @@ func TestStop(t *testing.T) {
 }
 
 func TestDispatch_ContextCanceled(t *testing.T) {
+	t.Parallel()
 	mockRepo := repmocks.NewOutboxRepositoryMock(t)
 	mockProducer := brockermocks.NewKafkaProducerMock(t)
 	dispatcher := NewDefaultOutboxDispatcher(
