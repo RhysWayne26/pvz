@@ -3,6 +3,7 @@ package brokers
 import (
 	"context"
 	"github.com/IBM/sarama"
+	"log/slog"
 	"sync"
 )
 
@@ -26,7 +27,9 @@ func NewKafkaAsyncProducer(brokers []string) (*KafkaAsyncProducer, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &KafkaAsyncProducer{prod: p}, nil
+	producer := &KafkaAsyncProducer{prod: p}
+	producer.startEventLoop()
+	return producer, nil
 }
 
 // Send publishes a message to the specified Kafka topic asynchronously, handling context cancellation if applicable.
@@ -62,4 +65,17 @@ func (p *KafkaAsyncProducer) Close() error {
 		p.closeErr = p.prod.Close()
 	})
 	return p.closeErr
+}
+
+func (p *KafkaAsyncProducer) startEventLoop() {
+	go func() {
+		for msg := range p.prod.Successes() {
+			slog.Info("message published", "topic", msg.Topic, "partition", msg.Partition, "offset", msg.Offset)
+		}
+	}()
+	go func() {
+		for err := range p.prod.Errors() {
+			slog.Error("message failed to publish", "topic", err.Msg.Topic, "partition", err.Msg.Partition, "offset", err.Msg.Offset, "err", err.Err)
+		}
+	}()
 }
