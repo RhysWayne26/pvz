@@ -86,7 +86,7 @@ func TestDefaultOrderService_AcceptOrder_Success(t *testing.T) {
 		require.Equal(t, float32(125.0), order.Price)
 		return nil
 	})
-	deps.outboxRepo.CreateMock.Set(func(ctx context.Context, eventID uint64, payload []byte) error {
+	deps.outboxRepo.CreateMock.Set(func(ctx context.Context, eventID uint64, orderID uint64, payload []byte) error {
 		require.Greater(t, len(payload), 0)
 		require.Contains(t, string(payload), "order_accepted")
 		return nil
@@ -171,7 +171,7 @@ func TestDefaultOrderService_IssueOrders_Success(t *testing.T) {
 		return nil
 	})
 	outboxCallCount := 0
-	deps.outboxRepo.CreateMock.Set(func(ctx context.Context, eventID uint64, payload []byte) error {
+	deps.outboxRepo.CreateMock.Set(func(ctx context.Context, eventID uint64, orderID uint64, payload []byte) error {
 		outboxCallCount++
 		require.Greater(t, len(payload), 0)
 		require.Contains(t, string(payload), "order_issued")
@@ -258,7 +258,7 @@ func TestDefaultOrderService_IssueOrders_FailureCases(t *testing.T) {
 					return tc.saveErr
 				})
 				if tc.saveErr == nil {
-					deps.outboxRepo.CreateMock.Set(func(ctx context.Context, eventID uint64, payload []byte) error {
+					deps.outboxRepo.CreateMock.Set(func(ctx context.Context, eventID uint64, orderID uint64, payload []byte) error {
 						return nil
 					})
 					deps.history.RecordMock.Set(func(ctx context.Context, entry models.HistoryEntry) error {
@@ -315,7 +315,7 @@ func TestDefaultOrderService_CreateClientReturns_Success(t *testing.T) {
 		return nil
 	})
 	outboxCallCount := 0
-	deps.outboxRepo.CreateMock.Set(func(ctx context.Context, eventID uint64, payload []byte) error {
+	deps.outboxRepo.CreateMock.Set(func(ctx context.Context, eventID uint64, orderID uint64, payload []byte) error {
 		outboxCallCount++
 		require.Greater(t, len(payload), 0)
 		require.Contains(t, string(payload), "order_returned_by_client")
@@ -401,7 +401,7 @@ func TestDefaultOrderService_CreateClientReturns_FailureCases(t *testing.T) {
 					return tc.saveErr
 				})
 				if tc.saveErr == nil {
-					deps.outboxRepo.CreateMock.Set(func(ctx context.Context, eventID uint64, payload []byte) error {
+					deps.outboxRepo.CreateMock.Set(func(ctx context.Context, eventID uint64, orderID uint64, payload []byte) error {
 						return nil
 					})
 					deps.history.RecordMock.Set(func(ctx context.Context, entry models.HistoryEntry) error {
@@ -452,7 +452,7 @@ func TestDefaultOrderService_ReturnToCourier_Success(t *testing.T) {
 		return nil
 	})
 	outboxCallCount := 0
-	deps.outboxRepo.CreateMock.Set(func(ctx context.Context, eventID uint64, payload []byte) error {
+	deps.outboxRepo.CreateMock.Set(func(ctx context.Context, eventID uint64, orderID uint64, payload []byte) error {
 		outboxCallCount++
 		require.Greater(t, len(payload), 0)
 		require.Contains(t, string(payload), "order_returned_to_courier")
@@ -523,7 +523,7 @@ func TestDefaultOrderService_ReturnToCourier_Failures(t *testing.T) {
 				deps.repo.DeleteMock.Set(func(ctx context.Context, orderID uint64) error {
 					return nil
 				})
-				deps.outboxRepo.CreateMock.Set(func(ctx context.Context, eventID uint64, payload []byte) error {
+				deps.outboxRepo.CreateMock.Set(func(ctx context.Context, eventID uint64, orderID uint64, payload []byte) error {
 					return nil
 				})
 				deps.history.RecordMock.Set(func(ctx context.Context, entry models.HistoryEntry) error {
@@ -811,7 +811,7 @@ func mockAcceptFailureOutbox(deps orderSvcDeps, req requests.AcceptOrderRequest,
 	deps.repo.SaveMock.Set(func(ctx context.Context, order models.Order) error {
 		return nil
 	})
-	deps.outboxRepo.CreateMock.Set(func(ctx context.Context, eventID uint64, payload []byte) error {
+	deps.outboxRepo.CreateMock.Set(func(ctx context.Context, eventID uint64, orderID uint64, payload []byte) error {
 		return mockErr
 	})
 }
@@ -830,7 +830,7 @@ func mockAcceptFailureRecord(deps orderSvcDeps, req requests.AcceptOrderRequest,
 	deps.repo.SaveMock.Set(func(ctx context.Context, order models.Order) error {
 		return nil
 	})
-	deps.outboxRepo.CreateMock.Set(func(ctx context.Context, eventID uint64, payload []byte) error {
+	deps.outboxRepo.CreateMock.Set(func(ctx context.Context, eventID uint64, orderID uint64, payload []byte) error {
 		return nil
 	})
 	deps.history.RecordMock.Set(func(ctx context.Context, entry models.HistoryEntry) error {

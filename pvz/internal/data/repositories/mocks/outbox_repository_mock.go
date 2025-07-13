@@ -18,9 +18,9 @@ type OutboxRepositoryMock struct {
 	t          minimock.Tester
 	finishOnce sync.Once
 
-	funcCreate          func(ctx context.Context, eventID uint64, payload []byte) (err error)
+	funcCreate          func(ctx context.Context, eventID uint64, orderID uint64, payload []byte) (err error)
 	funcCreateOrigin    string
-	inspectFuncCreate   func(ctx context.Context, eventID uint64, payload []byte)
+	inspectFuncCreate   func(ctx context.Context, eventID uint64, orderID uint64, payload []byte)
 	afterCreateCounter  uint64
 	beforeCreateCounter uint64
 	CreateMock          mOutboxRepositoryMockCreate
@@ -120,6 +120,7 @@ type OutboxRepositoryMockCreateExpectation struct {
 type OutboxRepositoryMockCreateParams struct {
 	ctx     context.Context
 	eventID uint64
+	orderID uint64
 	payload []byte
 }
 
@@ -127,6 +128,7 @@ type OutboxRepositoryMockCreateParams struct {
 type OutboxRepositoryMockCreateParamPtrs struct {
 	ctx     *context.Context
 	eventID *uint64
+	orderID *uint64
 	payload *[]byte
 }
 
@@ -140,6 +142,7 @@ type OutboxRepositoryMockCreateExpectationOrigins struct {
 	origin        string
 	originCtx     string
 	originEventID string
+	originOrderID string
 	originPayload string
 }
 
@@ -154,7 +157,7 @@ func (mmCreate *mOutboxRepositoryMockCreate) Optional() *mOutboxRepositoryMockCr
 }
 
 // Expect sets up expected params for OutboxRepository.Create
-func (mmCreate *mOutboxRepositoryMockCreate) Expect(ctx context.Context, eventID uint64, payload []byte) *mOutboxRepositoryMockCreate {
+func (mmCreate *mOutboxRepositoryMockCreate) Expect(ctx context.Context, eventID uint64, orderID uint64, payload []byte) *mOutboxRepositoryMockCreate {
 	if mmCreate.mock.funcCreate != nil {
 		mmCreate.mock.t.Fatalf("OutboxRepositoryMock.Create mock is already set by Set")
 	}
@@ -167,7 +170,7 @@ func (mmCreate *mOutboxRepositoryMockCreate) Expect(ctx context.Context, eventID
 		mmCreate.mock.t.Fatalf("OutboxRepositoryMock.Create mock is already set by ExpectParams functions")
 	}
 
-	mmCreate.defaultExpectation.params = &OutboxRepositoryMockCreateParams{ctx, eventID, payload}
+	mmCreate.defaultExpectation.params = &OutboxRepositoryMockCreateParams{ctx, eventID, orderID, payload}
 	mmCreate.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
 	for _, e := range mmCreate.expectations {
 		if minimock.Equal(e.params, mmCreate.defaultExpectation.params) {
@@ -224,8 +227,31 @@ func (mmCreate *mOutboxRepositoryMockCreate) ExpectEventIDParam2(eventID uint64)
 	return mmCreate
 }
 
-// ExpectPayloadParam3 sets up expected param payload for OutboxRepository.Create
-func (mmCreate *mOutboxRepositoryMockCreate) ExpectPayloadParam3(payload []byte) *mOutboxRepositoryMockCreate {
+// ExpectOrderIDParam3 sets up expected param orderID for OutboxRepository.Create
+func (mmCreate *mOutboxRepositoryMockCreate) ExpectOrderIDParam3(orderID uint64) *mOutboxRepositoryMockCreate {
+	if mmCreate.mock.funcCreate != nil {
+		mmCreate.mock.t.Fatalf("OutboxRepositoryMock.Create mock is already set by Set")
+	}
+
+	if mmCreate.defaultExpectation == nil {
+		mmCreate.defaultExpectation = &OutboxRepositoryMockCreateExpectation{}
+	}
+
+	if mmCreate.defaultExpectation.params != nil {
+		mmCreate.mock.t.Fatalf("OutboxRepositoryMock.Create mock is already set by Expect")
+	}
+
+	if mmCreate.defaultExpectation.paramPtrs == nil {
+		mmCreate.defaultExpectation.paramPtrs = &OutboxRepositoryMockCreateParamPtrs{}
+	}
+	mmCreate.defaultExpectation.paramPtrs.orderID = &orderID
+	mmCreate.defaultExpectation.expectationOrigins.originOrderID = minimock.CallerInfo(1)
+
+	return mmCreate
+}
+
+// ExpectPayloadParam4 sets up expected param payload for OutboxRepository.Create
+func (mmCreate *mOutboxRepositoryMockCreate) ExpectPayloadParam4(payload []byte) *mOutboxRepositoryMockCreate {
 	if mmCreate.mock.funcCreate != nil {
 		mmCreate.mock.t.Fatalf("OutboxRepositoryMock.Create mock is already set by Set")
 	}
@@ -248,7 +274,7 @@ func (mmCreate *mOutboxRepositoryMockCreate) ExpectPayloadParam3(payload []byte)
 }
 
 // Inspect accepts an inspector function that has same arguments as the OutboxRepository.Create
-func (mmCreate *mOutboxRepositoryMockCreate) Inspect(f func(ctx context.Context, eventID uint64, payload []byte)) *mOutboxRepositoryMockCreate {
+func (mmCreate *mOutboxRepositoryMockCreate) Inspect(f func(ctx context.Context, eventID uint64, orderID uint64, payload []byte)) *mOutboxRepositoryMockCreate {
 	if mmCreate.mock.inspectFuncCreate != nil {
 		mmCreate.mock.t.Fatalf("Inspect function is already set for OutboxRepositoryMock.Create")
 	}
@@ -273,7 +299,7 @@ func (mmCreate *mOutboxRepositoryMockCreate) Return(err error) *OutboxRepository
 }
 
 // Set uses given function f to mock the OutboxRepository.Create method
-func (mmCreate *mOutboxRepositoryMockCreate) Set(f func(ctx context.Context, eventID uint64, payload []byte) (err error)) *OutboxRepositoryMock {
+func (mmCreate *mOutboxRepositoryMockCreate) Set(f func(ctx context.Context, eventID uint64, orderID uint64, payload []byte) (err error)) *OutboxRepositoryMock {
 	if mmCreate.defaultExpectation != nil {
 		mmCreate.mock.t.Fatalf("Default expectation is already set for the OutboxRepository.Create method")
 	}
@@ -289,14 +315,14 @@ func (mmCreate *mOutboxRepositoryMockCreate) Set(f func(ctx context.Context, eve
 
 // When sets expectation for the OutboxRepository.Create which will trigger the result defined by the following
 // Then helper
-func (mmCreate *mOutboxRepositoryMockCreate) When(ctx context.Context, eventID uint64, payload []byte) *OutboxRepositoryMockCreateExpectation {
+func (mmCreate *mOutboxRepositoryMockCreate) When(ctx context.Context, eventID uint64, orderID uint64, payload []byte) *OutboxRepositoryMockCreateExpectation {
 	if mmCreate.mock.funcCreate != nil {
 		mmCreate.mock.t.Fatalf("OutboxRepositoryMock.Create mock is already set by Set")
 	}
 
 	expectation := &OutboxRepositoryMockCreateExpectation{
 		mock:               mmCreate.mock,
-		params:             &OutboxRepositoryMockCreateParams{ctx, eventID, payload},
+		params:             &OutboxRepositoryMockCreateParams{ctx, eventID, orderID, payload},
 		expectationOrigins: OutboxRepositoryMockCreateExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
 	mmCreate.expectations = append(mmCreate.expectations, expectation)
@@ -331,17 +357,17 @@ func (mmCreate *mOutboxRepositoryMockCreate) invocationsDone() bool {
 }
 
 // Create implements mm_repositories.OutboxRepository
-func (mmCreate *OutboxRepositoryMock) Create(ctx context.Context, eventID uint64, payload []byte) (err error) {
+func (mmCreate *OutboxRepositoryMock) Create(ctx context.Context, eventID uint64, orderID uint64, payload []byte) (err error) {
 	mm_atomic.AddUint64(&mmCreate.beforeCreateCounter, 1)
 	defer mm_atomic.AddUint64(&mmCreate.afterCreateCounter, 1)
 
 	mmCreate.t.Helper()
 
 	if mmCreate.inspectFuncCreate != nil {
-		mmCreate.inspectFuncCreate(ctx, eventID, payload)
+		mmCreate.inspectFuncCreate(ctx, eventID, orderID, payload)
 	}
 
-	mm_params := OutboxRepositoryMockCreateParams{ctx, eventID, payload}
+	mm_params := OutboxRepositoryMockCreateParams{ctx, eventID, orderID, payload}
 
 	// Record call args
 	mmCreate.CreateMock.mutex.Lock()
@@ -360,7 +386,7 @@ func (mmCreate *OutboxRepositoryMock) Create(ctx context.Context, eventID uint64
 		mm_want := mmCreate.CreateMock.defaultExpectation.params
 		mm_want_ptrs := mmCreate.CreateMock.defaultExpectation.paramPtrs
 
-		mm_got := OutboxRepositoryMockCreateParams{ctx, eventID, payload}
+		mm_got := OutboxRepositoryMockCreateParams{ctx, eventID, orderID, payload}
 
 		if mm_want_ptrs != nil {
 
@@ -372,6 +398,11 @@ func (mmCreate *OutboxRepositoryMock) Create(ctx context.Context, eventID uint64
 			if mm_want_ptrs.eventID != nil && !minimock.Equal(*mm_want_ptrs.eventID, mm_got.eventID) {
 				mmCreate.t.Errorf("OutboxRepositoryMock.Create got unexpected parameter eventID, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
 					mmCreate.CreateMock.defaultExpectation.expectationOrigins.originEventID, *mm_want_ptrs.eventID, mm_got.eventID, minimock.Diff(*mm_want_ptrs.eventID, mm_got.eventID))
+			}
+
+			if mm_want_ptrs.orderID != nil && !minimock.Equal(*mm_want_ptrs.orderID, mm_got.orderID) {
+				mmCreate.t.Errorf("OutboxRepositoryMock.Create got unexpected parameter orderID, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmCreate.CreateMock.defaultExpectation.expectationOrigins.originOrderID, *mm_want_ptrs.orderID, mm_got.orderID, minimock.Diff(*mm_want_ptrs.orderID, mm_got.orderID))
 			}
 
 			if mm_want_ptrs.payload != nil && !minimock.Equal(*mm_want_ptrs.payload, mm_got.payload) {
@@ -391,9 +422,9 @@ func (mmCreate *OutboxRepositoryMock) Create(ctx context.Context, eventID uint64
 		return (*mm_results).err
 	}
 	if mmCreate.funcCreate != nil {
-		return mmCreate.funcCreate(ctx, eventID, payload)
+		return mmCreate.funcCreate(ctx, eventID, orderID, payload)
 	}
-	mmCreate.t.Fatalf("Unexpected call to OutboxRepositoryMock.Create. %v %v %v", ctx, eventID, payload)
+	mmCreate.t.Fatalf("Unexpected call to OutboxRepositoryMock.Create. %v %v %v %v", ctx, eventID, orderID, payload)
 	return
 }
 

@@ -7,6 +7,7 @@ import (
 	"pvz-cli/internal/common/constants"
 	"pvz-cli/internal/data/repositories"
 	"pvz-cli/internal/models"
+	"strconv"
 	"time"
 )
 
@@ -98,7 +99,8 @@ func (w *DefaultOutboxDispatcher) processLoop(ctx context.Context) {
 }
 
 func (w *DefaultOutboxDispatcher) dispatchEvent(ctx context.Context, ev models.OutboxEvent) (retry bool) {
-	if err := w.producer.Send(ctx, w.topic, []byte(ev.Payload)); err != nil {
+	key := []byte(strconv.FormatUint(ev.OrderID, 10))
+	if err := w.producer.SendWithKey(ctx, w.topic, key, []byte(ev.Payload)); err != nil {
 		if ev.Attempts >= constants.EventSendingMaxAttempts {
 			_ = w.repo.SetFailed(ctx, ev.EventID, ErrNoAttemptsLeft)
 		} else {

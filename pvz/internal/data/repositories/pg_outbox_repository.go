@@ -21,12 +21,13 @@ func NewPGOutboxRepository(client db.PGXClient) *PGOutboxRepository {
 	}
 }
 
-func (r *PGOutboxRepository) Create(ctx context.Context, eventID uint64, payload []byte) error {
+func (r *PGOutboxRepository) Create(ctx context.Context, eventID uint64, orderID uint64, payload []byte) error {
 	_, err := r.client.ExecCtx(
 		ctx,
 		db.WriteMode,
 		queries.CreateOutboxEventSQL,
 		eventID,
+		orderID,
 		payload,
 	)
 	if err != nil {
@@ -67,6 +68,7 @@ func (r *PGOutboxRepository) GetProcessingEvents(ctx context.Context, limit int,
 		var e models.OutboxEvent
 		if err := rows.Scan(
 			&e.EventID,
+			&e.OrderID,
 			&e.Payload,
 			&e.Status,
 			&e.Error,

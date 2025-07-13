@@ -49,7 +49,7 @@ func TestDispatchEvent_Success(t *testing.T) {
 		Payload:  "test-payload",
 		Attempts: 1,
 	}
-	mockProducer.SendMock.Return(nil)
+	mockProducer.SendWithKeyMock.Return(nil)
 	mockRepo.SetCompletedMock.Return(nil)
 	retry := dispatcher.dispatchEvent(context.Background(), event)
 	assert.False(t, retry)
@@ -73,7 +73,7 @@ func TestDispatchEvent_KafkaFailure_RetryableError(t *testing.T) {
 		Attempts: 1,
 	}
 	kafkaErr := errors.New("kafka connection failed")
-	mockProducer.SendMock.Return(kafkaErr)
+	mockProducer.SendWithKeyMock.Return(kafkaErr)
 	mockRepo.UpdateErrorMock.Return(nil)
 	retry := dispatcher.dispatchEvent(context.Background(), event)
 	assert.True(t, retry)
@@ -97,7 +97,7 @@ func TestDispatchEvent_KafkaFailure_MaxAttemptsReached(t *testing.T) {
 		Attempts: 3,
 	}
 	kafkaErr := errors.New("kafka connection failed")
-	mockProducer.SendMock.Return(kafkaErr)
+	mockProducer.SendWithKeyMock.Return(kafkaErr)
 	mockRepo.SetFailedMock.Return(nil)
 	retry := dispatcher.dispatchEvent(context.Background(), event)
 	assert.True(t, retry)
@@ -121,7 +121,7 @@ func TestDispatchEvent_SetCompletedFails(t *testing.T) {
 		Payload:  "test-payload",
 		Attempts: 1,
 	}
-	mockProducer.SendMock.Return(nil)
+	mockProducer.SendWithKeyMock.Return(nil)
 	mockRepo.SetCompletedMock.Return(errors.New("db error"))
 	retry := dispatcher.dispatchEvent(context.Background(), event)
 	assert.False(t, retry)
@@ -210,13 +210,13 @@ func TestProcessLoop_DispatchesEvents(t *testing.T) {
 	mockRepo.GetProcessingEventsMock.Return([]models.OutboxEvent{
 		{EventID: 1, Payload: "test", Attempts: 1},
 	}, nil)
-	mockProducer.SendMock.Return(nil)
+	mockProducer.SendWithKeyMock.Return(nil)
 	mockRepo.SetCompletedMock.Return(nil)
 	ctx, cancel := context.WithCancel(context.Background())
 	go dispatcher.processLoop(ctx)
 	time.Sleep(time.Millisecond * 50)
 	cancel()
-	assert.GreaterOrEqual(t, len(mockProducer.SendMock.Calls()), 1)
+	assert.GreaterOrEqual(t, len(mockProducer.SendWithKeyMock.Calls()), 1)
 }
 
 func TestProcessLoop_GetProcessingEventsFails(t *testing.T) {

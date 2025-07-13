@@ -38,6 +38,7 @@ func (s OutboxStatus) String() string {
 // OutboxEvent represents an event stored in the outbox table for eventual processing and delivery.
 type OutboxEvent struct {
 	EventID       uint64       `db:"id"`
+	OrderID       uint64       `db:"order_id"`
 	Payload       string       `db:"payload"`
 	Status        OutboxStatus `db:"status"`
 	Error         string       `db:"error"`

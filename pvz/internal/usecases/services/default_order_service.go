@@ -123,7 +123,7 @@ func (s *DefaultOrderService) AcceptOrder(ctx context.Context, req requests.Acce
 		if err := s.orderRepo.Save(txCtx, order); err != nil {
 			return apperrors.Newf(apperrors.InternalError, "failed to save order %d: %v", req.OrderID, err)
 		}
-		if err := s.outboxRepo.Create(txCtx, eventID, payloadBytes); err != nil {
+		if err := s.outboxRepo.Create(txCtx, eventID, order.OrderID, payloadBytes); err != nil {
 			return apperrors.Newf(apperrors.InternalError, "failed to enqueue outbox event: %v", err)
 		}
 		if err := s.historySvc.Record(txCtx, entry); err != nil {
@@ -205,7 +205,7 @@ func (s *DefaultOrderService) IssueOrders(
 				if err := s.orderRepo.Save(txCtx, order); err != nil {
 					return apperrors.Newf(apperrors.InternalError, "failed to save order %d: %v", id, err)
 				}
-				if err := s.outboxRepo.Create(txCtx, eventID, payloadBytes); err != nil {
+				if err := s.outboxRepo.Create(txCtx, eventID, id, payloadBytes); err != nil {
 					return apperrors.Newf(apperrors.InternalError, "failed to enqueue issue-event for order %d: %v", id, err)
 				}
 				if err := s.historySvc.Record(txCtx, entry); err != nil {
@@ -319,7 +319,7 @@ func (s *DefaultOrderService) CreateClientReturns(
 				if err := s.orderRepo.Save(txCtx, order); err != nil {
 					return apperrors.Newf(apperrors.InternalError, "failed to save returned order %d: %v", id, err)
 				}
-				if err := s.outboxRepo.Create(txCtx, eventID, payloadBytes); err != nil {
+				if err := s.outboxRepo.Create(txCtx, eventID, id, payloadBytes); err != nil {
 					return apperrors.Newf(apperrors.InternalError, "failed to enqueue return-event for order %d: %v", id, err)
 				}
 				if err := s.historySvc.Record(txCtx, entry); err != nil {
@@ -387,7 +387,7 @@ func (s *DefaultOrderService) ReturnToCourier(ctx context.Context, req requests.
 		if err := s.orderRepo.Delete(txCtx, orderID); err != nil {
 			return apperrors.Newf(apperrors.InternalError, "failed to delete order %d: %v", orderID, err)
 		}
-		if err := s.outboxRepo.Create(txCtx, eventID, payloadBytes); err != nil {
+		if err := s.outboxRepo.Create(txCtx, eventID, orderID, payloadBytes); err != nil {
 			return apperrors.Newf(apperrors.InternalError, "failed to enqueue return-event: %v", err)
 		}
 		if err := s.historySvc.Record(txCtx, entry); err != nil {

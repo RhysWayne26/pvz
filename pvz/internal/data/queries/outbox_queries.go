@@ -3,7 +3,7 @@ package queries
 const (
 	// CreateOutboxEventSQL is an SQL query string that inserts a payload into the `outbox` table.
 	CreateOutboxEventSQL = `
-insert into outbox (id,payload) values ($1, $2)
+insert into outbox (id, order_id, payload) values ($1, $2, $3)
 `
 
 	// SetProcessingSQL marks a limited number of CREATED events as PROCESSING
@@ -27,7 +27,7 @@ where o.id = tu.id;
 
 	// GetProcessingEventsSQL retrieves events with status PROCESSING that are ready for processing, considering retry delay and concurrency.
 	GetProcessingEventsSQL = `
-select id, payload, status, error, created_at, sent_at, attempts, last_attempt_at
+select id, order_id, payload, status, error, created_at, sent_at, attempts, last_attempt_at
 from outbox
 where status = 2
   and (last_attempt_at is null or last_attempt_at + ($1 * interval '1 second') <= now())
