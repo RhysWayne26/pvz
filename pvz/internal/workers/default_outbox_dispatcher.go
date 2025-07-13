@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"pvz-cli/infrastructure/brokers"
+	"pvz-cli/internal/common/constants"
 	"pvz-cli/internal/data/repositories"
 	"pvz-cli/internal/models"
 	"time"
@@ -98,7 +99,7 @@ func (w *DefaultOutboxDispatcher) processLoop(ctx context.Context) {
 
 func (w *DefaultOutboxDispatcher) dispatchEvent(ctx context.Context, ev models.OutboxEvent) (retry bool) {
 	if err := w.producer.Send(ctx, w.topic, []byte(ev.Payload)); err != nil {
-		if ev.Attempts >= 3 {
+		if ev.Attempts >= constants.EventSendingMaxAttempts {
 			_ = w.repo.SetFailed(ctx, ev.EventID, ErrNoAttemptsLeft)
 		} else {
 			_ = w.repo.UpdateError(ctx, ev.EventID, err.Error())

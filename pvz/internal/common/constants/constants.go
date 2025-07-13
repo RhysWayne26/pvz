@@ -35,4 +35,6 @@ const (
 	DefaultFileStoragePath = "./storage.json"
 	DefaultPGHost          = "localhost"
 	DefaultPGPort          = "5433"
+
+	EventSendingMaxAttempts = 3
 )
