@@ -113,3 +113,6 @@ proto: proto/generate
 
 .PHONY: dev
 dev: proto build start
+
+up:
+	docker-compose up -d postgres-master postgres-slave kafka kafka-init kafka-ui
