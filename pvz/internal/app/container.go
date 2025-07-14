@@ -36,6 +36,7 @@ func NewContainer(pool workerpool.WorkerPool) *Container {
 		historyRepo repositories.HistoryRepository
 		txRunner    db.TxRunner
 		outboxRepo  repositories.OutboxRepository
+		producer    brokers.KafkaProducer
 	)
 
 	c := &Container{
@@ -53,11 +54,17 @@ func NewContainer(pool workerpool.WorkerPool) *Container {
 		txRunner = client
 		orderRepo = repositories.NewPGOrderRepository(client)
 		historyRepo = repositories.NewPGHistoryRepository(client)
-		outboxRepo = repositories.NewPGOutboxRepository(client)
-		producer, err := brokers.NewKafkaAsyncProducer(cfg.Kafka.Brokers)
-		if err != nil {
-			slog.Error("failed to init Kafka producer", "error", err)
-			os.Exit(1)
+		if cfg.Outbox != nil && cfg.Outbox.BatchSize > 0 {
+			outboxRepo = repositories.NewPGOutboxRepository(client)
+			producer, err = brokers.NewKafkaAsyncProducer(cfg.Kafka.Brokers)
+			if err != nil {
+				slog.Error("failed to init Kafka producer", "error", err)
+				os.Exit(1)
+			}
+		} else {
+			slog.Info("outbox disabled (BatchSize=0), events will be dropped")
+			outboxRepo = repositories.NewNoOpOutboxRepository()
+			producer = brokers.NewKafkaNoOpProducer()
 		}
 		dispatcher := workers.NewDefaultOutboxDispatcher(
 			outboxRepo,

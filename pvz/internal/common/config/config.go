@@ -123,6 +123,12 @@ func loadTestConfig() *Config {
 			WriteDSN: testDSN,
 			ReadDSN:  testDSN,
 		},
+		Kafka: &KafkaConfig{Brokers: []string{"dummy:9092"}, Topic: "dummy"},
+		Outbox: &OutboxConfig{
+			BatchSize:       0,
+			MaxAttempts:     0,
+			RetryDelaySec:   0,
+			PollIntervalSec: 0},
 	}
 }
 
