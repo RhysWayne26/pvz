@@ -3,11 +3,11 @@ package app
 import (
 	"log/slog"
 	"os"
-	"pvz-cli/infrastructure/brokers"
-	"pvz-cli/infrastructure/db"
 	"pvz-cli/internal/common/config"
 	"pvz-cli/internal/data/repositories"
 	"pvz-cli/internal/data/storage"
+	"pvz-cli/internal/infrastructure/brokers"
+	"pvz-cli/internal/infrastructure/db"
 	"pvz-cli/internal/usecases/handlers"
 	"pvz-cli/internal/usecases/services"
 	"pvz-cli/internal/usecases/services/strategies"

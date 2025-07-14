@@ -3,9 +3,9 @@ package main
 import (
 	"context"
 	"log/slog"
-	"notifier/infrastructure/brokers"
 	"notifier/internal/config"
 	"notifier/internal/eventlistener"
+	"notifier/internal/infrastructure/brokers"
 	"os"
 	"os/signal"
 	"syscall"

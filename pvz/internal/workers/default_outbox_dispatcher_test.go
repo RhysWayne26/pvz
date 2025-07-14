@@ -3,11 +3,11 @@ package workers
 import (
 	"context"
 	"errors"
+	brockermocks "pvz-cli/internal/infrastructure/brokers/mocks"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	brockermocks "pvz-cli/infrastructure/brokers/mocks"
 	repmocks "pvz-cli/internal/data/repositories/mocks"
 	"pvz-cli/internal/models"
 )

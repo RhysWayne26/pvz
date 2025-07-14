@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/IBM/sarama"
 	"log/slog"
-	"notifier/infrastructure/brokers"
+	"notifier/internal/infrastructure/brokers"
 )
 
 var _ EventListener = (*DefaultEventListener)(nil)

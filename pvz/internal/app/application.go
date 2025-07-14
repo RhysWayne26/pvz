@@ -196,3 +196,7 @@ func (a *Application) StartOutboxDispatcher() {
 		a.logger.Errorf("outbox dispatcher stopped: %v", err)
 	}
 }
+
+func (a *Application) AddToWaitGroup(n int) {
+	a.wg.Add(n)
+}

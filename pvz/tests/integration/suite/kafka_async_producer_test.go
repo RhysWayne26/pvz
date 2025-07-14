@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	brokersPkg "pvz-cli/internal/infrastructure/brokers"
 	"strings"
 	"sync"
 	"testing"
@@ -16,7 +17,6 @@ import (
 	"github.com/ozontech/allure-go/pkg/framework/provider"
 	"github.com/ozontech/allure-go/pkg/framework/suite"
 	"github.com/stretchr/testify/require"
-	brokersPkg "pvz-cli/infrastructure/brokers"
 )
 
 type KafkaAsyncProducerSuite struct {

@@ -3,8 +3,8 @@ package repositories
 import (
 	"context"
 	"fmt"
-	"pvz-cli/infrastructure/db"
 	"pvz-cli/internal/data/queries"
+	"pvz-cli/internal/infrastructure/db"
 	"pvz-cli/internal/models"
 	"time"
 )

@@ -3,9 +3,9 @@ package workers
 import (
 	"context"
 	"log/slog"
-	"pvz-cli/infrastructure/brokers"
 	"pvz-cli/internal/common/constants"
 	"pvz-cli/internal/data/repositories"
+	"pvz-cli/internal/infrastructure/brokers"
 	"pvz-cli/internal/models"
 	"strconv"
 	"time"
