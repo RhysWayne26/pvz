@@ -32,3 +32,9 @@ type PGXClient interface {
 	Exec(ctx context.Context, query string, args ...interface{}) (pgconn.CommandTag, error)
 	Close() error
 }
+
+// TxRunner provides transaction control for the service layer.
+// Allows services to implement Transactional Outbox without coupling to the full database client interface.
+type TxRunner interface {
+	WithTx(ctx context.Context, fn func(tx pgx.Tx) error) error
+}

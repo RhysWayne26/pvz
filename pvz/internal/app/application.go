@@ -58,14 +58,26 @@ func New(logger *zap.SugaredLogger) *Application {
 }
 
 func (a *Application) Run() {
-	a.wg.Add(5)
 	grpcPort := os.Getenv("GRPC_PORT")
 	adminGRPCPort := os.Getenv("ADMIN_GRPC_PORT")
-	go a.StartGRPCServer(grpcPort)
-	go a.StartHTTPGateway()
-	go a.StartSwaggerUI()
-	go a.StartCLI()
-	go a.StartAdminGRPCServer(adminGRPCPort)
+	services := []func(){
+		func() { a.StartGRPCServer(grpcPort) },
+		func() { a.StartHTTPGateway() },
+		func() { a.StartSwaggerUI() },
+		func() { a.StartCLI() },
+		func() { a.StartAdminGRPCServer(adminGRPCPort) },
+	}
+	if a.container.outboxDispatcher != nil {
+		services = append(services, func() {
+			a.StartOutboxDispatcher()
+		})
+	}
+
+	a.wg.Add(len(services))
+	for _, service := range services {
+		go service()
+	}
+	a.Wait()
 }
 
 func (a *Application) Wait() {
@@ -79,6 +91,7 @@ func (a *Application) Wait() {
 func (a *Application) Shutdown() {
 	log.Println("Shutdown signal received")
 	a.cancel()
+	a.container.shutdownOutbox()
 	defer func() {
 		if err := observability.ShutdownTracing(context.Background()); err != nil {
 			a.logger.Errorf("failed to shutdown tracing: %v", err)
@@ -175,4 +188,15 @@ func (a *Application) StartAdminGRPCServer(port string) {
 	if err != nil && a.ctx.Err() == nil {
 		log.Fatalf("gRPC server error: %v", err)
 	}
+}
+
+func (a *Application) StartOutboxDispatcher() {
+	defer a.wg.Done()
+	if err := a.container.outboxDispatcher.Dispatch(a.ctx); err != nil && !errors.Is(err, context.Canceled) {
+		a.logger.Errorf("outbox dispatcher stopped: %v", err)
+	}
+}
+
+func (a *Application) AddToWaitGroup(n int) {
+	a.wg.Add(n)
 }

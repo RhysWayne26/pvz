@@ -5,13 +5,13 @@ package standalone
 import (
 	"context"
 	"fmt"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"log/slog"
 	"net"
 	"os"
 	"pvz-cli/internal/app"
-	"sync"
 	"testing"
 	"time"
 
@@ -173,15 +173,15 @@ func newE2E(t provider.T) e2eDeps {
 			slog.Warn("Failed to unset TEST_DB_DSN", "error", err)
 		}
 	})
-	application := app.New()
+	logger := zap.NewNop().Sugar()
+	application := app.New(logger)
 	t.Cleanup(func() {
 		application.Shutdown()
 	})
 	port := findFreePort(t)
 	portStr := fmt.Sprintf(":%d", port)
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go app.StartGRPCServer(application, portStr, &wg)
+	application.AddToWaitGroup(1)
+	go application.StartGRPCServer(portStr)
 	time.Sleep(5 * time.Second)
 	conn, err := grpc.Dial(fmt.Sprintf("localhost:%d", port),
 		grpc.WithTransportCredentials(insecure.NewCredentials()))

@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"pvz-cli/internal/common/constants"
+	"strconv"
 	"strings"
 )
 
@@ -26,10 +27,24 @@ type DBConfig struct {
 	ReadDSN  string
 }
 
+type KafkaConfig struct {
+	Brokers []string
+	Topic   string
+}
+
+type OutboxConfig struct {
+	BatchSize       int
+	MaxAttempts     int
+	RetryDelaySec   int
+	PollIntervalSec int
+}
+
 // Config represents the application configuration, supporting both file-based and database-based configurations.
 type Config struct {
-	File *FileConfig
-	DB   *DBConfig
+	File   *FileConfig
+	DB     *DBConfig
+	Kafka  *KafkaConfig
+	Outbox *OutboxConfig
 }
 
 // Load initializes and returns the application configuration based on environment variables and flags.
@@ -42,16 +57,21 @@ func Load() *Config {
 	}
 	flag.Parse()
 	mode := strings.TrimSpace(os.Getenv("STORAGE_MODE"))
+	cfg := &Config{}
 	switch mode {
 	case dbMode:
-		return &Config{DB: loadDBConfig()}
+		cfg.DB = loadDBConfig()
+		cfg.Kafka = loadKafkaConfig()
+		cfg.Outbox = loadOutboxConfig()
+		validateKafkaOutbox(cfg)
 	case fileMode:
-		return &Config{File: loadFileConfig()}
+		cfg.File = loadFileConfig()
+		forbidKafkaOutboxInFileMode()
 	default:
 		slog.Error("invalid storage mode", "mode", mode)
 		os.Exit(1)
-		return nil
 	}
+	return cfg
 }
 
 func loadDBConfig() *DBConfig {
@@ -103,5 +123,94 @@ func loadTestConfig() *Config {
 			WriteDSN: testDSN,
 			ReadDSN:  testDSN,
 		},
+		Kafka: &KafkaConfig{Brokers: []string{"dummy:9092"}, Topic: "dummy"},
+		Outbox: &OutboxConfig{
+			BatchSize:       0,
+			MaxAttempts:     0,
+			RetryDelaySec:   0,
+			PollIntervalSec: 0},
 	}
+}
+
+func loadKafkaConfig() *KafkaConfig {
+	return &KafkaConfig{
+		Brokers: strings.Split(os.Getenv("KAFKA_BROKERS"), ","),
+		Topic:   firstNonEmpty(os.Getenv("KAFKA_TOPIC"), "pvz.events-log"),
+	}
+}
+
+func loadOutboxConfig() *OutboxConfig {
+	return &OutboxConfig{
+		BatchSize:       atoiDef(os.Getenv("OUTBOX_BATCH_SIZE"), 100),
+		MaxAttempts:     atoiDef(os.Getenv("OUTBOX_MAX_ATTEMPTS"), 3),
+		RetryDelaySec:   atoiDef(os.Getenv("OUTBOX_RETRY_DELAY_SEC"), 2),
+		PollIntervalSec: atoiDef(os.Getenv("OUTBOX_POLL_INTERVAL_SEC"), 1),
+	}
+}
+func validateKafkaOutbox(cfg *Config) {
+	if len(cfg.Kafka.Brokers) == 0 || strings.TrimSpace(cfg.Kafka.Brokers[0]) == "" {
+		slog.Error("KAFKA_BROKERS must be set when STORAGE_MODE=db")
+		os.Exit(1)
+	}
+	if strings.TrimSpace(cfg.Kafka.Topic) == "" {
+		slog.Error("KAFKA_TOPIC must be set when STORAGE_MODE=db")
+		os.Exit(1)
+	}
+	if cfg.Outbox.BatchSize <= 0 {
+		slog.Error("OUTBOX_BATCH_SIZE must be > 0 when STORAGE_MODE=db")
+		os.Exit(1)
+	}
+	if cfg.Outbox.MaxAttempts <= 0 {
+		slog.Error("OUTBOX_MAX_ATTEMPTS must be > 0 when STORAGE_MODE=db")
+		os.Exit(1)
+	}
+	if cfg.Outbox.RetryDelaySec <= 0 {
+		slog.Error("OUTBOX_RETRY_DELAY_SEC must be > 0 when STORAGE_MODE=db")
+		os.Exit(1)
+	}
+	if cfg.Outbox.PollIntervalSec <= 0 {
+		slog.Error("OUTBOX_POLL_INTERVAL_SEC must be > 0 when STORAGE_MODE=db")
+		os.Exit(1)
+	}
+}
+
+func forbidKafkaOutboxInFileMode() {
+	if s := os.Getenv("KAFKA_BROKERS"); strings.TrimSpace(s) != "" {
+		slog.Error("KAFKA_BROKERS must not be set when STORAGE_MODE=file", "value", s)
+		os.Exit(1)
+	}
+	if s := os.Getenv("KAFKA_TOPIC"); strings.TrimSpace(s) != "" {
+		slog.Error("KAFKA_TOPIC must not be set when STORAGE_MODE=file", "value", s)
+		os.Exit(1)
+	}
+	if s := os.Getenv("OUTBOX_BATCH_SIZE"); strings.TrimSpace(s) != "" {
+		slog.Error("OUTBOX_BATCH_SIZE must not be set when STORAGE_MODE=file", "value", s)
+		os.Exit(1)
+	}
+	if s := os.Getenv("OUTBOX_MAX_ATTEMPTS"); strings.TrimSpace(s) != "" {
+		slog.Error("OUTBOX_MAX_ATTEMPTS must not be set when STORAGE_MODE=file", "value", s)
+		os.Exit(1)
+	}
+	if s := os.Getenv("OUTBOX_RETRY_DELAY_SEC"); strings.TrimSpace(s) != "" {
+		slog.Error("OUTBOX_RETRY_DELAY_SEC must not be set when STORAGE_MODE=file", "value", s)
+		os.Exit(1)
+	}
+	if s := os.Getenv("OUTBOX_POLL_INTERVAL_SEC"); strings.TrimSpace(s) != "" {
+		slog.Error("OUTBOX_POLL_INTERVAL_SEC must not be set when STORAGE_MODE=file", "value", s)
+		os.Exit(1)
+	}
+}
+
+func firstNonEmpty(val, def string) string {
+	if strings.TrimSpace(val) != "" {
+		return val
+	}
+	return def
+}
+
+func atoiDef(s string, def int) int {
+	if n, err := strconv.Atoi(strings.TrimSpace(s)); err == nil {
+		return n
+	}
+	return def
 }

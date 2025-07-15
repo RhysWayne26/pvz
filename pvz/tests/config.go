@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
-	"pvz-cli/infrastructure/db"
+	"pvz-cli/internal/infrastructure/db"
 	"time"
 )
 

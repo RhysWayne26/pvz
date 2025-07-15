@@ -11,6 +11,7 @@ import (
 )
 
 var _ PGXClient = (*DefaultPGXClient)(nil)
+var _ TxRunner = (*DefaultPGXClient)(nil)
 
 // DefaultPGXClient provides a default implementation of the PGXClient interface for interacting with a PostgreSQL database.
 // It manages separate connection pools for read and write operations.
@@ -50,11 +51,22 @@ func NewDefaultPGXClient(readDSN, writeDSN string) (*DefaultPGXClient, error) {
 // ExecCtx executes a query in the specified mode (read or write) using a context and returns the command tag and error.
 // It logs query details, execution time, rows affected, and any error encountered during execution.
 func (c *DefaultPGXClient) ExecCtx(ctx context.Context, mode Mode, query string, args ...interface{}) (pgconn.CommandTag, error) {
+	var (
+		tag     pgconn.CommandTag
+		err     error
+		logMode string
+	)
 	start := time.Now()
-	pool := c.selectPool(mode)
-	tag, err := pool.Exec(ctx, query, args...)
+	if tx, ok := TxFromContext(ctx); ok {
+		tag, err = tx.Exec(ctx, query, args...)
+		logMode = "transaction"
+	} else {
+		pool := c.selectPool(mode)
+		tag, err = pool.Exec(ctx, query, args...)
+		logMode = string(mode)
+	}
 	slog.InfoContext(ctx, "db.exec",
-		"mode", mode,
+		"mode", logMode,
 		"query", query,
 		"duration_ms", time.Since(start).Milliseconds(),
 		"rows_affected", tag.RowsAffected(),
@@ -66,11 +78,22 @@ func (c *DefaultPGXClient) ExecCtx(ctx context.Context, mode Mode, query string,
 
 // QueryCtx executes a database query in the specified mode using a context and returns the result rows and any error.
 func (c *DefaultPGXClient) QueryCtx(ctx context.Context, mode Mode, query string, args ...interface{}) (pgx.Rows, error) {
+	var (
+		rows    pgx.Rows
+		err     error
+		logMode string
+	)
 	start := time.Now()
-	pool := c.selectPool(mode)
-	rows, err := pool.Query(ctx, query, args...)
+	if tx, ok := TxFromContext(ctx); ok {
+		rows, err = tx.Query(ctx, query, args...)
+		logMode = "transaction"
+	} else {
+		pool := c.selectPool(mode)
+		rows, err = pool.Query(ctx, query, args...)
+		logMode = string(mode)
+	}
 	slog.InfoContext(ctx, "db.query",
-		"mode", mode,
+		"mode", logMode,
 		"query", query,
 		"duration_ms", time.Since(start).Milliseconds(),
 		"error", err,
@@ -80,13 +103,25 @@ func (c *DefaultPGXClient) QueryCtx(ctx context.Context, mode Mode, query string
 
 // QueryRowCtx executes a query in the specified mode using a context and returns a single result row.
 func (c *DefaultPGXClient) QueryRowCtx(ctx context.Context, mode Mode, query string, args ...interface{}) pgx.Row {
+	var (
+		row     pgx.Row
+		logMode string
+	)
 	start := time.Now()
-	pool := c.selectPool(mode)
-	row := pool.QueryRow(ctx, query, args...)
+	if tx, ok := TxFromContext(ctx); ok {
+		row = tx.QueryRow(ctx, query, args...)
+		logMode = "transaction"
+	} else {
+		pool := c.selectPool(mode)
+		row = pool.QueryRow(ctx, query, args...)
+		logMode = string(mode)
+	}
+
 	slog.InfoContext(ctx, "db.queryRow",
-		"mode", mode,
+		"mode", logMode,
 		"query", query,
-		"duration_ms", time.Since(start).Milliseconds())
+		"duration_ms", time.Since(start).Milliseconds(),
+	)
 	return row
 }
 

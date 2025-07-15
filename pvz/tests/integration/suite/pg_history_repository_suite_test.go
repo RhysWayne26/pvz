@@ -4,13 +4,13 @@ package suite
 
 import (
 	"context"
+	"pvz-cli/internal/infrastructure/db"
 	"testing"
 	"time"
 
 	"github.com/ozontech/allure-go/pkg/framework/provider"
 	"github.com/ozontech/allure-go/pkg/framework/suite"
 	"github.com/stretchr/testify/require"
-	"pvz-cli/infrastructure/db"
 	"pvz-cli/internal/common/utils"
 	"pvz-cli/internal/data/repositories"
 	"pvz-cli/internal/models"

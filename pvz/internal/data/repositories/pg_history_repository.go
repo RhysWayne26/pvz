@@ -4,8 +4,8 @@ import (
 	"context"
 	_ "embed"
 	"github.com/georgysavva/scany/v2/pgxscan"
-	"pvz-cli/infrastructure/db"
 	"pvz-cli/internal/data/queries"
+	"pvz-cli/internal/infrastructure/db"
 	"pvz-cli/internal/models"
 	"pvz-cli/internal/usecases/requests"
 )

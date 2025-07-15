@@ -2,6 +2,8 @@ package gateway
 
 import (
 	"context"
+	"google.golang.org/grpc/health"
+	"google.golang.org/grpc/health/grpc_health_v1"
 	"log"
 	"net"
 
@@ -18,6 +20,9 @@ func RunGRPCServer(ctx context.Context, grpcAddr string, svc pb.OrdersServiceSer
 	}
 	srv := grpc.NewServer(opts...)
 	pb.RegisterOrdersServiceServer(srv, svc)
+	healthSrv := health.NewServer()
+	grpc_health_v1.RegisterHealthServer(srv, healthSrv)
+	healthSrv.SetServingStatus("orders.OrdersService", grpc_health_v1.HealthCheckResponse_SERVING)
 	log.Printf("gRPC server started on %s", grpcAddr)
 	go func() {
 		<-ctx.Done()
