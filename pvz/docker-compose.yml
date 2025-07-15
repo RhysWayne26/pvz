@@ -1,4 +1,57 @@
 services:
+  pvz:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pvz-main
+    volumes:
+      - .env:/app/.env:ro
+      - logs-pvz:/app/logs
+    env_file:
+      - .env
+    environment:
+      - KAFKA_BROKERS=kafka:9092
+      - DB_WRITE_DSN=postgres://pvz_user:pvz_pass@postgres-master:5432/pvz?sslmode=disable
+      - DB_READ_DSN=postgres://pvz_user:pvz_pass@postgres-master:5432/pvz?sslmode=disable
+    ports:
+      - "50051:50051" # grpc server
+      - "50052:50052" # admin grpc server
+      - "8080:8080" # http-gateway
+      - "8082:8082" # swagger ui
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres-master:
+        condition: service_healthy
+    restart: "no"
+    healthcheck:
+      test: ["CMD-SHELL", "grpc-health-probe -addr=localhost:50051 -connect-timeout=3s"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  notifier:
+    build:
+      context: ../notifier
+      dockerfile: Dockerfile
+    container_name: pvz-event-notifier
+    volumes:
+      - ../notifier/.env:/app/.env:ro
+      - logs-notifier:/app/logs
+    env_file:
+      - ../notifier/.env
+    environment:
+      - BROKER_ADDR=kafka:9092
+    depends_on:
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "pgrep notifier" ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
   postgres-master:
     build:
       context: ./docker/master
@@ -129,7 +182,30 @@ services:
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "kafka:9092"
     restart: unless-stopped
 
+  migrator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pvz-migrator
+    depends_on:
+      postgres-master:
+        condition: service_healthy
+
+    env_file: []
+    environment:
+      - DB_WRITE_DSN=postgres://pvz_user:pvz_pass@postgres-master:5432/pvz?sslmode=disable
+    entrypoint: >
+      sh -c "
+        echo '[migrator] Applying DB migrations…' &&
+        echo 'Using DSN: ${DB_WRITE_DSN}' &&
+        go run github.com/pressly/goose/v3/cmd/goose@v3.16.0 -dir migrations postgres '${DB_WRITE_DSN}' up &&
+        echo '[migrator] Finished successfully'
+      "
+    restart: "no"
+
 volumes:
+  logs-pvz:
+  logs-notifier:
   master_data:
   slave_data:
   kafka_data:

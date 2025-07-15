@@ -19,14 +19,17 @@ endif
 
 LINT_BIN := $(TOOLS_BIN)/golangci-lint$(EXT)
 GOSEC_BIN := $(TOOLS_BIN)/gosec$(EXT)
+GRPC_HEALTH_PROBE_BIN := $(TOOLS_BIN)/grpc-health-probe$(EXT)
 
 GOLANGCI_LINT_VER := v2.1.6
-GOSEC_VER         := v2.22.4
+GOSEC_VER := v2.22.4
+
+GRPC_HEALTH_PROBE_VER := v0.4.39
 
 $(TOOLS_BIN):
 	mkdir -p $(TOOLS_BIN)
 
-tools/install: $(TOOLS_BIN) $(LINT_BIN) $(GOSEC_BIN)
+tools/install: $(TOOLS_BIN) $(LINT_BIN) $(GOSEC_BIN) $(GRPC_HEALTH_PROBE_BIN)
 	@echo "Instruments downloaded to $(TOOLS_BIN)"
 
 $(LINT_BIN): | $(TOOLS_BIN)
@@ -38,6 +41,14 @@ $(GOSEC_BIN): | $(TOOLS_BIN)
 	@echo "Installing gosec@$(GOSEC_VER) into $(TOOLS_BIN)..."
 	GOPROXY=direct GOBIN=$(TOOLS_BIN) \
 		go install github.com/securego/gosec/v2/cmd/gosec@$(GOSEC_VER)
+
+$(GRPC_HEALTH_PROBE_BIN): | $(TOOLS_BIN)
+	@echo "Installing grpc-health-probe@$(GRPC_HEALTH_PROBE_VER) into $(TOOLS_BIN)..."
+	GOPROXY=direct GOBIN=$(TOOLS_BIN) \
+		go install github.com/grpc-ecosystem/grpc-health-probe@$(GRPC_HEALTH_PROBE_VER)
+
+grpc-health:
+	$(TOOLS_BIN)/grpc-health-probe -addr=$(ADDR)
 
 tools/clean:
 	rm -rf $(TOOLS_BIN)
@@ -114,5 +125,14 @@ proto: proto/generate
 .PHONY: dev
 dev: proto build start
 
-up:
+docker-up:
 	docker-compose up -d postgres-master postgres-slave kafka kafka-init kafka-ui
+
+docker-down:
+	docker-compose down postgres-master postgres-slave kafka kafka-init kafka-ui
+
+docker-down-volumes:
+	docker-compose down -v postgres-master postgres-slave kafka kafka-init kafka-ui
+
+docker-status:
+	docker-compose ps postgres-master postgres-slave kafka kafka-init kafka-ui

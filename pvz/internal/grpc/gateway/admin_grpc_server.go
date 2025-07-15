@@ -3,6 +3,8 @@ package gateway
 import (
 	"context"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/health"
+	"google.golang.org/grpc/health/grpc_health_v1"
 	"log"
 	"net"
 	"pvz-cli/internal/gen/admin"
@@ -16,6 +18,9 @@ func RunAdminGRPCServer(ctx context.Context, grpcAddr string, svc admin.AdminSer
 	}
 	srv := grpc.NewServer(opts...)
 	admin.RegisterAdminServiceServer(srv, svc)
+	healthSrv := health.NewServer()
+	grpc_health_v1.RegisterHealthServer(srv, healthSrv)
+	healthSrv.SetServingStatus("admin.AdminService", grpc_health_v1.HealthCheckResponse_SERVING)
 	log.Printf("Admin gRPC server started on %s", grpcAddr)
 	go func() {
 		<-ctx.Done()
