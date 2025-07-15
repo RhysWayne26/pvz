@@ -9,7 +9,9 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+RUN GOBIN=/workspace/bin \
+    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+    go install github.com/pressly/goose/v3/cmd/goose@v3.16.0
     go build -o pvz cmd/main.go
 
 RUN GOBIN=/workspace/bin go install github.com/grpc-ecosystem/grpc-health-probe@v0.4.39
@@ -27,6 +29,7 @@ RUN addgroup -S app \
 
 COPY --from=builder /workspace/pvz /app/pvz
 COPY --from=builder /workspace/bin/grpc-health-probe /usr/local/bin/grpc-health-probe
+COPY --from=builder /workspace/bin/goose /usr/local/bin/goose
 COPY migrations /app/migrations
 
 EXPOSE 50051 50052 8080 8082

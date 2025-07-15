@@ -125,14 +125,28 @@ proto: proto/generate
 .PHONY: dev
 dev: proto build start
 
+.PHONY: docker-up docker-down docker-down-volumes docker-status
+
 docker-up:
-	docker-compose up -d postgres-master postgres-slave kafka kafka-init kafka-ui
+	docker-compose up -d \
+	  postgres-master postgres-slave \
+	  kafka kafka-init kafka-ui \
+	  pvz notifier migrator
 
 docker-down:
-	docker-compose down postgres-master postgres-slave kafka kafka-init kafka-ui
+	docker-compose down \
+	  postgres-master postgres-slave \
+	  kafka kafka-init kafka-ui \
+	  pvz notifier migrator
 
 docker-down-volumes:
-	docker-compose down -v postgres-master postgres-slave kafka kafka-init kafka-ui
+	docker-compose down -v \
+	  postgres-master postgres-slave \
+	  kafka kafka-init kafka-ui \
+	  pvz notifier migrator
 
 docker-status:
-	docker-compose ps postgres-master postgres-slave kafka kafka-init kafka-ui
+	docker-compose ps \
+	  postgres-master postgres-slave \
+	  kafka kafka-init kafka-ui \
+	  pvz notifier migrator
