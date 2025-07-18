@@ -1,6 +1,9 @@
 package cache
 
-import "time"
+import (
+	"pvz-cli/pkg/cache/models"
+	"time"
+)
 
 // Cache represents a generic interface for a key-value cache with expiration and various management features.
 type Cache[K comparable, V any] interface {
@@ -19,9 +22,7 @@ type Cache[K comparable, V any] interface {
 	Keys() []K
 	Items() map[K]V
 	Size() int
-	MaxSize() int
-	SizeRatio() string
-	Stats() Stats
+	Stats() models.Stats
 
 	PurgeExpired()
 	UpdateTTL(key K, ttl time.Duration) bool
@@ -29,13 +30,4 @@ type Cache[K comparable, V any] interface {
 	EvictionPolicy() string
 
 	Close() error
-}
-
-// Stats represents cache statistics information such as hits, misses, evictions, total keys, and memory usage.
-type Stats struct {
-	Hits        int64
-	Misses      int64
-	Evictions   int64
-	KeysTotal   int
-	MemoryUsage int64
 }
