@@ -24,7 +24,6 @@ func InitTracing(ctx context.Context) error {
 	}
 	exp, err := stdouttrace.New(
 		stdouttrace.WithWriter(file),
-		stdouttrace.WithoutTimestamps(),
 	)
 	if err != nil {
 		return err
