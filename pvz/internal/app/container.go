@@ -1,9 +1,11 @@
 package app
 
 import (
+	"github.com/prometheus/client_golang/prometheus"
 	"log/slog"
 	"os"
 	"pvz-cli/internal/common/config"
+	"pvz-cli/internal/common/constants"
 	"pvz-cli/internal/data/repositories"
 	"pvz-cli/internal/data/storage"
 	"pvz-cli/internal/infrastructure/brokers"
@@ -14,7 +16,10 @@ import (
 	"pvz-cli/internal/usecases/services/validators"
 	"pvz-cli/internal/workerpool"
 	"pvz-cli/internal/workers"
+	"pvz-cli/pkg/cache"
+	"pvz-cli/pkg/cache/policies"
 	"pvz-cli/pkg/clock"
+	"pvz-cli/pkg/metrics"
 	"time"
 )
 
@@ -99,8 +104,17 @@ func NewContainer(pool workerpool.WorkerPool) *Container {
 	historySvc := services.NewDefaultHistoryService(historyRepo)
 	pricingSvc := services.NewDefaultPackagePricingService(packageValidator, pricingStrategy)
 	orderSvc := services.NewDefaultOrderService(clk, pool, txRunner, orderRepo, outboxRepo, pricingSvc, historySvc, actorSvc, orderValidator)
+	responsesCache := cache.NewInMemoryShardedCache[string, any](
+		constants.CacheShardsCount,
+		policies.NewLRUPolicy[string, any](constants.LRUCapacity),
+	)
+	handlerMetrics, err := metrics.NewDefaultHandlerMetrics(prometheus.DefaultRegisterer)
+	if err != nil {
+		slog.Error("failed to init handler metrics", "error", err)
+		os.Exit(1)
+	}
 
-	facadeHandler := handlers.NewDefaultFacadeHandler(orderSvc, historySvc)
+	facadeHandler := handlers.NewDefaultFacadeHandler(orderSvc, historySvc, responsesCache, handlerMetrics)
 
 	c.orderService = orderSvc
 	c.historyService = historySvc

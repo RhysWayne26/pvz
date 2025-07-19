@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"errors"
+	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"log"
@@ -35,7 +36,7 @@ type Application struct {
 // New wires up the cancellation context and container.
 func New(logger *zap.SugaredLogger) *Application {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-
+	_ = godotenv.Load()
 	if err := observability.InitTracing(ctx); err != nil {
 		logger.Errorf("failed to init tracing: %v", err)
 	}

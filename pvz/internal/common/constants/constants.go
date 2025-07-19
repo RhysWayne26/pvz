@@ -37,4 +37,7 @@ const (
 	DefaultPGPort          = "5433"
 
 	EventSendingMaxAttempts = 3
+
+	LRUCapacity      = 10000
+	CacheShardsCount = 16
 )

@@ -10,9 +10,10 @@ services:
     env_file:
       - .env
     environment:
-      - KAFKA_BROKERS=kafka:9092
-      - DB_WRITE_DSN=postgres://pvz_user:pvz_pass@postgres-master:5432/pvz?sslmode=disable
-      - DB_READ_DSN=postgres://pvz_user:pvz_pass@postgres-master:5432/pvz?sslmode=disable
+      KAFKA_BROKERS: kafka:9092
+      DB_WRITE_DSN: postgres://pvz_user:pvz_pass@postgres-master:5432/pvz?sslmode=disable
+      DB_READ_DSN: postgres://pvz_user:pvz_pass@postgres-master:5432/pvz?sslmode=disable
+      JAEGER_ENDPOINT: ""
     ports:
       - "50051:50051" # grpc server
       - "50052:50052" # admin grpc server
@@ -23,6 +24,8 @@ services:
         condition: service_healthy
       postgres-master:
         condition: service_healthy
+      jaeger:
+        condition: service_started
     restart: "no"
     healthcheck:
       test: ["CMD-SHELL", "grpc-health-probe -addr=localhost:50051 -connect-timeout=3s"]
@@ -200,6 +203,15 @@ services:
         /usr/local/bin/goose -dir /app/migrations postgres "$DOCKER_MIGRATION_DSN" up &&
         echo "[migrator] Finished successfully"
     restart: "no"
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: pvz-jaeger
+    env_file:
+      - .env
+    ports:
+      - "${JAEGER_UI_PORT}"
+      - "${JAEGER_COLLECTOR_PORT}"
 
 volumes:
   logs-pvz:
