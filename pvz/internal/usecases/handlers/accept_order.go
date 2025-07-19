@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"pvz-cli/internal/usecases/requests"
 	"pvz-cli/internal/usecases/responses"
 )
@@ -16,7 +17,9 @@ func (f *DefaultFacadeHandler) HandleAcceptOrder(ctx context.Context, req reques
 	if err != nil {
 		return responses.AcceptOrderResponse{}, err
 	}
-
+	f.responsesCache.InvalidatePattern("^ListOrders:")
+	f.responsesCache.Invalidate(fmt.Sprintf("OrderHistory:%d", order.OrderID))
+	f.metrics.IncOrdersServed(1)
 	return responses.AcceptOrderResponse{
 		OrderID: order.OrderID,
 		Package: order.Package,

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"pvz-cli/internal/usecases/requests"
 	"pvz-cli/internal/usecases/responses"
 )
@@ -26,7 +27,12 @@ func (f *DefaultFacadeHandler) HandleImportOrders(
 		statuses[i].Error = r.Error
 		if r.Error == nil {
 			importedCount++
+			f.responsesCache.Invalidate(fmt.Sprintf("OrderHistory:%d", r.OrderID))
 		}
+	}
+	if importedCount > 0 {
+		f.responsesCache.InvalidatePattern("^ListOrders:")
+		f.metrics.IncOrdersServed(float64(importedCount))
 	}
 	return responses.ImportOrdersResponse{
 		Imported: importedCount,

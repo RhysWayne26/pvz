@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"pvz-cli/internal/common/apperrors"
 	"pvz-cli/internal/common/constants"
 	"pvz-cli/internal/models"
@@ -44,7 +45,15 @@ func (f *DefaultFacadeHandler) HandleProcessOrders(
 	if err != nil {
 		return responses.ProcessOrdersResponse{}, err
 	}
-
+	f.responsesCache.InvalidatePattern("^ListOrders:")
+	successCount := 0
+	for _, r := range results {
+		if r.Error == nil {
+			successCount++
+			f.responsesCache.Invalidate(fmt.Sprintf("OrderHistory:%d", r.OrderID))
+		}
+	}
+	f.metrics.IncOrdersServed(float64(successCount))
 	return buildProcessOrdersResponse(results), nil
 }
 
