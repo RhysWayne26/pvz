@@ -2,6 +2,7 @@ package app
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
+	"go.opentelemetry.io/otel"
 	"log/slog"
 	"os"
 	"pvz-cli/internal/common/config"
@@ -12,6 +13,7 @@ import (
 	"pvz-cli/internal/infrastructure/db"
 	"pvz-cli/internal/usecases/handlers"
 	"pvz-cli/internal/usecases/services"
+	"pvz-cli/internal/usecases/services/decorators"
 	"pvz-cli/internal/usecases/services/strategies"
 	"pvz-cli/internal/usecases/services/validators"
 	"pvz-cli/internal/workerpool"
@@ -48,6 +50,7 @@ func NewContainer(pool workerpool.WorkerPool) *Container {
 		config: cfg,
 	}
 
+	tracer := otel.Tracer("pvz")
 	switch {
 	case cfg.DB != nil && cfg.DB.WriteDSN != "":
 		client, err := db.NewDefaultPGXClient(cfg.DB.ReadDSN, cfg.DB.WriteDSN)
@@ -56,7 +59,7 @@ func NewContainer(pool workerpool.WorkerPool) *Container {
 			os.Exit(1)
 		}
 		client.SetConnectionSettings(20, 10, time.Hour, 30*time.Minute)
-		txRunner = client
+		txRunner = db.NewTracingTxRunner(client, tracer)
 		orderRepo = repositories.NewPGOrderRepository(client)
 		historyRepo = repositories.NewPGHistoryRepository(client)
 		if cfg.Outbox != nil && cfg.Outbox.BatchSize > 0 {
@@ -101,9 +104,11 @@ func NewContainer(pool workerpool.WorkerPool) *Container {
 	pricingStrategy := strategies.NewDefaultPricingStrategy()
 
 	actorSvc := services.NewDefaultActorService()
-	historySvc := services.NewDefaultHistoryService(historyRepo)
+	baseHistorySvc := services.NewDefaultHistoryService(historyRepo)
+	historySvc := decorators.NewTracingHistoryService(baseHistorySvc, tracer)
 	pricingSvc := services.NewDefaultPackagePricingService(packageValidator, pricingStrategy)
-	orderSvc := services.NewDefaultOrderService(clk, pool, txRunner, orderRepo, outboxRepo, pricingSvc, historySvc, actorSvc, orderValidator)
+	baseOrderSvc := services.NewDefaultOrderService(clk, pool, txRunner, orderRepo, outboxRepo, pricingSvc, historySvc, actorSvc, orderValidator)
+	orderSvc := decorators.NewTracingOrderService(baseOrderSvc, tracer)
 	responsesCache := cache.NewInMemoryShardedCache[string, any](
 		constants.CacheShardsCount,
 		policies.NewLRUPolicy[string, any](constants.LRUCapacity),
