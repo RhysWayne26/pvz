@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/joho/godotenv"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"log"
@@ -67,6 +68,7 @@ func (a *Application) Run() {
 		func() { a.StartSwaggerUI() },
 		func() { a.StartCLI() },
 		func() { a.StartAdminGRPCServer(adminGRPCPort) },
+		func() { a.StartMetricsServer() },
 	}
 	if a.container.outboxDispatcher != nil {
 		services = append(services, func() {
@@ -196,6 +198,16 @@ func (a *Application) StartOutboxDispatcher() {
 	if err := a.container.outboxDispatcher.Dispatch(a.ctx); err != nil && !errors.Is(err, context.Canceled) {
 		a.logger.Errorf("outbox dispatcher stopped: %v", err)
 	}
+}
+
+func (a *Application) StartMetricsServer() {
+	http.Handle("/metrics", promhttp.Handler())
+	go func() {
+		err := http.ListenAndServe(":8080", nil)
+		if err != nil {
+			log.Fatalf("metrics server error: %v", err)
+		}
+	}()
 }
 
 func (a *Application) AddToWaitGroup(n int) {
