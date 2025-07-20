@@ -33,7 +33,7 @@ func (t TracingOrderService) AcceptOrder(ctx context.Context, req requests.Accep
 		trace.WithAttributes(
 			attribute.String("order.order_id", strconv.FormatUint(req.OrderID, 10)),
 			attribute.String("order.user_id", strconv.FormatUint(req.UserID, 10)),
-			attribute.String("order.package", string(req.Package)),
+			attribute.String("order.package", req.Package.String()),
 			attribute.Float64("order.weight", float64(req.Weight)),
 			attribute.Float64("order.price", float64(req.Price)),
 		),

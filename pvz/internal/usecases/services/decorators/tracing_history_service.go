@@ -31,7 +31,7 @@ func NewTracingHistoryService(inner services.HistoryService, tracer trace.Tracer
 func (t *TracingHistoryService) Record(ctx context.Context, e models.HistoryEntry) error {
 	ctx, span := t.tracer.Start(ctx, "HistoryService.Record",
 		trace.WithAttributes(
-			attribute.String("history_entry.event", string(e.Event)),
+			attribute.String("history_entry.event", e.Event.String()),
 			attribute.String("history_entry.order_id", strconv.FormatUint(e.OrderID, 10)),
 		),
 	)
