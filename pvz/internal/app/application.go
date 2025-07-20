@@ -201,13 +201,22 @@ func (a *Application) StartOutboxDispatcher() {
 }
 
 func (a *Application) StartMetricsServer() {
+	defer a.wg.Done()
 	http.Handle("/metrics", promhttp.Handler())
+	srv := &http.Server{Addr: ":9090"}
 	go func() {
-		err := http.ListenAndServe(":8080", nil)
+		<-a.ctx.Done()
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		err := srv.Shutdown(ctx)
 		if err != nil {
-			log.Fatalf("metrics server error: %v", err)
+			log.Printf("Prometheus shutdown error: %v", err)
 		}
 	}()
+	log.Println("Metrics server started at http://localhost:9090/metrics")
+	if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+		log.Fatalf("Metrics server error: %v", err)
+	}
 }
 
 func (a *Application) AddToWaitGroup(n int) {
