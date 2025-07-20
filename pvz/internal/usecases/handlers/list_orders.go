@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-const listCacheTTL = 5 * time.Minute
+const listCacheTTL = 30 * time.Second
 
 // HandleListOrders processes the list-orders request and returns the result.
 func (f *DefaultFacadeHandler) HandleListOrders(ctx context.Context, req requests.OrdersFilterRequest) (responses.ListOrdersResponse, error) {

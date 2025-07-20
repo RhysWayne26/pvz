@@ -112,7 +112,7 @@ func NewContainer(pool workerpool.WorkerPool) *Container {
 	orderSvc := decorators.NewTracingOrderService(baseOrderSvc, tracer)
 	responsesCache := cache.NewInMemoryShardedCache[string, any](
 		constants.CacheShardsCount,
-		policies.NewLRUPolicy[string, any](constants.LRUCapacity),
+		policies.NewTTLPolicy[string, any](),
 		"pvz",
 		"cache",
 		prometheus.DefaultRegisterer,

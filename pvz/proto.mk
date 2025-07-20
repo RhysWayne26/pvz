@@ -41,14 +41,14 @@ PROTOC_ZIP := protoc-$(PROTOC_VERSION)-$(PROTOC_OS)-$(PROTOC_ARCH).zip
 PROTOC_URL := https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/$(PROTOC_ZIP)
 
 .PHONY: all
-all: proto/generate proto/generate-admin
+all: proto-generate proto-generate-admin
 
 .PHONY: $(TOOLS_BIN)
 $(TOOLS_BIN):
 	mkdir -p $(TOOLS_BIN)
 
-.PHONY: tools/protoc
-tools/protoc:
+.PHONY: tools-protoc
+tools-protoc:
 	@echo "Downloading protoc $(PROTOC_VERSION) for $(PROTOC_OS)-$(PROTOC_ARCH)..."
 	@rm -rf $(PROTOC_DIR)
 	@mkdir -p $(PROTOC_DIR)
@@ -61,8 +61,8 @@ endif
 	@rm -f $(PROTOC_DIR)/$(PROTOC_ZIP)
 	@echo "protoc downloaded to $(PROTOC_BIN)"
 
-.PHONY: tools/proto
-tools/proto: $(TOOLS_BIN)
+.PHONY: tools-proto
+tools-proto: $(TOOLS_BIN)
 	@echo "Installing protobuf plugins..."
 	GOBIN=$(TOOLS_BIN) go install google.golang.org/protobuf/cmd/protoc-gen-go@$(PROTOC_GEN_GO_VER)
 	GOBIN=$(TOOLS_BIN) go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@$(PROTOC_GEN_GO_GRPC_VER)
@@ -71,8 +71,8 @@ tools/proto: $(TOOLS_BIN)
 	GOBIN=$(TOOLS_BIN) go install github.com/envoyproxy/protoc-gen-validate@$(PROTOC_GEN_VALIDATE)
 	@echo "Finished installing protobuf plugins."
 
-.PHONY: proto/setup-third-party
-proto/setup-third-party:
+.PHONY: proto-setup-third-party
+proto-setup-third-party:
 	@echo "Downloading Google API .proto files..."
 	@mkdir -p $(THIRD_PARTY_DIR)/google/api
 	@curl -sL https://raw.githubusercontent.com/googleapis/googleapis/master/google/api/annotations.proto \
@@ -98,8 +98,8 @@ $(ADMIN_PROTO_OUT):
 $(SWAGGER_OUT):
 	@mkdir -p $@
 
-.PHONY: proto/generate
-proto/generate: tools/proto tools/protoc proto/setup-third-party $(PROTO_OUT) $(SWAGGER_OUT)
+.PHONY: proto-generate
+proto-generate: tools-proto tools-protoc proto-setup-third-party $(PROTO_OUT) $(SWAGGER_OUT)
 	@echo "Generating code from .proto..."
 	cd $(PROTO_DIR) && \
 	PATH=../../$(PROTOC_DIR)/bin:$$PATH \
@@ -122,8 +122,8 @@ proto/generate: tools/proto tools/protoc proto/setup-third-party $(PROTO_OUT) $(
 	  $(PROTO_FILES)
 	@echo "Code generated in $(PROTO_OUT)/ and swagger in $(SWAGGER_OUT)/."
 
-.PHONY: proto/generate-admin
-proto/generate-admin: tools/proto tools/protoc proto/setup-third-party $(ADMIN_PROTO_OUT)
+.PHONY: proto-generate-admin
+proto-generate-admin: tools-proto tools-protoc proto-setup-third-party $(ADMIN_PROTO_OUT)
 	@echo "Generating admin proto code..."
 	cd $(PROTO_DIR) && \
 	PATH=../../$(PROTOC_DIR)/bin:$$PATH \
@@ -143,20 +143,20 @@ proto/generate-admin: tools/proto tools/protoc proto/setup-third-party $(ADMIN_P
 		admin.proto
 	@echo "Admin proto code generated in $(ADMIN_PROTO_OUT)/"
 
-.PHONY: proto/update-deps
-proto/update-deps: tools/proto
+.PHONY: proto-update-deps
+proto-update-deps: tools-proto
 	@echo "Proto dependencies are up to date."
 
-.PHONY: proto/clean
-proto/clean:
+.PHONY: proto-clean
+proto-clean:
 	@echo "Cleaning generated files..."
 	rm -rf $(PROTO_OUT)/*
 	rm -rf $(ADMIN_PROTO_OUT)/*
 	rm -rf $(SWAGGER_OUT)/*
 	@echo "Finished cleaning."
 
-.PHONY: proto/check
-proto/check:
+.PHONY: proto-check
+proto-check:
 	@echo "Checking proto dependencies..."
 	@test -f $(PROTOC_BIN) || { echo "protoc is not installed; run make tools/protoc"; exit 1; }
 	@test -f $(TOOLS_BIN)/protoc-gen-go || { echo "protoc-gen-go not found; run make tools/proto"; exit 1; }

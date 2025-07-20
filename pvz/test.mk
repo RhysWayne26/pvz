@@ -6,21 +6,21 @@ ALLURE_DIR := tools/allure
 ALLURE_BIN := $(ALLURE_DIR)/allure-$(ALLURE_CLI_VER)/bin/allure
 BIN_DIR := $(shell pwd)/tools/bin
 
-.PHONY: test/tools/install
-test/tools/install:
+.PHONY: test-tools-install
+test-tools-install:
 	@echo "Installing minimock to $(BIN_DIR)"
 	@mkdir -p $(BIN_DIR)
 	@GOBIN=$(BIN_DIR) go install github.com/gojuno/minimock/v3/cmd/minimock@$(MINIMOCK_VER)
 
-.PHONY: mocks/generate
-mocks/generate: test/tools/install mocks/clean
+.PHONY: mocks-generate
+mocks-generate: test-tools-install mocks-clean
 	@echo "Generating mocks using go generate..."
 	@PATH="$(BIN_DIR):${PATH}" go generate ./...
 
-mocks: mocks/generate
+mocks: mocks-generate
 
-.PHONY: mocks/clean
-mocks/clean:
+.PHONY: mocks-clean
+mocks-clean:
 	@echo "cleaning all mock files"
 	@find . -path '*/mocks/*.go' -type f -delete 2>/dev/null || true
 
@@ -40,26 +40,26 @@ cover:
 	@go test -coverprofile=coverage.out -covermode=atomic $(COVER_PKGS)
 	@go tool cover -func=coverage.out
 
-.PHONY: cover/html
-cover/html: cover
+.PHONY: cover-html
+cover-html: cover
 	@go tool cover -html=coverage.out -o coverage.html
 	@echo "open coverage.html to view the report"
 
-.PHONY: e2e/test
-e2e/test:
+.PHONY: e2e-test
+e2e-test:
 	@echo "running e2e tests with Allure output"
 	@mkdir -p $(ALLURE_RESULTS)
 	ALLURE_OUTPUT_PATH=$(shell pwd) go test -v -tags=e2e -v ./tests/e2e/...
 
-.PHONY: int/test
-int/test:
+.PHONY: int-test
+int-test:
 	@echo "running integration tests with Allure output"
 	@mkdir -p $(ALLURE_RESULTS)
 	ALLURE_OUTPUT_PATH=$(shell pwd) go test -v -tags=integration -v ./tests/integration/...
 
 
-.PHONY: allure/install
-allure/install:
+.PHONY: allure-install
+allure-install:
 	@echo "Installing Allure tools..."
 	@echo "allure-go library should be in go.mod dependencies"
 	@if [ ! -f $(ALLURE_BIN) ]; then \
@@ -73,17 +73,17 @@ allure/install:
 	fi
 	@echo "Allure tools ready"
 
-.PHONY: allure/report
-allure/report: allure/install
+.PHONY: allure-report
+allure-report: allure-install
 	@echo "Generating Allure report..."
 	@mkdir -p $(ALLURE_REPORT)
 	@$(ALLURE_BIN) generate $(ALLURE_RESULTS) -o $(ALLURE_REPORT) --clean
 
-.PHONY: allure/open
-allure/open: allure/report
+.PHONY: allure-open
+allure-open: allure-report
 	@echo "Opening Allure report..."
 	@$(ALLURE_BIN) open $(ALLURE_REPORT) || \
 		echo "Report generated at: $(ALLURE_REPORT)/index.html"
 
-.PHONY: all/test
-all/test: allure/install e2e/test int/test allure/report allure/open
+.PHONY: all-test
+all-test: allure-install e2e-test int-test allure-report allure-open

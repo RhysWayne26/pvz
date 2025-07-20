@@ -30,14 +30,14 @@ migrate-down: $(GOOSE_BIN)
 migrate-new: $(GOOSE_BIN)
 	@$(GOOSE_BIN) -dir migrations create $(name) sql
 
-.PHONY: test/migrate-up
-test/migrate-up: $(GOOSE_BIN)
+.PHONY: test-migrate-up
+test-migrate-up: $(GOOSE_BIN)
 	@$(GOOSE_BIN) -dir migrations $(GOOSE_DRIVER) "$(TEST_DB_DSN)" up
 
-.PHONY: test/migrate-status
-test/migrate-status: $(GOOSE_BIN)
+.PHONY: test-migrate-status
+test-migrate-status: $(GOOSE_BIN)
 	@$(GOOSE_BIN) -dir migrations $(GOOSE_DRIVER) "$(TEST_DB_DSN)" status
 
-.PHONY: test/migrate-down
-test/migrate-down: $(GOOSE_BIN)
+.PHONY: test-migrate-down
+test-migrate-down: $(GOOSE_BIN)
 	@$(GOOSE_BIN) -dir migrations $(GOOSE_DRIVER) "$(TEST_DB_DSN)" down
