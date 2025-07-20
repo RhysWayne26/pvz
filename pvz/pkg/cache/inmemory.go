@@ -2,6 +2,7 @@ package cache
 
 import (
 	"fmt"
+	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/sync/singleflight"
 	"hash/fnv"
 	"math/bits"
@@ -20,7 +21,7 @@ var _ Cache[string, any] = (*InMemoryShardedCache[string, any])(nil)
 type InMemoryShardedCache[K comparable, V any] struct {
 	shards          []shard[K, V]
 	curSize         int64
-	stats           models.Stats
+	metrics         *Metrics
 	memoryEstimator func(key K, value V) int64
 	evictionPolicy  policies.EvictionPolicy[K, V]
 	group           singleflight.Group
@@ -36,6 +37,8 @@ type shard[K comparable, V any] struct {
 func NewInMemoryShardedCache[K comparable, V any](
 	shardsCount int,
 	evictionPolicy policies.EvictionPolicy[K, V],
+	namespace, subsystem string,
+	reg prometheus.Registerer,
 ) *InMemoryShardedCache[K, V] {
 	if shardsCount <= 0 {
 		shardsCount = baseShardsCount
@@ -49,10 +52,10 @@ func NewInMemoryShardedCache[K comparable, V any](
 	for i := range shards {
 		shards[i].items = make(map[K]models.CachedItem[V])
 	}
-
+	cacheMetrics := NewCacheMetrics(namespace, subsystem, reg)
 	c := &InMemoryShardedCache[K, V]{
 		shards:         shards,
-		stats:          models.Stats{},
+		metrics:        cacheMetrics,
 		evictionPolicy: evictionPolicy,
 		stopCh:         make(chan struct{}),
 	}
@@ -68,14 +71,14 @@ func (c *InMemoryShardedCache[K, V]) Get(key K) (V, bool) {
 	extracted, exists := s.items[key]
 	if !exists {
 		s.mu.RUnlock()
-		atomic.AddInt64(&c.stats.Misses, 1)
+		c.metrics.Misses.Inc()
 		return zeroVal, false
 	}
 	evictKey, expired := c.evictionPolicy.Evict(key, extracted)
 	if !expired || evictKey != key {
 		s.mu.RUnlock()
 		c.evictionPolicy.OnAccess(key)
-		atomic.AddInt64(&c.stats.Hits, 1)
+		c.metrics.Hits.Inc()
 		return extracted.Value, true
 	}
 	s.mu.RUnlock()
@@ -83,13 +86,14 @@ func (c *InMemoryShardedCache[K, V]) Get(key K) (V, bool) {
 	if cur, ok := s.items[key]; ok {
 		if ek, exp := c.evictionPolicy.Evict(key, cur); exp && ek == key {
 			delete(s.items, key)
-			atomic.AddInt64(&c.curSize, -1)
+			newSize := atomic.AddInt64(&c.curSize, -1)
+			c.metrics.Keys.Set(float64(newSize))
 			c.evictionPolicy.OnDelete(key)
-			atomic.AddInt64(&c.stats.Evictions, 1)
+			c.metrics.Evictions.Inc()
 		}
 	}
 	s.mu.Unlock()
-	atomic.AddInt64(&c.stats.Misses, 1)
+	c.metrics.Misses.Inc()
 	return zeroVal, false
 }
 
@@ -110,7 +114,8 @@ func (c *InMemoryShardedCache[K, V]) Set(key K, value V, ttl time.Duration) {
 	s.items[key] = newCachedItem
 	s.mu.Unlock()
 	if !existed {
-		atomic.AddInt64(&c.curSize, 1)
+		newSize := atomic.AddInt64(&c.curSize, 1)
+		c.metrics.Keys.Set(float64(newSize))
 	}
 	c.evictionPolicy.OnInsert(key)
 	for {
@@ -150,9 +155,10 @@ func (c *InMemoryShardedCache[K, V]) Invalidate(key K) {
 	defer s.mu.Unlock()
 	if _, ok := s.items[key]; ok {
 		delete(s.items, key)
-		atomic.AddInt64(&c.curSize, -1)
+		newSize := atomic.AddInt64(&c.curSize, -1)
+		c.metrics.Keys.Set(float64(newSize))
 		c.evictionPolicy.OnDelete(key)
-		atomic.AddInt64(&c.stats.Evictions, 1)
+		c.metrics.Evictions.Inc()
 	}
 }
 
@@ -163,9 +169,10 @@ func (c *InMemoryShardedCache[K, V]) InvalidateAll() {
 		s.mu.Lock()
 		for k := range s.items {
 			delete(s.items, k)
-			atomic.AddInt64(&c.curSize, -1)
+			newSize := atomic.AddInt64(&c.curSize, -1)
+			c.metrics.Keys.Set(float64(newSize))
 			c.evictionPolicy.OnDelete(k)
-			atomic.AddInt64(&c.stats.Evictions, 1)
+			c.metrics.Evictions.Inc()
 		}
 		s.mu.Unlock()
 	}
@@ -187,9 +194,10 @@ func (c *InMemoryShardedCache[K, V]) InvalidateFunc(fn func(key K) bool) {
 		for key := range s.items {
 			if fn(key) {
 				delete(s.items, key)
-				atomic.AddInt64(&c.curSize, -1)
+				newSize := atomic.AddInt64(&c.curSize, -1)
+				c.metrics.Keys.Set(float64(newSize))
 				c.evictionPolicy.OnDelete(key)
-				atomic.AddInt64(&c.stats.Evictions, 1)
+				c.metrics.Evictions.Inc()
 			}
 		}
 		s.mu.Unlock()
@@ -259,14 +267,8 @@ func (c *InMemoryShardedCache[K, V]) Size() int {
 	return int(atomic.LoadInt64(&c.curSize))
 }
 
-// Stats returns the current cache statistics.
-func (c *InMemoryShardedCache[K, V]) Stats() models.Stats {
-	return models.Stats{
-		Hits:      atomic.LoadInt64(&c.stats.Hits),
-		Misses:    atomic.LoadInt64(&c.stats.Misses),
-		Evictions: atomic.LoadInt64(&c.stats.Evictions),
-		KeysTotal: c.Size(),
-	}
+func (c *InMemoryShardedCache[K, V]) SetMetrics(m *Metrics) {
+	c.metrics = m
 }
 
 // PurgeExpired removes all expired items from the in-memory sharded cache.
@@ -277,9 +279,10 @@ func (c *InMemoryShardedCache[K, V]) PurgeExpired() {
 		for key, item := range s.items {
 			if evictKey, ok := c.evictionPolicy.Evict(key, item); ok && evictKey == key {
 				delete(s.items, key)
-				atomic.AddInt64(&c.curSize, -1)
+				newSize := atomic.AddInt64(&c.curSize, -1)
+				c.metrics.Keys.Set(float64(newSize))
 				c.evictionPolicy.OnDelete(key)
-				atomic.AddInt64(&c.stats.Evictions, 1)
+				c.metrics.Evictions.Inc()
 			}
 		}
 		s.mu.Unlock()
@@ -298,9 +301,10 @@ func (c *InMemoryShardedCache[K, V]) UpdateTTL(key K, ttl time.Duration) bool {
 
 	if !item.ExpiresAt.IsZero() && time.Now().After(item.ExpiresAt) {
 		delete(s.items, key)
-		atomic.AddInt64(&c.curSize, -1)
+		newSize := atomic.AddInt64(&c.curSize, -1)
+		c.metrics.Keys.Set(float64(newSize))
 		c.evictionPolicy.OnDelete(key)
-		atomic.AddInt64(&c.stats.Evictions, 1)
+		c.metrics.Evictions.Inc()
 		return false
 	}
 
@@ -312,13 +316,6 @@ func (c *InMemoryShardedCache[K, V]) UpdateTTL(key K, ttl time.Duration) bool {
 
 	s.items[key] = item
 	return true
-}
-
-// ResetStats resets the statistics of the cache to zero atomically.
-func (c *InMemoryShardedCache[K, V]) ResetStats() {
-	atomic.StoreInt64(&c.stats.Hits, 0)
-	atomic.StoreInt64(&c.stats.Misses, 0)
-	atomic.StoreInt64(&c.stats.Evictions, 0)
 }
 
 // EvictionPolicy returns the name of the current eviction policy being used by the cache.

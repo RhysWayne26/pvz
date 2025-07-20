@@ -1,9 +1,9 @@
 package handlers
 
 import (
+	"pvz-cli/internal/metrics"
 	"pvz-cli/internal/usecases/services"
 	"pvz-cli/pkg/cache"
-	"pvz-cli/pkg/metrics"
 )
 
 var _ FacadeHandler = (*DefaultFacadeHandler)(nil)

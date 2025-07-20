@@ -1,7 +1,6 @@
 package cache
 
 import (
-	"pvz-cli/pkg/cache/models"
 	"time"
 )
 
@@ -22,11 +21,10 @@ type Cache[K comparable, V any] interface {
 	Keys() []K
 	Items() map[K]V
 	Size() int
-	Stats() models.Stats
+	SetMetrics(m *Metrics)
 
 	PurgeExpired()
 	UpdateTTL(key K, ttl time.Duration) bool
-	ResetStats()
 	EvictionPolicy() string
 
 	Close() error

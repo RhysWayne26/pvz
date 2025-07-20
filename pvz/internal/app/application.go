@@ -103,14 +103,6 @@ func (a *Application) Shutdown() {
 	log.Println("Shutting down worker pool")
 	a.pool.Shutdown()
 	log.Println("Worker pool is shutdown")
-	stats := a.container.responseCache.Stats()
-	a.logger.Infow(
-		"Cache stats on shutdown",
-		"hits", stats.Hits,
-		"misses", stats.Misses,
-		"evictions", stats.Evictions,
-		"keys_total", stats.KeysTotal,
-	)
 }
 
 // StartGRPCServer launches the main gRPC server on :50051 with interceptors for logging, tracing, validation, etc.

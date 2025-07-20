@@ -1,7 +1,6 @@
 package cache
 
 import (
-	"pvz-cli/pkg/cache/models"
 	"time"
 )
 
@@ -65,9 +64,8 @@ func (c *NoopCache) Size() int {
 	return 0
 }
 
-// Stats provides the current cache statistics, including hits, misses, evictions, and total keys. Always returns default values.
-func (c *NoopCache) Stats() models.Stats {
-	return models.Stats{}
+func (c *NoopCache) SetMetrics(m *Metrics) {
+	return
 }
 
 // PurgeExpired performs no action in this no-operation cache implementation. It satisfies the Cache interface method.
@@ -77,9 +75,6 @@ func (c *NoopCache) PurgeExpired() {}
 func (c *NoopCache) UpdateTTL(key string, ttl time.Duration) bool {
 	return false
 }
-
-// ResetStats resets all internal cache statistics such as hits, misses, and evictions in this no-operation implementation.
-func (c *NoopCache) ResetStats() {}
 
 // EvictionPolicy returns the eviction policy of the cache, which is always "noop" for the no-operation cache implementation.
 func (c *NoopCache) EvictionPolicy() string {

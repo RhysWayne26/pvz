@@ -11,6 +11,7 @@ import (
 	"pvz-cli/internal/data/storage"
 	"pvz-cli/internal/infrastructure/brokers"
 	"pvz-cli/internal/infrastructure/db"
+	"pvz-cli/internal/metrics"
 	"pvz-cli/internal/usecases/handlers"
 	"pvz-cli/internal/usecases/services"
 	"pvz-cli/internal/usecases/services/decorators"
@@ -21,7 +22,6 @@ import (
 	"pvz-cli/pkg/cache"
 	"pvz-cli/pkg/cache/policies"
 	"pvz-cli/pkg/clock"
-	"pvz-cli/pkg/metrics"
 	"time"
 )
 
@@ -113,6 +113,9 @@ func NewContainer(pool workerpool.WorkerPool) *Container {
 	responsesCache := cache.NewInMemoryShardedCache[string, any](
 		constants.CacheShardsCount,
 		policies.NewLRUPolicy[string, any](constants.LRUCapacity),
+		"pvz",
+		"cache",
+		prometheus.DefaultRegisterer,
 	)
 	handlerMetrics, err := metrics.NewDefaultHandlerMetrics(prometheus.DefaultRegisterer)
 	if err != nil {

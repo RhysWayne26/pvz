@@ -3,9 +3,9 @@ package handlers
 import (
 	"context"
 	"errors"
+	"pvz-cli/internal/metrics"
 	svcmocks "pvz-cli/internal/usecases/services/mocks"
 	"pvz-cli/pkg/cache"
-	"pvz-cli/pkg/metrics"
 	"testing"
 
 	"github.com/stretchr/testify/require"
