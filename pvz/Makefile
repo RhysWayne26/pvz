@@ -131,22 +131,22 @@ docker-up:
 	docker-compose up -d \
 	  postgres-master postgres-slave \
 	  kafka kafka-init kafka-ui \
-	  pvz notifier migrator
+	  pvz notifier migrator jaeger prometheus
 
 docker-down:
 	docker-compose down \
 	  postgres-master postgres-slave \
 	  kafka kafka-init kafka-ui \
-	  pvz notifier migrator
+	  pvz notifier migrator jaeger prometheus
 
 docker-down-volumes:
 	docker-compose down -v \
 	  postgres-master postgres-slave \
 	  kafka kafka-init kafka-ui \
-	  pvz notifier migrator
+	  pvz notifier migrator jaeger prometheus
 
 docker-status:
 	docker-compose ps \
 	  postgres-master postgres-slave \
 	  kafka kafka-init kafka-ui \
-	  pvz notifier migrator
+	  pvz notifier migrator jaeger prometheus
