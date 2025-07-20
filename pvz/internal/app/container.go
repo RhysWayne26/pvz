@@ -33,6 +33,7 @@ type Container struct {
 	facadeHandler    handlers.FacadeHandler
 	outboxDispatcher *workers.DefaultOutboxDispatcher
 	kafkaProducer    brokers.KafkaProducer
+	responseCache    cache.Cache[string, any]
 }
 
 // NewContainer returns a new instance of an application container
@@ -124,6 +125,7 @@ func NewContainer(pool workerpool.WorkerPool) *Container {
 	c.orderService = orderSvc
 	c.historyService = historySvc
 	c.facadeHandler = facadeHandler
+	c.responseCache = responsesCache
 	return c
 }
 

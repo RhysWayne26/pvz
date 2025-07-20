@@ -17,8 +17,11 @@ func (f *DefaultFacadeHandler) HandleListOrders(ctx context.Context, req request
 		return responses.ListOrdersResponse{}, ctx.Err()
 	}
 	key := fmt.Sprintf(
-		"ListOrders:user=%v;inPvz=%v;page=%v;limit=%v",
-		req.UserID, req.InPvz, req.Page, req.Limit,
+		"ListOrders:user=%d;inPvz=%t;page=%d;limit=%d",
+		*req.UserID,
+		*req.InPvz,
+		*req.Page,
+		*req.Limit,
 	)
 	if raw, ok := f.responsesCache.Get(key); ok {
 		if cached, ok2 := raw.(responses.ListOrdersResponse); ok2 {
