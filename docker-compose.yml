@@ -1,28 +1,32 @@
 services:
   pvz:
     build:
-      context: .
+      context: pvz
       dockerfile: Dockerfile
     container_name: pvz-main
     volumes:
       - .env:/app/.env:ro
       - logs-pvz:/app/logs
     env_file:
-      - .env
+      - pvz/.env
     environment:
-      - KAFKA_BROKERS=kafka:9092
-      - DB_WRITE_DSN=postgres://pvz_user:pvz_pass@postgres-master:5432/pvz?sslmode=disable
-      - DB_READ_DSN=postgres://pvz_user:pvz_pass@postgres-master:5432/pvz?sslmode=disable
+      KAFKA_BROKERS: kafka:9092
+      DB_WRITE_DSN: postgres://pvz_user:pvz_pass@postgres-master:5432/pvz?sslmode=disable
+      DB_READ_DSN: postgres://pvz_user:pvz_pass@postgres-master:5432/pvz?sslmode=disable
+      JAEGER_ENDPOINT: ""
     ports:
       - "50051:50051" # grpc server
       - "50052:50052" # admin grpc server
       - "8080:8080" # http-gateway
       - "8082:8082" # swagger ui
+      - "9090:9090" # prometheus
     depends_on:
       kafka:
         condition: service_healthy
       postgres-master:
         condition: service_healthy
+      jaeger:
+        condition: service_started
     restart: "no"
     healthcheck:
       test: ["CMD-SHELL", "grpc-health-probe -addr=localhost:50051 -connect-timeout=3s"]
@@ -32,14 +36,14 @@ services:
 
   notifier:
     build:
-      context: ../notifier
+      context: notifier
       dockerfile: Dockerfile
     container_name: pvz-event-notifier
     volumes:
       - ../notifier/.env:/app/.env:ro
       - logs-notifier:/app/logs
     env_file:
-      - ../notifier/.env
+      - notifier/.env
     environment:
       - BROKER_ADDR=kafka:9092
     depends_on:
@@ -54,11 +58,11 @@ services:
 
   postgres-master:
     build:
-      context: ./docker/master
+      context: pvz/docker/master
       dockerfile: Dockerfile
     container_name: pvz-db-master
     env_file:
-      - .env
+      - pvz/.env
     ports:
       - "5433:5432"
     volumes:
@@ -73,11 +77,11 @@ services:
 
   postgres-slave:
     build:
-      context: ./docker/slave
+      context: pvz/docker/slave
       dockerfile: Dockerfile
     container_name: pvz-db-slave
     env_file:
-      - .env
+      - pvz/.env
     depends_on:
       - postgres-master
     ports:
@@ -184,14 +188,14 @@ services:
 
   migrator:
     build:
-      context: .
+      context: pvz
       dockerfile: Dockerfile
     container_name: pvz-migrator
     depends_on:
       postgres-master:
         condition: service_healthy
     env_file:
-      - .env
+      - pvz/.env
     entrypoint:
       - sh
       - -c
@@ -200,6 +204,24 @@ services:
         /usr/local/bin/goose -dir /app/migrations postgres "$DOCKER_MIGRATION_DSN" up &&
         echo "[migrator] Finished successfully"
     restart: "no"
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: pvz-jaeger
+    env_file:
+      - pvz/.env
+    ports:
+      - "${JAEGER_UI_PORT}"
+      - "${JAEGER_COLLECTOR_PORT}"
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    restart: unless-stopped
 
 volumes:
   logs-pvz:

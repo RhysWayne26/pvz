@@ -10,8 +10,8 @@ RUN go mod download
 COPY . .
 
 RUN GOBIN=/workspace/bin \
-    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-    go install github.com/pressly/goose/v3/cmd/goose@v3.16.0
+    CGO_ENABLED=0 GOOS=linux \
+    go install github.com/pressly/goose/v3/cmd/goose@v3.16.0 && \
     go build -o pvz cmd/main.go
 
 RUN GOBIN=/workspace/bin go install github.com/grpc-ecosystem/grpc-health-probe@v0.4.39

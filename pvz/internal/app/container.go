@@ -1,19 +1,26 @@
 package app
 
 import (
+	"github.com/prometheus/client_golang/prometheus"
+	"go.opentelemetry.io/otel"
 	"log/slog"
 	"os"
 	"pvz-cli/internal/common/config"
+	"pvz-cli/internal/common/constants"
 	"pvz-cli/internal/data/repositories"
 	"pvz-cli/internal/data/storage"
 	"pvz-cli/internal/infrastructure/brokers"
 	"pvz-cli/internal/infrastructure/db"
+	"pvz-cli/internal/metrics"
 	"pvz-cli/internal/usecases/handlers"
 	"pvz-cli/internal/usecases/services"
+	"pvz-cli/internal/usecases/services/decorators"
 	"pvz-cli/internal/usecases/services/strategies"
 	"pvz-cli/internal/usecases/services/validators"
 	"pvz-cli/internal/workerpool"
 	"pvz-cli/internal/workers"
+	"pvz-cli/pkg/cache"
+	"pvz-cli/pkg/cache/policies"
 	"pvz-cli/pkg/clock"
 	"time"
 )
@@ -26,6 +33,7 @@ type Container struct {
 	facadeHandler    handlers.FacadeHandler
 	outboxDispatcher *workers.DefaultOutboxDispatcher
 	kafkaProducer    brokers.KafkaProducer
+	responseCache    cache.Cache[string, any]
 }
 
 // NewContainer returns a new instance of an application container
@@ -43,6 +51,7 @@ func NewContainer(pool workerpool.WorkerPool) *Container {
 		config: cfg,
 	}
 
+	tracer := otel.Tracer("pvz")
 	switch {
 	case cfg.DB != nil && cfg.DB.WriteDSN != "":
 		client, err := db.NewDefaultPGXClient(cfg.DB.ReadDSN, cfg.DB.WriteDSN)
@@ -51,7 +60,7 @@ func NewContainer(pool workerpool.WorkerPool) *Container {
 			os.Exit(1)
 		}
 		client.SetConnectionSettings(20, 10, time.Hour, 30*time.Minute)
-		txRunner = client
+		txRunner = db.NewTracingTxRunner(client, tracer)
 		orderRepo = repositories.NewPGOrderRepository(client)
 		historyRepo = repositories.NewPGHistoryRepository(client)
 		if cfg.Outbox != nil && cfg.Outbox.BatchSize > 0 {
@@ -96,15 +105,30 @@ func NewContainer(pool workerpool.WorkerPool) *Container {
 	pricingStrategy := strategies.NewDefaultPricingStrategy()
 
 	actorSvc := services.NewDefaultActorService()
-	historySvc := services.NewDefaultHistoryService(historyRepo)
+	baseHistorySvc := services.NewDefaultHistoryService(historyRepo)
+	historySvc := decorators.NewTracingHistoryService(baseHistorySvc, tracer)
 	pricingSvc := services.NewDefaultPackagePricingService(packageValidator, pricingStrategy)
-	orderSvc := services.NewDefaultOrderService(clk, pool, txRunner, orderRepo, outboxRepo, pricingSvc, historySvc, actorSvc, orderValidator)
+	baseOrderSvc := services.NewDefaultOrderService(clk, pool, txRunner, orderRepo, outboxRepo, pricingSvc, historySvc, actorSvc, orderValidator)
+	orderSvc := decorators.NewTracingOrderService(baseOrderSvc, tracer)
+	responsesCache := cache.NewInMemoryShardedCache[string, any](
+		constants.CacheShardsCount,
+		policies.NewTTLPolicy[string, any](),
+		"pvz",
+		"cache",
+		prometheus.DefaultRegisterer,
+	)
+	handlerMetrics, err := metrics.NewDefaultHandlerMetrics(prometheus.DefaultRegisterer)
+	if err != nil {
+		slog.Error("failed to init handler metrics", "error", err)
+		os.Exit(1)
+	}
 
-	facadeHandler := handlers.NewDefaultFacadeHandler(orderSvc, historySvc)
+	facadeHandler := handlers.NewDefaultFacadeHandler(orderSvc, historySvc, responsesCache, handlerMetrics)
 
 	c.orderService = orderSvc
 	c.historyService = historySvc
 	c.facadeHandler = facadeHandler
+	c.responseCache = responsesCache
 	return c
 }
 

@@ -24,7 +24,7 @@ func TracingInterceptor() grpc.UnaryServerInterceptor {
 		if md, ok := metadata.FromIncomingContext(ctx); ok {
 			ctx = otel.GetTextMapPropagator().Extract(ctx, propagation.HeaderCarrier(md))
 		}
-		tracer := otel.Tracer("orders-grpc-server")
+		tracer := otel.Tracer("pvz")
 		ctx, span := tracer.Start(ctx, info.FullMethod, trace.WithSpanKind(trace.SpanKindServer))
 		defer span.End()
 		span.SetAttributes(attribute.String("rpc.method", info.FullMethod))

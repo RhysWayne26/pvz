@@ -89,6 +89,6 @@ migrate-test:
         [ $timeout -le 0 ] && { echo "Timeout waiting for master"; exit 1; }
       done
   script:
-    - make tools/install
+    - make tools-install
     - make migrate-up
     - make migrate-status

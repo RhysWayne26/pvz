@@ -3,6 +3,8 @@ package app
 import (
 	"context"
 	"errors"
+	"github.com/joho/godotenv"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"log"
@@ -35,7 +37,7 @@ type Application struct {
 // New wires up the cancellation context and container.
 func New(logger *zap.SugaredLogger) *Application {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-
+	_ = godotenv.Load()
 	if err := observability.InitTracing(ctx); err != nil {
 		logger.Errorf("failed to init tracing: %v", err)
 	}
@@ -66,6 +68,7 @@ func (a *Application) Run() {
 		func() { a.StartSwaggerUI() },
 		func() { a.StartCLI() },
 		func() { a.StartAdminGRPCServer(adminGRPCPort) },
+		func() { a.StartMetricsServer() },
 	}
 	if a.container.outboxDispatcher != nil {
 		services = append(services, func() {
@@ -194,6 +197,25 @@ func (a *Application) StartOutboxDispatcher() {
 	defer a.wg.Done()
 	if err := a.container.outboxDispatcher.Dispatch(a.ctx); err != nil && !errors.Is(err, context.Canceled) {
 		a.logger.Errorf("outbox dispatcher stopped: %v", err)
+	}
+}
+
+func (a *Application) StartMetricsServer() {
+	defer a.wg.Done()
+	http.Handle("/metrics", promhttp.Handler())
+	srv := &http.Server{Addr: ":9090"}
+	go func() {
+		<-a.ctx.Done()
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		err := srv.Shutdown(ctx)
+		if err != nil {
+			log.Printf("Prometheus shutdown error: %v", err)
+		}
+	}()
+	log.Println("Metrics server started at http://localhost:9090/metrics")
+	if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+		log.Fatalf("Metrics server error: %v", err)
 	}
 }
 
