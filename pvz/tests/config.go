@@ -4,16 +4,18 @@ package tests
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
+	"pvz-cli/internal/infrastructure/db"
+	"time"
+
+	"github.com/docker/go-connections/nat"
 	"github.com/jackc/pgx/v5/stdlib"
-	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/ozontech/allure-go/pkg/framework/provider"
 	"github.com/pressly/goose/v3"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
-	"pvz-cli/internal/infrastructure/db"
-	"time"
 )
 
 const (
@@ -32,6 +34,7 @@ const (
 func NewCommonDeps(t provider.T) CommonDeps {
 	t.Helper()
 	ctx := context.Background()
+	sql.Register("pgx", &stdlib.Driver{})
 	req := testcontainers.ContainerRequest{
 		Image:        "postgres:15-alpine",
 		ExposedPorts: []string{"5432/tcp"},
@@ -40,18 +43,25 @@ func NewCommonDeps(t provider.T) CommonDeps {
 			"POSTGRES_USER":     "testuser",
 			"POSTGRES_DB":       "testdb",
 		},
-		WaitingFor: wait.ForLog("listening on IPv4 address").
-			WithPollInterval(1 * time.Second).
-			WithStartupTimeout(10 * time.Second),
+		WaitingFor: wait.ForSQL("5432/tcp", "pgx",
+			func(host string, port nat.Port) string {
+				return fmt.Sprintf(
+					"postgres://testuser:password@%s:%s/testdb?sslmode=disable",
+					host, port.Port(),
+				)
+			},
+		).WithStartupTimeout(2 * time.Minute),
 	}
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: req,
 		Started:          true,
 	})
 	require.NoError(t, err)
-	port, err := container.MappedPort(ctx, "5432")
+	host, err := container.Host(ctx)
 	require.NoError(t, err)
-	dsn := fmt.Sprintf("postgres://testuser:password@localhost:%s/testdb?sslmode=disable", port.Port())
+	port, err := container.MappedPort(ctx, "5432/tcp")
+	require.NoError(t, err)
+	dsn := fmt.Sprintf("postgres://testuser:password@%s:%s/testdb?sslmode=disable", host, port.Port())
 	client, err := db.NewDefaultPGXClient(dsn, dsn)
 	require.NoError(t, err)
 	sqlDB := stdlib.OpenDBFromPool(client.WritePool)
@@ -60,6 +70,9 @@ func NewCommonDeps(t provider.T) CommonDeps {
 	err = goose.Up(sqlDB, MigrationsDir)
 	require.NoError(t, err)
 	t.Cleanup(func() {
+		if client != nil {
+			_ = client.Close()
+		}
 		_ = container.Terminate(ctx)
 	})
 	return CommonDeps{
