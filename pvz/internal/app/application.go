@@ -3,10 +3,6 @@ package app
 import (
 	"context"
 	"errors"
-	"github.com/joho/godotenv"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"go.uber.org/zap"
-	"google.golang.org/grpc"
 	"log"
 	"net/http"
 	"os"
@@ -22,6 +18,11 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/joho/godotenv"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.uber.org/zap"
+	"google.golang.org/grpc"
 )
 
 // The Application holds shared context and the DI container.
