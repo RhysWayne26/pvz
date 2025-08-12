@@ -1,0 +1,124 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+env:
+  GO111MODULE: on
+  GOPROXY: https://proxy.golang.org,direct
+  GOMODCACHE: ${{ github.workspace }}/.cache/go-mod
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.24
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y unzip curl
+          cd pvz
+          go mod download
+          go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6
+          go install github.com/securego/gosec/v2/cmd/gosec@v2.22.4
+
+      - name: Lint
+        run: make lint
+        working-directory: pvz
+
+  security:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.24
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y unzip curl
+          cd pvz
+          go mod download
+          go install github.com/securego/gosec/v2/cmd/gosec@v2.22.4
+
+      - name: Security check
+        run: make security
+        working-directory: pvz
+
+  build:
+    runs-on: ubuntu-latest
+    needs: [lint, security]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.24
+
+      - name: Build
+        run: make build
+        working-directory: pvz
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pvz-binary
+          path: pvz/pvz
+
+  migrate-test:
+    runs-on: ubuntu-latest
+    needs: build
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+      POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.24
+
+      - name: Install deps
+        run: |
+          sudo apt-get update && sudo apt-get install -y bash make curl unzip postgresql-client
+          cd pvz
+          echo "STORAGE_MODE=db" > .env
+          echo "POSTGRES_DB=${POSTGRES_DB}" >> .env
+          echo "POSTGRES_USER=${POSTGRES_USER}" >> .env
+          echo "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}" >> .env
+
+      - name: Run migrations
+        run: |
+          cd pvz
+          DB_WRITE_DSN="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@127.0.0.1:5432/${POSTGRES_DB}?sslmode=disable" \
+            make tools-install migrate-up migrate-status

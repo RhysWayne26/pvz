@@ -1,5 +1,6 @@
 PROTO_DIR := api/grpc
-PROTO_FILES := orders.proto admin.proto
+ORDER_PROTO_FILES := orders.proto
+ADMIN_PROTO_FILES := admin.proto
 THIRD_PARTY_DIR := third_party
 SWAGGER_OUT := docs/swagger
 PROTO_OUT := internal/gen/orders
@@ -119,7 +120,7 @@ proto-generate: tools-proto tools-protoc proto-setup-third-party $(PROTO_OUT) $(
 	  --plugin=protoc-gen-go-grpc=$(abspath $(TOOLS_BIN))/protoc-gen-go-grpc \
 	  --plugin=protoc-gen-grpc-gateway=$(abspath $(TOOLS_BIN))/protoc-gen-grpc-gateway \
 	  --plugin=protoc-gen-openapiv2=$(abspath $(TOOLS_BIN))/protoc-gen-openapiv2 \
-	  $(PROTO_FILES)
+	  $(ORDER_PROTO_FILES)
 	@echo "Code generated in $(PROTO_OUT)/ and swagger in $(SWAGGER_OUT)/."
 
 .PHONY: proto-generate-admin
@@ -130,17 +131,20 @@ proto-generate-admin: tools-proto tools-protoc proto-setup-third-party $(ADMIN_P
 	../../$(PROTOC_BIN) \
 		-I. \
 		-I../../$(THIRD_PARTY_DIR) \
+		-I../../$(THIRD_PARTY_DIR)/validate \
 		-I../../$(PROTOC_DIR)/include \
 		--go_out=../../$(ADMIN_PROTO_OUT) --go_opt=paths=source_relative \
 		--go-grpc_out=../../$(ADMIN_PROTO_OUT) --go-grpc_opt=paths=source_relative \
 		--grpc-gateway_out=../../$(ADMIN_PROTO_OUT) --grpc-gateway_opt=paths=source_relative \
 		--openapiv2_out=../../$(SWAGGER_OUT) \
 		--openapiv2_opt logtostderr=true,json_names_for_fields=false \
+		--validate_out="lang=go,paths=source_relative:../../$(ADMIN_PROTO_OUT)" \
+		--plugin=protoc-gen-validate=$(abspath $(TOOLS_BIN))/protoc-gen-validate \
 		--plugin=protoc-gen-go=$(abspath $(TOOLS_BIN))/protoc-gen-go \
 		--plugin=protoc-gen-go-grpc=$(abspath $(TOOLS_BIN))/protoc-gen-go-grpc \
 		--plugin=protoc-gen-grpc-gateway=$(abspath $(TOOLS_BIN))/protoc-gen-grpc-gateway \
 		--plugin=protoc-gen-openapiv2=$(abspath $(TOOLS_BIN))/protoc-gen-openapiv2 \
-		admin.proto
+		$(ADMIN_PROTO_FILES)
 	@echo "Admin proto code generated in $(ADMIN_PROTO_OUT)/"
 
 .PHONY: proto-update-deps
