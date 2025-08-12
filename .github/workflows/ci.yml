@@ -99,7 +99,6 @@ jobs:
       POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
       POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
       POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-      DB_WRITE_DSN: ${{ secrets.DB_WRITE_DSN }}
 
     steps:
       - uses: actions/checkout@v4
@@ -117,11 +116,9 @@ jobs:
           echo "POSTGRES_DB=${POSTGRES_DB}" >> .env
           echo "POSTGRES_USER=${POSTGRES_USER}" >> .env
           echo "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}" >> .env
-          echo "DB_WRITE_DSN=${DB_WRITE_DSN}" >> .env
 
       - name: Run migrations
         run: |
           cd pvz
-          make tools-install
-          make migrate-up
-          make migrate-status
+          DB_WRITE_DSN="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@127.0.0.1:5432/${POSTGRES_DB}?sslmode=disable" \
+            make tools-install migrate-up migrate-status
